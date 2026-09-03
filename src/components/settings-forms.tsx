@@ -12,8 +12,8 @@ function Banner({ kind, children }: { kind: "error" | "success"; children: React
       role={kind === "error" ? "alert" : "status"}
       className={
         kind === "error"
-          ? "rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm leading-snug text-red-700"
-          : "rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm leading-snug text-emerald-700"
+          ? "rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm leading-snug text-red-700"
+          : "rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm leading-snug text-emerald-700"
       }
     >
       {children}

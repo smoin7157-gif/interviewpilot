@@ -8,13 +8,18 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-950">Welcome back</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">Log in to continue your interview practice.</p>
+        <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
+          Welcome back
+        </p>
+        <h1 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-zinc-950">
+          Log in to continue
+        </h1>
+        <p className="mt-2 text-[15px] text-zinc-500">Pick up where your practice left off.</p>
       </div>
       <LoginForm />
       <p className="mt-6 text-center text-sm text-zinc-500">
         New to InterviewPilot?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+        <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">
           Create an account
         </Link>
       </p>

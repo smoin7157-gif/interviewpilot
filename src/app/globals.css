@@ -1,15 +1,71 @@
 @import "tailwindcss";
 
+/* ============================================================
+   InterviewPilot — theme · CAREER INTELLIGENCE
+   Palette lifted from the HireAI design reference:
+   blue-slate neutrals, indigo→violet brand, teal success.
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #18181b;
+  --background: #fbfcfe;
+  --foreground: #101528;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-grotesk);
+
+  /* --- blue-slate neutral scale (was: zinc) --- */
+  --color-zinc-50: #f1f4fb;
+  --color-zinc-100: #e4e9f5;
+  --color-zinc-200: #d2daee;
+  --color-zinc-300: #c2cbdf;
+  --color-zinc-400: #8e99b5;
+  --color-zinc-500: #737f9c;
+  --color-zinc-600: #55617e;
+  --color-zinc-700: #3b4460;
+  --color-zinc-800: #232b45;
+  --color-zinc-900: #171d33;
+  --color-zinc-950: #101528;
+
+  /* --- indigo → violet brand (was: indigo) --- */
+  --color-indigo-50: #edeffe;
+  --color-indigo-100: #e0e4fd;
+  --color-indigo-200: #c6cdfa;
+  --color-indigo-300: #a6b0f7;
+  --color-indigo-400: #6e5cf5;
+  --color-indigo-500: #4a57ea;
+  --color-indigo-600: #3d4ee0;
+  --color-indigo-700: #3039c4;
+  --color-indigo-800: #2930a0;
+  --color-indigo-900: #242b82;
+  --color-indigo-950: #1a2067;
+
+  /* --- teal success (was: emerald) --- */
+  --color-emerald-50: #e2f5f2;
+  --color-emerald-100: #cdebe6;
+  --color-emerald-200: #b6e4dd;
+  --color-emerald-300: #8ed6cb;
+  --color-emerald-400: #45bba9;
+  --color-emerald-500: #17a69a;
+  --color-emerald-600: #0e9e8f;
+  --color-emerald-700: #0c8578;
+  --color-emerald-800: #0a6b61;
+  --color-emerald-900: #08554e;
+
+  /* --- amber highlights --- */
+  --color-amber-50: #fcf2e0;
+  --color-amber-100: #f8e7c2;
+  --color-amber-200: #f0d79a;
+  --color-amber-300: #e4bf6b;
+  --color-amber-400: #d6a545;
+  --color-amber-500: #c9821a;
+  --color-amber-600: #ad6f14;
+  --color-amber-700: #8a5a12;
+  --color-amber-800: #6b4510;
+  --color-amber-900: #4f340d;
 }
 
 html {
@@ -19,32 +75,37 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+  font-family: var(--font-jakarta, ui-sans-serif, system-ui, -apple-system, sans-serif);
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background-color: rgb(224 231 255); /* indigo-100 */
+  background-color: rgb(224 228 253); /* indigo-100 */
+}
+
+/* Numerals + eyebrows get Space Grotesk in the reference; expose as a utility. */
+.font-display {
+  font-family: var(--font-grotesk, ui-monospace, monospace);
 }
 
 /* Subtle, consistent scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgb(212 212 216) transparent;
+  scrollbar-color: rgb(210 218 238) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: rgb(212 212 216);
+  background-color: rgb(210 218 238);
   border-radius: 8px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Prevent an ugly white flash while the Geist font loads */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

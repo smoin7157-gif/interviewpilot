@@ -15,7 +15,7 @@ function ErrorBanner({ error }: { error?: string }) {
   return (
     <div
       role="alert"
-      className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm leading-snug text-red-700"
+      className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm leading-snug text-red-700"
     >
       {error}
     </div>
@@ -27,7 +27,7 @@ function SuccessBanner({ message }: { message?: string }) {
   return (
     <div
       role="status"
-      className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm leading-snug text-emerald-700"
+      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm leading-snug text-emerald-700"
     >
       {message}
     </div>
@@ -40,7 +40,10 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
-    <form action={formAction} className="mt-6 space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <form
+      action={formAction}
+      className="mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
+    >
       {state.error && <ErrorBanner error={state.error} />}
       <Field label="Email" htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
         <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
@@ -59,7 +62,10 @@ export function SignupForm() {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
 
   return (
-    <form action={formAction} className="mt-6 space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <form
+      action={formAction}
+      className="mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
+    >
       {state.error && <ErrorBanner error={state.error} />}
       <Field label="Name" htmlFor="name" required error={state.fieldErrors?.name?.[0]}>
         <Input id="name" name="name" type="text" autoComplete="name" placeholder="Alex Rivera" required />

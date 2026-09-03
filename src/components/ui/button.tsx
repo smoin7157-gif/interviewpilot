@@ -13,20 +13,21 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 shadow-sm disabled:hover:bg-indigo-600",
+    "bg-indigo-600 text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(61,78,224,.45)] hover:bg-indigo-700 active:bg-indigo-800 disabled:hover:bg-indigo-600",
   secondary:
-    "bg-zinc-900 text-white hover:bg-zinc-700 active:bg-zinc-800 shadow-sm disabled:hover:bg-zinc-900",
+    "bg-zinc-950 text-white hover:bg-zinc-800 active:bg-zinc-900 shadow-sm disabled:hover:bg-zinc-950",
   outline:
-    "border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 active:bg-zinc-100 disabled:hover:bg-white",
+    "border border-zinc-300 bg-white text-zinc-900 shadow-sm hover:border-zinc-400 hover:bg-zinc-50 active:bg-zinc-100 disabled:hover:bg-white",
   ghost: "text-zinc-700 hover:bg-zinc-100 active:bg-zinc-200 disabled:hover:bg-transparent",
-  danger: "bg-red-600 text-white hover:bg-red-500 active:bg-red-700 shadow-sm disabled:hover:bg-red-600",
+  danger:
+    "bg-[#c74263] text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(199,66,99,.5)] hover:bg-[#b53755] active:bg-[#a12e49] disabled:hover:bg-[#c74263]",
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm gap-1.5 rounded-md",
-  md: "h-10 px-4 text-sm gap-2 rounded-lg",
-  lg: "h-11 px-6 text-[15px] gap-2 rounded-lg",
-  icon: "h-9 w-9 rounded-lg",
+  sm: "h-8 px-4 text-[13px] gap-1.5 rounded-full",
+  md: "h-10 px-5 text-sm gap-2 rounded-full",
+  lg: "h-11 px-7 text-[15px] gap-2 rounded-full",
+  icon: "h-9 w-9 rounded-full",
 };
 
 export function buttonClasses({
@@ -39,9 +40,10 @@ export function buttonClasses({
   className?: string;
 } = {}) {
   return cn(
-    "inline-flex select-none items-center justify-center font-medium transition-colors",
+    "inline-flex select-none items-center justify-center font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,box-shadow] duration-200",
+    "hover:-translate-y-px active:translate-y-0",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
-    "disabled:cursor-not-allowed disabled:opacity-60",
+    "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
     variantClasses[variant],
     sizeClasses[size],
     className
@@ -58,9 +60,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type ?? "button"}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex select-none items-center justify-center font-medium transition-colors",
+        "inline-flex select-none items-center justify-center font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,box-shadow] duration-200",
+        "hover:-translate-y-px active:translate-y-0",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed disabled:opacity-60",
+        "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
         variantClasses[variant],
         sizeClasses[size],
         className

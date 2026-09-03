@@ -24,7 +24,7 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 shrink-0 items-center border-b border-zinc-100 px-5">
+      <div className="flex h-16 shrink-0 items-center border-b border-zinc-200/80 px-5">
         <Link
           href="/dashboard"
           onClick={onNavigate}
@@ -32,7 +32,7 @@ function SidebarContent({
           aria-label="InterviewPilot dashboard"
         >
           <LogoMark />
-          <span className="text-[15px] font-semibold tracking-tight text-zinc-950">
+          <span className="text-[15px] font-bold tracking-[-0.02em] text-zinc-950">
             Interview<span className="text-indigo-600">Pilot</span>
           </span>
         </Link>
@@ -42,10 +42,7 @@ function SidebarContent({
         <Link
           href="/interviews/new"
           onClick={onNavigate}
-          className={cn(
-            "mb-5 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          )}
+          className="mb-5 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-indigo-600 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(61,78,224,.5)] transition-colors hover:bg-indigo-700"
         >
           <Plus className="size-4" aria-hidden />
           Create Interview
@@ -61,41 +58,47 @@ function SidebarContent({
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors",
                   active
-                    ? "bg-zinc-100 text-zinc-950"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
                 )}
               >
-                <item.icon className={cn("size-4.5", active ? "text-indigo-600" : "text-zinc-400")} aria-hidden />
+                <item.icon
+                  className={cn("size-4.5", active ? "text-indigo-600" : "text-zinc-400")}
+                  aria-hidden
+                />
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-6 border-t border-zinc-100 pt-4">
+        <div className="mt-6 border-t border-zinc-200/80 pt-4">
           <Link
             href="/settings"
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors",
               pathname === "/settings"
-                ? "bg-zinc-100 text-zinc-950"
-                : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
             )}
           >
-            <Settings className={cn("size-4.5", pathname === "/settings" ? "text-indigo-600" : "text-zinc-400")} aria-hidden />
+            <Settings
+              className={cn("size-4.5", pathname === "/settings" ? "text-indigo-600" : "text-zinc-400")}
+              aria-hidden
+            />
             Settings
           </Link>
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-zinc-100 p-3">
-        <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
+      <div className="shrink-0 border-t border-zinc-200/80 p-3">
+        <div className="flex items-center gap-3 rounded-full px-2 py-1.5">
           <span
             aria-hidden
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-indigo-400 text-xs font-semibold text-white"
           >
             {initials(user.name)}
           </span>
@@ -131,7 +134,7 @@ export function AppShell({
   return (
     <div className="flex h-dvh overflow-hidden bg-zinc-50">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-zinc-200 bg-white md:block">
+      <aside className="hidden w-64 shrink-0 border-r border-zinc-200/80 bg-white md:block">
         <SidebarContent user={user} />
       </aside>
 
