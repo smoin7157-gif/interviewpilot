@@ -1,0 +1,83 @@
+// InterviewPilot — MVP schema (SQLite)
+// Designed so it can be lifted to PostgreSQL/Supabase later:
+// switch provider + url and enable RLS policies at the database layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions InterviewSession[]
+  attempts QuestionAttempt[]
+
+  @@map("users")
+}
+
+model InterviewSession {
+  id                  String   @id @default(cuid())
+  userId              String
+  role                String
+  seniority           String
+  company             String?
+  jobDescription      String?
+  status              String   @default("DRAFT") // DRAFT | READY
+  questionCountTarget Int      @default(10)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions InterviewQuestion[]
+
+  @@index([userId])
+  @@map("interview_sessions")
+}
+
+model InterviewQuestion {
+  id              String   @id @default(cuid())
+  sessionId       String
+  question        String
+  category        String // Technical | Behavioral | Project | Role-specific | General
+  difficulty      String // Easy | Medium | Hard
+  reason          String
+  suggestedAnswer String
+  followUps       Json // string[] of follow-up questions
+  orderIndex      Int
+  status          String   @default("NOT_STARTED") // NOT_STARTED | PRACTICED | SKIPPED
+  createdAt       DateTime @default(now())
+
+  session  InterviewSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attempts QuestionAttempt[]
+
+  @@index([sessionId, orderIndex])
+  @@map("interview_questions")
+}
+
+model QuestionAttempt {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  prompt     String? // the exact prompt that was practiced (main question or a follow-up)
+  answer     String
+  score      Int?
+  feedback   Json? // { strengths: string[], missing: string[], improvements: string[] }
+  createdAt  DateTime @default(now())
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([questionId])
+  @@map("question_attempts")
+}
