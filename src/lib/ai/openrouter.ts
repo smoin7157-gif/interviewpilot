@@ -41,7 +41,7 @@ export class OpenRouterProvider implements AIProvider {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_KEY}`,
         "HTTP-Referer": process.env.APP_URL ?? "http://localhost:3000",
-        "X-Title": "InterviewPilot",
+        "X-Title": "InterviewOS",
       },
       body: JSON.stringify({
         model: this.model,

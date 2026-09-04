@@ -9,6 +9,8 @@ export type GenerationContextPayload = {
   role: string;
   seniority: string;
   company?: string | null;
+  companyType?: string | null;
+  interviewType?: string | null;
   jobDescription?: string | null;
   count: number;
 };
@@ -16,7 +18,7 @@ export type GenerationContextPayload = {
 type StageKey = "analyzing" | "questions" | "followups" | "saving";
 
 const STAGES: { key: StageKey; label: string; detail: string }[] = [
-  { key: "analyzing", label: "Analyzing the role", detail: "Weighing job description, role and seniority" },
+  { key: "analyzing", label: "Analyzing the role", detail: "Weighing job description, role, experience and interview type" },
   { key: "questions", label: "Creating relevant questions", detail: "Building a realistic question set" },
   { key: "followups", label: "Preparing follow-up questions", detail: "Adding deeper probing questions" },
   { key: "saving", label: "Finalizing your interview", detail: "Saving your session so you can return anytime" },
@@ -162,7 +164,7 @@ export function GeneratePanel({
         </p>
         {doneInfo.source === "fallback" && (
           <p className="mx-auto mt-3 max-w-sm rounded-lg bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-800">
-            Live AI was unavailable, so we used InterviewPilot&rsquo;s built-in question bank. Everything works
+            Live AI was unavailable, so we used InterviewOS&rsquo;s built-in question bank. Everything works
             the same — configure OPENROUTER_API_KEY to get fully tailored questions.
           </p>
         )}
@@ -185,6 +187,7 @@ export function GeneratePanel({
           <h3 className="text-base font-semibold text-zinc-950">{title}</h3>
           <p className="text-[13px] text-zinc-500">
             {context.role} · {context.seniority}
+            {context.interviewType ? ` · ${context.interviewType}` : ""}
             {context.company ? ` · ${context.company}` : ""} · {context.count} questions
           </p>
         </div>

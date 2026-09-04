@@ -10,16 +10,16 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
     heading: "Getting started",
     items: [
       {
-        q: "What is InterviewPilot?",
-        a: "InterviewPilot is an interview practice workspace. You pick the role you're targeting (for example \"Security Engineer\"), along with seniority and company, and InterviewPilot generates realistic interview questions you can practice against. After you submit an answer, it scores your response and gives you feedback so you can sharpen your delivery before the real thing.",
+        q: "What is InterviewOS?",
+        a: "InterviewOS is an interview practice workspace. You tell it about the job you're targeting — the role (for example \"Security Engineer\"), your experience level, the company, company type, interview type, and optionally the job description — and it generates realistic interview questions you can practice against. After you submit an answer, it scores your response and gives you feedback so you can sharpen your delivery before the real thing.",
       },
       {
         q: "How do I start a practice session?",
-        a: "Click \"Create Interview\" in the sidebar, fill in the role, seniority, company (optional), and how many questions you want (10, 15, or 20), then generate the questions. Open the interview from \"My Interviews\" and start answering each question one at a time.",
+        a: "Click \"Create Interview\" in the sidebar. Fill in your target job — job role and experience level are required; company, company type, interview type, and a pasted job description add context — choose 10, 15, or 20 questions, and generate. Open the interview from \"My Interviews\" and start answering each question one at a time.",
       },
       {
         q: "What roles can I practice?",
-        a: "Any role you can type. Roles are freeform text, so you can practice for a Security Engineer, Frontend Engineer, Product Manager, Data Scientist, or any other title. Add optional seniority and a target company to make the questions more specific.",
+        a: "Any role you can type. Roles are freeform text, so you can practice for a Security Engineer, Frontend Engineer, Product Manager, Data Scientist, or any other title. Adding an experience level, interview type, company, and job description makes the questions more specific to what you'll actually face.",
       },
     ],
   },
@@ -53,7 +53,7 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: "What happens if the AI isn't available?",
-        a: "InterviewPilot falls back to a built-in question bank, so you can keep practicing even when the AI service isn't reachable or isn't configured. Your interviews and history are never lost.",
+        a: "InterviewOS falls back to a built-in question bank, so you can keep practicing even when the AI service isn't reachable or isn't configured. Your interviews and history are never lost.",
       },
       {
         q: "Who can see my data?",

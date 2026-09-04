@@ -46,6 +46,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
           role: session.role,
           seniority: session.seniority,
           company: session.company ?? undefined,
+          companyType: session.companyType ?? undefined,
+          interviewType: session.interviewType ?? undefined,
           jobDescription: session.jobDescription ?? undefined,
           count: session.questionCountTarget,
         });

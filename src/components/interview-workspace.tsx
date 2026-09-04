@@ -470,6 +470,8 @@ export function InterviewWorkspace({
     role: session.role,
     seniority: session.seniority,
     company: session.company,
+    companyType: session.companyType,
+    interviewType: session.interviewType,
     jobDescription: session.jobDescription,
     count: session.questionCountTarget,
   };
@@ -635,7 +637,9 @@ export function InterviewWorkspace({
             {session.company ? ` · ${session.company}` : ""}
           </h1>
           <p className="truncate text-xs text-zinc-400">
-            {session.seniority} · {questions.length} {pluralize(questions.length, "question")}
+            {session.seniority}
+            {session.interviewType ? ` · ${session.interviewType}` : ""} · {questions.length}{" "}
+            {pluralize(questions.length, "question")}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">

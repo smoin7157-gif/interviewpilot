@@ -1,25 +1,25 @@
-# InterviewPilot
+# InterviewOS
 
-> Practice smarter. Walk into every interview prepared.
+> Practice your interview before the real one.
 
-InterviewPilot is an AI interview-practice MVP. Pick a job role, generate a
-realistic set of interview questions, practice your answer, reveal a suggested
-answer, dig into follow-ups, and get specific AI feedback on the answer you
-actually wrote.
+InterviewOS is an AI-powered interview practice platform. Tell it about the job
+you're targeting — role, experience level, company, company type, interview
+type and the job description — and it generates a realistic question set,
+then gives you written practice with specific AI feedback on every answer you
+write.
 
-This repository currently contains the **MVP scope only** — interview question
-practice. Future InterviewOS modules (resume intelligence, roadmap, mock
-interviews, etc.) are intentionally not built, but the architecture keeps room
-for them.
+This build is the **V1 foundation**: a working written-practice loop with the
+InterviewOS setup model, docs, and roadmap in place. AI Mock Interviews,
+resume/GitHub/project context and debriefs are planned next (see
+[ROADMAP.md](./ROADMAP.md)).
 
 ## Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) — pages + API routes
-- **Tailwind CSS v4** + hand-rolled shadcn-style UI primitives + Lucide icons
+- **Tailwind CSS v4** + hand-rolled UI primitives + Lucide icons
 - **Prisma ORM** on **SQLite** (`prisma/dev.db`) — schema is portable to Postgres/Supabase
 - **Auth**: email + password (bcrypt), signed httpOnly session cookies (jose)
-- **AI**: OpenRouter (`openai/gpt-4o-mini` by default) with a provider
-  abstraction and a deterministic offline fallback
+- **AI**: OpenRouter with a provider abstraction and a deterministic offline fallback
 
 ## Getting started
 
@@ -42,42 +42,36 @@ OpenRouter is optional at runtime: without a key (or if a call fails) the app
 gracefully falls back to a built-in, deterministic question bank and evaluator
 so every screen still works. The UI tells you when the fallback is active.
 
-### Test accounts
-
-You can sign up in the UI, or use the pre-seeded demo account:
-
-```text
-email:    demo@interviewpilot.dev
-password: password123
-```
+Create an account at `/signup` to start.
 
 ## Pages
 
 | Route | Purpose |
 | --- | --- |
 | `/` | Landing page |
-| `/signup`, `/login` | Basic auth |
-| `/dashboard` | Greeting + recent interviews |
+| `/signup`, `/login` | Auth (server actions + session cookie) |
+| `/dashboard` | Greeting + recent interviews (real data) |
 | `/interviews` | My Interviews (cards, progress, delete) |
-| `/interviews/new` | Create interview → streams AI generation |
+| `/interviews/new` | Interview setup → streams AI generation |
 | `/interviews/[id]` | Practice workspace (questions, follow-ups, answers, evaluation) |
-| `/settings` | Name + password |
+| `/faq` | Frequently asked questions |
+| `/settings` | Profile name + password |
 
-## Workflow (how a user flows through the product)
+## Workflow
 
 ```text
 Open app → Create account / Log in
   → Dashboard → "+ New Interview"
-    → enter Job Role + Experience Level (+ optional Company / Job Description / 10-15-20 questions)
+    → target job: Company / Company type · Job role (required) ·
+      Experience level (required) · Interview type · Job description · 10/15/20 questions
     → "Generate Interview" (streams: Analyzing role → Questions → Follow-ups → Saving)
   → Workspace: question list on the left, detail on the right
     → pick a question → read "Why this question matters"
-    → think → "See Answer" to reveal the suggested answer
-    → "Follow Up" tab / follow-up chips for deeper questions
-    → "Practice Answer" → type → "Evaluate My Answer" → score + strengths/missing/improvements
-    → ← / → or arrow keys move through questions; Skip is available
+    → reveal the suggested answer when ready → practice written answers
+    → follow-up chips probe deeper
+    → submit → score + strengths / missing / improvements
   → Progress bar tracks practiced/total per interview
-  → Leave and come back later: /interviews shows your sessions with progress
+  → /interviews lists sessions with progress; delete via the ⋯ menu
 ```
 
 ## Useful commands
@@ -95,10 +89,5 @@ npx prisma studio # inspect the local database
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — structure, data flow, AI pipeline
 - [DATABASE.md](./DATABASE.md) — schema and ownership rules
 - [API.md](./API.md) — HTTP endpoints
-
-## Scripts / utilities
-
-- `prisma/migrations/` — schema migrations
-- `src/lib/ai/` — provider abstraction (OpenRouter + fallback), prompts, strict output validation
-- `src/lib/auth.ts` — sessions, password hashing
-- `src/lib/data.ts` — ownership-scoped queries
+- [ROADMAP.md](./ROADMAP.md) — phase plan for V1
+- `.env.example` — environment template

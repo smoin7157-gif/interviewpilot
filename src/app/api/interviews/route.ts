@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: first }, { status: 422 });
   }
 
-  const { role, seniority, company, jobDescription, questionCount } = parsed.data;
+  const { role, seniority, company, companyType, interviewType, jobDescription, questionCount } = parsed.data;
 
   const session = await prisma.interviewSession.create({
     data: {
@@ -31,11 +31,21 @@ export async function POST(request: Request) {
       role,
       seniority,
       company: company || null,
+      companyType: companyType || null,
+      interviewType: interviewType || null,
       jobDescription: jobDescription || null,
       questionCountTarget: questionCount,
       status: "DRAFT",
     },
-    select: { id: true, role: true, seniority: true, company: true, status: true },
+    select: {
+      id: true,
+      role: true,
+      seniority: true,
+      company: true,
+      companyType: true,
+      interviewType: true,
+      status: true,
+    },
   });
 
   return NextResponse.json(session, { status: 201 });
@@ -59,6 +69,8 @@ export async function GET() {
       role: session.role,
       seniority: session.seniority,
       company: session.company,
+      companyType: session.companyType,
+      interviewType: session.interviewType,
       status: session.status,
       questionCount: session.questions.length,
       practicedCount: session.questions.filter((q) => q.status === "PRACTICED").length,

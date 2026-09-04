@@ -17,7 +17,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Link href="/" className="inline-flex items-center gap-2.5">
           <LogoMark />
           <span className="text-[16px] font-bold tracking-[-0.02em] text-zinc-950">
-            Interview<span className="text-indigo-600">Pilot</span>
+            Interview<span className="text-indigo-600">OS</span>
           </span>
         </Link>
       </header>

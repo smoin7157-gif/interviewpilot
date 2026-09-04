@@ -33,6 +33,8 @@ export interface InterviewSummary {
   id: string;
   role: string;
   company: string | null;
+  companyType: string | null;
+  interviewType: string | null;
   seniority: string;
   status: string;
   questionCount: number;
@@ -65,6 +67,8 @@ export async function listSessionsForUser(userId: string): Promise<InterviewSumm
     id: session.id,
     role: session.role,
     company: session.company,
+    companyType: session.companyType,
+    interviewType: session.interviewType,
     seniority: session.seniority,
     status: session.status,
     questionCount: session.questions.length,

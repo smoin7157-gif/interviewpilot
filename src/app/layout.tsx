@@ -14,11 +14,11 @@ const grotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: {
-    default: "InterviewPilot — Practice smarter. Walk into every interview prepared.",
-    template: "%s · InterviewPilot",
+    default: "InterviewOS — Practice your interview before the real one.",
+    template: "%s · InterviewOS",
   },
   description:
-    "Generate realistic interview questions for the role you're targeting, practice your answers, and learn what strong responses look like.",
+    "InterviewOS generates realistic, role-specific interview questions and gives you written practice with AI feedback on every answer — before the real interview.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

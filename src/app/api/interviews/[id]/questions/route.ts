@@ -29,6 +29,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       role: session.role,
       seniority: session.seniority,
       company: session.company,
+      companyType: session.companyType,
+      interviewType: session.interviewType,
+      jobDescription: session.jobDescription,
       status: session.status,
     },
     questions: session.questions.map((q) => ({

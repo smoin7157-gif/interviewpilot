@@ -40,6 +40,8 @@ export default async function InterviewWorkspacePage({
     role: session.role,
     seniority: session.seniority,
     company: session.company,
+    companyType: session.companyType,
+    interviewType: session.interviewType,
     jobDescription: session.jobDescription,
     status: session.status as WorkspaceSession["status"],
     questionCountTarget: session.questionCountTarget,

@@ -3,7 +3,8 @@ import type { GenerationContext } from "./types";
 export const GENERATION_SYSTEM_PROMPT = `You are an experienced technical recruiter and interviewer who designs realistic interview practice sets for job candidates.
 
 Rules:
-- Generate realistic interview questions for the exact target role and seniority.
+- Generate realistic interview questions for the exact target role and experience level.
+- When an interview type is provided (e.g. Technical, Behavioral, Coding, System Design, Data/ML, Mixed), shape the question mix to that type; when it is absent, use a sensible general mix.
 - Use the provided job description when available — prioritize its actual responsibilities, tools, and requirements.
 - Use the candidate's resume only for facts actually present. Never invent candidate experience.
 - Cover a sensible mix of Technical, Behavioral, Project, Role-specific, and General questions appropriate to the role.
@@ -19,7 +20,9 @@ export function buildGenerationUserPrompt(ctx: GenerationContext): string {
 
   lines.push(`Target role: ${ctx.role}`);
   lines.push(`Experience level: ${ctx.seniority}`);
+  if (ctx.companyType) lines.push(`Company type: ${ctx.companyType}`);
   if (ctx.company) lines.push(`Company: ${ctx.company}`);
+  if (ctx.interviewType) lines.push(`Interview type: ${ctx.interviewType}`);
   if (ctx.jobDescription) lines.push(`\nJob description:\n${ctx.jobDescription}`);
   lines.push(
     `\nGenerate exactly ${ctx.count} questions as a JSON object in this shape:\n` +
@@ -54,10 +57,14 @@ export function buildFollowUpUserPrompt(ctx: {
   role: string;
   seniority: string;
   company?: string;
+  companyType?: string;
+  interviewType?: string;
   jobDescription?: string;
 }): string {
   const lines = [`Main question: ${ctx.question}`, `Target role: ${ctx.role}`, `Experience level: ${ctx.seniority}`];
+  if (ctx.companyType) lines.push(`Company type: ${ctx.companyType}`);
   if (ctx.company) lines.push(`Company: ${ctx.company}`);
+  if (ctx.interviewType) lines.push(`Interview type: ${ctx.interviewType}`);
   if (ctx.jobDescription) lines.push(`\nJob description:\n${ctx.jobDescription}`);
   return lines.join("\n");
 }

@@ -2,9 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BriefcaseBusiness, FileText, Hash, ShieldCheck } from "lucide-react";
+import { BriefcaseBusiness, Building2, FileText, Hash, Layers, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QUESTION_COUNT_OPTIONS, SENIORITY_OPTIONS } from "@/lib/validation";
+import {
+  COMPANY_TYPE_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  INTERVIEW_TYPE_OPTIONS,
+  QUESTION_COUNT_OPTIONS,
+} from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -32,11 +37,14 @@ function ChipGroup({
   value,
   onChange,
   ariaLabel,
+  optional = false,
 }: {
   options: readonly string[];
   value: string;
   onChange: (value: string) => void;
   ariaLabel: string;
+  /** When true the selection can be cleared by clicking the active chip. */
+  optional?: boolean;
 }) {
   return (
     <div role="radiogroup" aria-label={ariaLabel} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -48,7 +56,7 @@ function ChipGroup({
             type="button"
             role="radio"
             aria-checked={selected}
-            onClick={() => onChange(option)}
+            onClick={() => onChange(selected && optional ? "" : option)}
             className={cn(
               "flex h-10 items-center justify-center rounded-lg border text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
@@ -71,6 +79,8 @@ export function NewInterviewFlow() {
   const [role, setRole] = useState("");
   const [seniority, setSeniority] = useState("");
   const [company, setCompany] = useState("");
+  const [companyType, setCompanyType] = useState("");
+  const [interviewType, setInterviewType] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [count, setCount] = useState<number>(10);
 
@@ -85,10 +95,12 @@ export function NewInterviewFlow() {
       role: role.trim(),
       seniority,
       company: company.trim() || null,
+      companyType: companyType || null,
+      interviewType: interviewType || null,
       jobDescription: jobDescription.trim() || null,
       count,
     }),
-    [role, seniority, company, jobDescription, count]
+    [role, seniority, company, companyType, interviewType, jobDescription, count]
   );
 
   async function handleGenerate() {
@@ -142,10 +154,10 @@ export function NewInterviewFlow() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-[28px]">
-        Prepare for an interview
+        Prepare for your interview
       </h1>
       <p className="mt-1.5 text-[15px] text-zinc-500">
-        Tell us about the role. We&rsquo;ll generate a realistic question set you can practice right away.
+        Give InterviewOS enough context to make your practice relevant to the job you&rsquo;re targeting.
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_280px]">
@@ -160,11 +172,35 @@ export function NewInterviewFlow() {
             <section className="space-y-5">
               <SectionTitle
                 step="1"
-                title="The role you're preparing for"
-                subtitle="Required — this shapes every question we generate."
+                title="Target job"
+                subtitle="What you're preparing for — this shapes every question we generate."
               />
               <Field
-                label="Job Role"
+                label="Company"
+                htmlFor="company"
+                hint="Optional — e.g. Microsoft"
+              >
+                <Input
+                  id="company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Microsoft"
+                />
+              </Field>
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-zinc-800">
+                  Company type <span className="font-normal text-zinc-400">(optional)</span>
+                </p>
+                <ChipGroup
+                  options={COMPANY_TYPE_OPTIONS}
+                  value={companyType}
+                  onChange={setCompanyType}
+                  ariaLabel="Company type"
+                  optional
+                />
+              </div>
+              <Field
+                label="Job role"
                 htmlFor="role"
                 required
                 error={fieldErrors.role}
@@ -181,12 +217,12 @@ export function NewInterviewFlow() {
               <div className="space-y-1.5">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm font-medium text-zinc-800">
-                    Experience Level
+                    Experience level
                     <span className="ml-0.5 text-zinc-400" aria-hidden>*</span>
                   </span>
                 </div>
                 <ChipGroup
-                  options={SENIORITY_OPTIONS}
+                  options={EXPERIENCE_OPTIONS}
                   value={seniority}
                   onChange={setSeniority}
                   ariaLabel="Experience level"
@@ -204,21 +240,25 @@ export function NewInterviewFlow() {
             <section className="space-y-5">
               <SectionTitle
                 step="2"
-                title="Add context (optional)"
-                subtitle="The more context you add, the more tailored your questions will be."
+                title="Interview type"
+                subtitle="Recommended — matches the questions to the format you'll actually face."
               />
-              <Field label="Company" htmlFor="company" hint="Optional">
-                <Input
-                  id="company"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  placeholder="Amazon"
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-zinc-800">
+                  Interview type <span className="font-normal text-zinc-400">(optional)</span>
+                </p>
+                <ChipGroup
+                  options={INTERVIEW_TYPE_OPTIONS}
+                  value={interviewType}
+                  onChange={setInterviewType}
+                  ariaLabel="Interview type"
+                  optional
                 />
-              </Field>
+              </div>
               <Field
-                label="Job Description"
+                label="Job description"
                 htmlFor="jobDescription"
-                hint={`${jobDescription.length.toLocaleString()} / 12,000`}
+                hint={`${jobDescription.length.toLocaleString()} / 12,000 — optional, strongly recommended`}
               >
                 <Textarea
                   id="jobDescription"
@@ -272,26 +312,41 @@ export function NewInterviewFlow() {
               <div className="flex items-start gap-3">
                 <Hash className="mt-0.5 size-4 shrink-0 text-zinc-400" aria-hidden />
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">Level</dt>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">Experience</dt>
                   <dd className="mt-0.5 text-sm text-zinc-800">{seniority || "—"}</dd>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Building2 className="mt-0.5 size-4 shrink-0 text-zinc-400" aria-hidden />
+                <div className="min-w-0">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">Company</dt>
+                  <dd className="mt-0.5 text-sm text-zinc-800">
+                    {company || "—"}
+                    {companyType ? ` · ${companyType}` : ""}
+                  </dd>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Layers className="mt-0.5 size-4 shrink-0 text-zinc-400" aria-hidden />
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">Interview type</dt>
+                  <dd className="mt-0.5 text-sm text-zinc-800">{interviewType || "General mix"}</dd>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <FileText className="mt-0.5 size-4 shrink-0 text-zinc-400" aria-hidden />
                 <div className="min-w-0">
                   <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">Context</dt>
-                  <dd className="mt-0.5 text-sm text-zinc-800">
-                    {company || "No company"}
-                    {jobDescription ? " · JD pasted" : ""}
-                  </dd>
+                  <dd className="mt-0.5 text-sm text-zinc-800">{jobDescription ? "JD pasted" : "No JD"}</dd>
                 </div>
               </div>
             </dl>
           </Card>
           <Card className="p-5">
             <p className="text-[13px] leading-relaxed text-zinc-500">
-              Questions are built from the job description first, then the role, seniority, and company.
-              Suggested answers and follow-ups come with every question.
+              Questions are built from the job description first, then the role, interview type,
+              experience level, company type, and company. Suggested answers and follow-ups come
+              with every question.
             </p>
           </Card>
         </aside>

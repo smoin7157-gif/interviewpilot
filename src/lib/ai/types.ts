@@ -14,6 +14,8 @@ export interface GenerationContext {
   role: string;
   seniority: string;
   company?: string;
+  companyType?: string;
+  interviewType?: string;
   jobDescription?: string;
   count: number;
 }
@@ -23,6 +25,8 @@ export interface FollowUpContext {
   role: string;
   seniority: string;
   company?: string;
+  companyType?: string;
+  interviewType?: string;
   jobDescription?: string;
 }
 

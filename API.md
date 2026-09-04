@@ -1,9 +1,9 @@
-# InterviewPilot — API
+# InterviewOS — API
 
-All routes are server-side only and require the `ip_session` cookie (set by
-auth). Responses are JSON. Errors use `{ "error": "message" }` with
-appropriate status codes (`400` bad body, `401` unauthenticated, `404` missing
-or not owned, `409` conflict, `422` validation).
+All routes are server-side only and require the session cookie (set by auth).
+Responses are JSON. Errors use `{ "error": "message" }` with appropriate
+status codes (`400` bad body, `401` unauthenticated, `404` missing or not
+owned, `409` conflict, `422` validation).
 
 ## Auth
 
@@ -19,16 +19,21 @@ Create an interview session (status `DRAFT`, no questions yet).
 ```json
 {
   "role": "Software Development Engineer",
-  "seniority": "Entry Level",
-  "company": "Amazon",
+  "seniority": "3–5 years",
+  "company": "Microsoft",
+  "companyType": "Product Company",
+  "interviewType": "Technical",
   "jobDescription": "…",
   "questionCount": 10
 }
 ```
 
+`role` and `seniority` (experience level) are required. `company`,
+`companyType`, `interviewType`, and `jobDescription` are optional.
+
 ### `GET /api/interviews` → 200
-List the caller’s sessions, newest activity first, with `questionCount` and
-`practicedCount`.
+List the caller's sessions, newest activity first, with `questionCount`,
+`practicedCount`, plus `companyType`/`interviewType` when set.
 
 ### `GET /api/interviews/{id}` → 200
 Full session incl. questions. 404 when not owned.
@@ -37,8 +42,8 @@ Full session incl. questions. 404 when not owned.
 Deletes the session; questions and attempts cascade.
 
 ### `POST /api/interviews/{id}/generate` → NDJSON stream
-Generates and persists questions for a `DRAFT` session. **Not** a JSON response:
-a newline-delimited stream of events:
+Generates and persists questions for a `DRAFT` session. **Not** a JSON
+response: a newline-delimited stream of events:
 
 ```text
 {"type":"stage","key":"analyzing"}
@@ -48,13 +53,15 @@ a newline-delimited stream of events:
 {"type":"done","questionCount":10,"provider":"openrouter","model":"openai/gpt-4o-mini"}
 ```
 
-`stage` events reflect real pipeline steps (the UI renders them as checkmarks);
-`done` carries the final count + provider; `error` aborts the stream with a
-user-safe message. Returns 409 if questions already exist.
+`stage` events reflect real pipeline steps (the UI renders them as
+checkmarks); `done` carries the final count + provider; `error` aborts the
+stream with a user-safe message. Returns 409 if questions already exist.
 
 ### `GET /api/interviews/{id}/questions` → 200
 Persisted questions in order, each with `category`, `difficulty`, `reason`,
-`suggestedAnswer`, `followUps`, `status`, and latest `lastScore`.
+`suggestedAnswer`, `followUps`, `status`, and latest `lastScore`. The `session`
+object includes `role`, `seniority`, `company`, `companyType`,
+`interviewType`, and `status`.
 
 ## Questions
 
@@ -64,7 +71,7 @@ Persisted questions in order, each with `category`, `difficulty`, `reason`,
 ```
 
 ### `POST /api/questions/{id}/evaluate` → 200
-Evaluates the user’s actual answer via AI, stores a `question_attempt`, and
+Evaluates the user's actual answer via AI, stores a `question_attempt`, and
 marks the question `PRACTICED`.
 
 ```json
@@ -97,3 +104,16 @@ marks the question `PRACTICED`.
 | 404 | resource not found **or not owned by caller** |
 | 409 | generation already done for this session |
 | 422 | validation failure (Zod) |
+
+## Planned endpoints (not implemented — see ROADMAP.md)
+
+```text
+PATCH  /api/interviews/:id                       (edit setup)
+POST   /api/resume/parse                          (PDF/DOCX → extracted sections)
+POST   /api/github/analyze                        (public repos, metadata, README)
+POST   /api/mock-interviews                       (start voice session)
+GET    /api/mock-interviews/:id
+POST   /api/mock-interviews/:id/turn              (AI question / candidate answer)
+POST   /api/mock-interviews/:id/end
+GET    /api/mock-interviews/:id/debrief
+```

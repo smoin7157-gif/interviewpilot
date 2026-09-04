@@ -1,12 +1,33 @@
 import { z } from "zod";
 
-export const SENIORITY_OPTIONS = [
-  "Intern",
-  "Entry Level",
-  "Junior",
-  "Mid Level",
-  "Senior",
-  "Lead",
+/** Experience levels — InterviewOS vocabulary. Stored in the `seniority` column. */
+export const EXPERIENCE_OPTIONS = [
+  "Fresher",
+  "0–1 years",
+  "1–3 years",
+  "3–5 years",
+  "5+ years",
+] as const;
+
+export const COMPANY_TYPE_OPTIONS = [
+  "Product Company",
+  "Service Company",
+  "Startup",
+  "MNC",
+  "Consulting",
+  "Other",
+] as const;
+
+export const INTERVIEW_TYPE_OPTIONS = [
+  "General",
+  "Technical",
+  "Behavioral",
+  "HR / Recruiter",
+  "Coding",
+  "System Design",
+  "Data / ML",
+  "Product",
+  "Mixed",
 ] as const;
 
 export const QUESTION_COUNT_OPTIONS = [10, 15, 20] as const;
@@ -16,10 +37,16 @@ export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
 
 export const QUESTION_STATUSES = ["NOT_STARTED", "PRACTICED", "SKIPPED"] as const;
 
+/** Optional chip-style field: empty string means "not selected". */
+const optionalChoice = <T extends readonly string[]>(options: T) =>
+  z.enum(options).optional().or(z.literal(""));
+
 export const createInterviewSchema = z.object({
   role: z.string().trim().min(2, "Enter a job role.").max(120, "Role is too long."),
-  seniority: z.enum(SENIORITY_OPTIONS),
+  seniority: z.enum(EXPERIENCE_OPTIONS),
   company: z.string().trim().max(120, "Company name is too long.").optional().or(z.literal("")),
+  companyType: optionalChoice(COMPANY_TYPE_OPTIONS),
+  interviewType: optionalChoice(INTERVIEW_TYPE_OPTIONS),
   jobDescription: z.string().trim().max(12_000, "Job description is too long.").optional().or(z.literal("")),
   questionCount: z.coerce
     .number()

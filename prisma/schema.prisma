@@ -1,4 +1,4 @@
-// InterviewPilot — MVP schema (SQLite)
+// InterviewOS — V1 schema (SQLite)
 // Designed so it can be lifted to PostgreSQL/Supabase later:
 // switch provider + url and enable RLS policies at the database layer.
 
@@ -31,6 +31,8 @@ model InterviewSession {
   role                String
   seniority           String
   company             String?
+  companyType         String?
+  interviewType       String?
   jobDescription      String?
   status              String   @default("DRAFT") // DRAFT | READY
   questionCountTarget Int      @default(10)

@@ -18,7 +18,7 @@ export default function LoginPage() {
       </div>
       <LoginForm />
       <p className="mt-6 text-center text-sm text-zinc-500">
-        New to InterviewPilot?{" "}
+        New to InterviewOS?{" "}
         <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">
           Create an account
         </Link>

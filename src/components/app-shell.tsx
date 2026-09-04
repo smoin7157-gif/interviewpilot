@@ -30,11 +30,11 @@ function SidebarContent({
           href="/dashboard"
           onClick={onNavigate}
           className="inline-flex items-center gap-2.5"
-          aria-label="InterviewPilot dashboard"
+          aria-label="InterviewOS dashboard"
         >
           <LogoMark />
           <span className="text-[15px] font-bold tracking-[-0.02em] text-zinc-950">
-            Interview<span className="text-indigo-600">Pilot</span>
+            Interview<span className="text-indigo-600">OS</span>
           </span>
         </Link>
       </div>
@@ -167,7 +167,7 @@ export function AppShell({
         <Link href="/dashboard" className="inline-flex items-center gap-2">
           <LogoMark />
           <span className="text-[15px] font-semibold tracking-tight text-zinc-950">
-            Interview<span className="text-indigo-600">Pilot</span>
+            Interview<span className="text-indigo-600">OS</span>
           </span>
         </Link>
         <button

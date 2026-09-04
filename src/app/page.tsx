@@ -19,7 +19,7 @@ const features = [
   {
     icon: Target,
     title: "Role-specific questions",
-    body: "Questions tailored to the job you're targeting — your role, seniority, and the actual job description when you have one.",
+    body: "Questions tailored to the job you're targeting — your role, experience level, interview type, and the actual job description when you have one.",
     tag: "01",
   },
   {
@@ -41,7 +41,7 @@ const steps = [
     icon: UserRound,
     step: "01",
     title: "Pick your role",
-    body: "Tell us the job you're preparing for, your level, and optionally paste the job description.",
+    body: "Tell us the job you're preparing for — role, experience level, company type, interview type, and optionally the job description.",
   },
   {
     icon: Sparkles,
@@ -91,7 +91,7 @@ export default async function Home() {
               href="#features"
               className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
             >
-              Why InterviewPilot
+              Why InterviewOS
             </Link>
             <Link
               href="#how-it-works"
@@ -138,15 +138,15 @@ export default async function Home() {
               AI-powered interview practice
             </span>
             <h1 className="mt-7 max-w-4xl text-balance text-5xl font-extrabold leading-[1.04] tracking-[-0.035em] text-zinc-950 sm:text-[64px]">
-              Practice smarter.{" "}
+              Practice your interview{" "}
               <span className="bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
-                Walk into every interview prepared.
+                before the real one.
               </span>
             </h1>
             <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-500">
-              Generate realistic interview questions for the role you&rsquo;re targeting, practice
-              your answers, and learn what strong responses should look like — before the rejection,
-              not after it.
+              Tell InterviewOS about the job you&rsquo;re targeting — role, experience level, company
+              and interview type — and practice realistic questions with specific AI feedback on
+              every answer you write.
             </p>
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
               <Link href={primaryHref} className={buttonClasses({ size: "lg" })}>
@@ -194,13 +194,13 @@ export default async function Home() {
         <section id="features" className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
-              Why InterviewPilot
+              Why InterviewOS
             </p>
             <h2 className="mt-4 text-balance text-4xl font-bold tracking-[-0.03em] text-zinc-950 sm:text-[44px] sm:leading-[1.08]">
               Your practice should look like the real interview.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-zinc-500">
-              Generic question banks rehearse you for nothing in particular. InterviewPilot builds
+              Generic question banks rehearse you for nothing in particular. InterviewOS builds
               each session around the job you actually want.
             </p>
           </div>

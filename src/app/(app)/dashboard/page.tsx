@@ -81,6 +81,7 @@ export default async function DashboardPage() {
                         <h3 className="text-[15px] font-semibold text-zinc-950">{session.role}</h3>
                         {session.company && <span className="text-sm text-zinc-400">· {session.company}</span>}
                         <Badge tone="zinc">{session.seniority}</Badge>
+                        {session.interviewType && <Badge tone="indigo">{session.interviewType}</Badge>}
                         {session.status === "DRAFT" && <Badge tone="amber">Not generated</Badge>}
                       </div>
                       <p className="mt-1.5 text-[13px] text-zinc-500">

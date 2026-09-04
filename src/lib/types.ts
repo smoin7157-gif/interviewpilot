@@ -18,6 +18,8 @@ export interface WorkspaceSession {
   role: string;
   seniority: string;
   company: string | null;
+  companyType: string | null;
+  interviewType: string | null;
   jobDescription: string | null;
   status: "DRAFT" | "READY";
   questionCountTarget: number;

@@ -49,13 +49,17 @@ export default async function InterviewsPage() {
             return (
               <Card key={session.id} className="flex flex-col p-5">
                 <div className="flex items-start justify-between gap-2">
-                  <Badge tone="zinc">{session.seniority}</Badge>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge tone="zinc">{session.seniority}</Badge>
+                    {session.interviewType && <Badge tone="indigo">{session.interviewType}</Badge>}
+                  </div>
                   <SessionMenu sessionId={session.id} />
                 </div>
 
                 <h2 className="mt-3 text-[17px] font-semibold leading-snug text-zinc-950">{session.role}</h2>
                 <p className="mt-0.5 text-sm text-zinc-500">
                   {session.company ?? "No company specified"}
+                  {session.companyType ? ` · ${session.companyType}` : ""}
                 </p>
 
                 <div className="mt-4 space-y-1 text-[13px] text-zinc-500">
