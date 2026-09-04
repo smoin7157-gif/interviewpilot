@@ -57,6 +57,7 @@ export default async function InterviewWorkspacePage({
     reason: q.reason,
     suggestedAnswer: q.suggestedAnswer,
     followUps: (q.followUps as string[]) ?? [],
+    sourceContext: Array.isArray(q.sourceContext) ? (q.sourceContext as string[]) : [],
     orderIndex: q.orderIndex,
     status: q.status as WorkspaceQuestion["status"],
     lastScore: lastScoreByQuestion.get(q.id) ?? null,

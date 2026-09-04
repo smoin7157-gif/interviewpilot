@@ -20,13 +20,16 @@ Next.js App Router
         │
         ▼
    lib/
-  ├── auth.ts        session cookie (jose HS256) + bcrypt
-  ├── data.ts        ownership-scoped Prisma queries
-  ├── validation.ts  zod schemas (shared by UI + API)
+  ├── auth.ts                session cookie (jose HS256) + bcrypt
+  ├── data.ts                ownership-scoped Prisma queries
+  ├── validation.ts          zod schemas (shared by UI + API)
+  ├── candidate-context.ts   normalized candidate-context types + summary
+  ├── resume.ts              PDF → text extraction
+  ├── github.ts              public GitHub profile analysis
   └── ai/
       ├── service.ts     facade: pick provider, retry, graceful fallback
-      ├── openrouter.ts  OpenRouter chat-completions provider
-      ├── fallback.ts    deterministic offline provider
+      ├── openrouter.ts  OpenRouter chat-completions provider (+ resume extraction)
+      ├── fallback.ts    deterministic offline provider (+ resume extractor)
       ├── prompts.ts     system/user prompt builders
       └── validate.ts    tolerant JSON extraction + strict validation
 ```
@@ -65,7 +68,8 @@ Next.js App Router
 | Shell | `src/components/app-shell.tsx` (sidebar, mobile drawer) |
 | Dashboard | `src/app/(app)/dashboard/page.tsx` |
 | Interviews list | `src/app/(app)/interviews/page.tsx` |
-| Create flow | `src/app/(app)/interviews/new/page.tsx` + `new-interview-flow.tsx` + `generate-interview.tsx` |
+| Create flow | `src/app/(app)/interviews/new/page.tsx` + `new-interview-flow.tsx` (setup → sync → generate) |
+| Resume/GitHub attach | `src/app/api/interviews/[id]/resume/route.ts`, `src/app/api/interviews/[id]/github/route.ts` |
 | Workspace | `src/app/(app)/interviews/[id]/page.tsx` + `interview-workspace.tsx` |
 | FAQ | `src/app/(app)/faq/page.tsx` |
 | Settings | `src/app/(app)/settings/page.tsx` |
@@ -87,8 +91,36 @@ Interview setup captures the candidate's **target job**:
 - `jobDescription` — optional pasted JD (context for generation)
 - `questionCountTarget` — 10 / 15 / 20
 
-Candidate-context inputs (resume, GitHub, projects) are **Phase 2** and are not
-yet in the model or UI; the setup form and DB are ready to receive them.
+## Candidate context (Phase 2)
+
+Beyond the target job, setup can capture the candidate's actual background:
+
+- **Resume** — PDF upload, text extracted server-side (`src/lib/resume.ts`), then
+  structured into `{ skills, experience, education, projects, achievements,
+  certifications, technologies }` by the AI provider abstraction (live
+  extraction with a deterministic offline extractor as fallback). Only facts
+  present in the file are kept — nothing is ever invented. Raw files are not
+  stored.
+- **GitHub** — a profile URL is validated and its **public** repositories are
+  fetched (`src/lib/github.ts`, unauthenticated GitHub API). Private repos are
+  never accessed; anonymous rate limits are respected and surfaced as
+  actionable errors with a "continue without GitHub" path.
+- **Projects** — manual entries (name, repo URL, description, tech stack,
+  contribution) persisted in `candidate_projects`.
+
+All of it is normalized into one compact summary
+(`src/lib/candidate-context.ts`) that the question engine receives — never raw
+resume text — keeping prompt size and cost in check (§27 of the spec).
+
+## Question engine (Phase 2)
+
+Generation now uses InterviewOS categories (`technical`, `behavioral`,
+`project`, `job_description`, `coding`, `system_design`, `data_ml`, `company`,
+`general`), lowercase `easy|medium|hard` difficulty, per-interview-type
+question distributions, and per-question `source_context` tags. The prompt is
+instructed to probe the candidate's real claims ("You built HireAI with
+FastAPI — why FastAPI?") and never invent experience. Legacy rows keep their
+older category labels and render fine through display helpers.
 
 ## Client/server split
 
@@ -110,8 +142,9 @@ server-side only.
 
 ## Future modules (extension points)
 
-Resume Intelligence, GitHub context, AI Mock Interview, and Debrief are planned
-(see ROADMAP.md). Extending the model means adding tables + owner-scoped
-services under `src/lib/`, route groups per module, and sidebar entries —
-nothing about the current data flow needs to change shape. The AI provider
-layer is where voice (STT/TTS) and richer capabilities slot in later.
+AI Mock Interview, Debrief, and remaining Phase 2 items (answer-reactive
+follow-ups, DOCX resumes) are planned (see ROADMAP.md). Extending the model
+means adding tables + owner-scoped services under `src/lib/`, route groups per
+module, and sidebar entries — nothing about the current data flow needs to
+change shape. The AI provider layer is where voice (STT/TTS) and richer
+capabilities slot in later.

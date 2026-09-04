@@ -36,3 +36,33 @@ export function greeting(): string {
 export function pluralize(count: number, singular: string, plural?: string): string {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  technical: "Technical",
+  behavioral: "Behavioral",
+  project: "Project",
+  job_description: "Job description",
+  coding: "Coding",
+  system_design: "System design",
+  data_ml: "Data / ML",
+  company: "Company",
+  general: "General",
+  "role-specific": "Role-specific",
+};
+
+/** Renders InterviewOS category keys (and legacy capitalized values) as friendly labels. */
+export function formatQuestionCategory(category: string): string {
+  const lower = category.trim().toLowerCase();
+  if (CATEGORY_LABELS[lower]) return CATEGORY_LABELS[lower];
+  if (CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
+  return category;
+}
+
+/** Normalizes easy/medium/hard (or legacy Easy/Medium/Hard) for display. */
+export function formatQuestionDifficulty(difficulty: string): string {
+  const lower = difficulty.trim().toLowerCase();
+  if (lower === "easy" || lower === "medium" || lower === "hard") {
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
+  return difficulty;
+}

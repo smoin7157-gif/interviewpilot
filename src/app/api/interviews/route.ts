@@ -23,7 +23,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: first }, { status: 422 });
   }
 
-  const { role, seniority, company, companyType, interviewType, jobDescription, questionCount } = parsed.data;
+  const { role, seniority, company, companyType, interviewType, jobDescription, githubUrl, projects, questionCount } =
+    parsed.data;
 
   const session = await prisma.interviewSession.create({
     data: {
@@ -34,8 +35,18 @@ export async function POST(request: Request) {
       companyType: companyType || null,
       interviewType: interviewType || null,
       jobDescription: jobDescription || null,
+      githubUrl: githubUrl || null,
       questionCountTarget: questionCount,
       status: "DRAFT",
+      projects: {
+        create: projects.map((p) => ({
+          name: p.name,
+          repositoryUrl: p.repositoryUrl || null,
+          description: p.description || null,
+          techStack: p.techStack || null,
+          contribution: p.contribution || null,
+        })),
+      },
     },
     select: {
       id: true,
@@ -48,7 +59,7 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json(session, { status: 201 });
+  return NextResponse.json({ ...session, githubUrl: githubUrl || null, projectCount: projects.length }, { status: 201 });
 }
 
 export async function GET() {

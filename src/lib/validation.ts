@@ -32,6 +32,20 @@ export const INTERVIEW_TYPE_OPTIONS = [
 
 export const QUESTION_COUNT_OPTIONS = [10, 15, 20] as const;
 
+/** InterviewOS question-category keys (lowercase) used by the question engine. */
+export const QUESTION_CATEGORIES = [
+  "technical",
+  "behavioral",
+  "project",
+  "job_description",
+  "coding",
+  "system_design",
+  "data_ml",
+  "company",
+  "general",
+] as const;
+
+// Legacy capitalized set (kept for display/back-compat of older rows).
 export const CATEGORIES = ["Technical", "Behavioral", "Project", "Role-specific", "General"] as const;
 export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
 
@@ -41,6 +55,14 @@ export const QUESTION_STATUSES = ["NOT_STARTED", "PRACTICED", "SKIPPED"] as cons
 const optionalChoice = <T extends readonly string[]>(options: T) =>
   z.enum(options).optional().or(z.literal(""));
 
+export const candidateProjectSchema = z.object({
+  name: z.string().trim().min(2, "Project name is required.").max(120, "Project name is too long."),
+  repositoryUrl: z.string().trim().max(300, "Repository URL is too long.").optional().or(z.literal("")),
+  description: z.string().trim().max(2_000, "Project description is too long.").optional().or(z.literal("")),
+  techStack: z.string().trim().max(500, "Tech stack is too long.").optional().or(z.literal("")),
+  contribution: z.string().trim().max(2_000, "Contribution is too long.").optional().or(z.literal("")),
+});
+
 export const createInterviewSchema = z.object({
   role: z.string().trim().min(2, "Enter a job role.").max(120, "Role is too long."),
   seniority: z.enum(EXPERIENCE_OPTIONS),
@@ -48,6 +70,8 @@ export const createInterviewSchema = z.object({
   companyType: optionalChoice(COMPANY_TYPE_OPTIONS),
   interviewType: optionalChoice(INTERVIEW_TYPE_OPTIONS),
   jobDescription: z.string().trim().max(12_000, "Job description is too long.").optional().or(z.literal("")),
+  githubUrl: z.string().trim().max(300, "GitHub URL is too long.").optional().or(z.literal("")),
+  projects: z.array(candidateProjectSchema).max(8, "Add at most 8 projects.").optional().default([]),
   questionCount: z.coerce
     .number()
     .int()

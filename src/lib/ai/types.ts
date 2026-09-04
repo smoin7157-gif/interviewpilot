@@ -1,11 +1,27 @@
-export type QuestionCategory = "Technical" | "Behavioral" | "Project" | "Role-specific" | "General";
-export type QuestionDifficulty = "Easy" | "Medium" | "Hard";
+import type { ResumeData } from "@/lib/candidate-context";
+
+/** InterviewOS question categories (lowercase keys). Legacy rows may still store
+ *  the older capitalized set (Technical, Behavioral, Project, Role-specific, General). */
+export type QuestionCategory =
+  | "technical"
+  | "behavioral"
+  | "project"
+  | "job_description"
+  | "coding"
+  | "system_design"
+  | "data_ml"
+  | "company"
+  | "general";
+
+export type QuestionDifficulty = "easy" | "medium" | "hard";
 
 export interface GeneratedQuestion {
   question: string;
   category: QuestionCategory;
   difficulty: QuestionDifficulty;
   reason: string;
+  /** Which candidate/job source this question draws from. */
+  source_context: string[];
   suggested_answer: string;
   follow_up_questions: string[];
 }
@@ -17,6 +33,8 @@ export interface GenerationContext {
   companyType?: string;
   interviewType?: string;
   jobDescription?: string;
+  /** Compact, normalized candidate context summary (see buildCandidateContextSummary). */
+  candidateContext?: string;
   count: number;
 }
 
@@ -56,4 +74,6 @@ export interface AIProvider {
   generateQuestions(ctx: GenerationContext): Promise<GeneratedQuestion[]>;
   generateFollowUps(ctx: FollowUpContext): Promise<string[]>;
   evaluateAnswer(ctx: EvaluationContext): Promise<EvaluationResult>;
+  /** Structured extraction of resume facts. Never invents content. */
+  extractResume(text: string): Promise<ResumeData>;
 }

@@ -18,24 +18,29 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
 - 🟡 InterviewOS brand/identity pass (wordmark, metadata, copy)
 - ⬜ Seed script + minimal automated tests for the Phase 1 flows
 
-## Phase 2 — Written practice + candidate context ⬜
+## Phase 2 — Written practice + candidate context 🟡
 
-Currently partial: question list/detail, written answers, AI evaluation,
-follow-ups, history already ship for role/level/company/JD context. Missing:
+✅ Shipped in this build:
+- Candidate context inputs: **resume upload (PDF) + server-side parse**
+  (skills/experience/education/projects/achievements/certs/technologies —
+  live AI extraction with deterministic fallback; never invents facts),
+  **GitHub URL validation + public repo retrieval** (no auth, no private
+  repos, rate-limit-aware), **manual projects** (name, repo URL, description,
+  tech stack, contribution) → `candidate_projects` table
+- Normalized candidate-context summary (`buildCandidateContextSummary`);
+  resume/GitHub/projects flow into question generation only as facts
+- Question engine v2: InterviewOS categories (technical, behavioral, project,
+  job_description, coding, system_design, data_ml, company, general),
+  easy/medium/hard, per-interview-type distributions, per-question
+  `source_context`, contextual probing of the candidate's real claims
+- Question list/detail, suggested answers, typed answers, AI evaluation,
+  follow-ups, history (shipped in earlier builds, now on the new schema)
 
-- Candidate-context inputs: **resume upload (PDF; DOCX if clean) + server-side
-  parse** (skills/experience/education/projects/achievements/certs — never
-  invent), **GitHub URL validation + public repo retrieval** (metadata, README,
-  languages; no private repos), **manual projects** (name, repo URL,
-  description, tech stack, contribution)
-- Normalize candidate context into one structure; priority: role → interview
-  type → JD → resume → projects → GitHub → company → experience
-- Question engine v2: contextual generation (probe what the candidate claims),
-  InterviewOS distribution per interview type, schema with
-  `source_context`/`reason`/`follow_up_questions`, new categories
-  (coding / system_design / data_ml / company) and easy/medium/hard difficulty
-- Follow-up engine reacting to actual answers (not pre-generated picks)
-- DB: `candidate_projects` (and resume/GitHub reference columns)
+⬜ Remaining in Phase 2:
+- Follow-up engine reacting to the candidate's actual answer (not
+  pre-generated picks) — dynamic follow-up on evaluation
+- DOCX resume support if clean; GitHub repo README/metadata depth
+- Seed script + automated tests for setup → generate → practice flows
 
 ## Phase 3 — AI Mock Interview ⬜
 

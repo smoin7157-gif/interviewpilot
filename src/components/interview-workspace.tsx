@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import type { EvaluationFeedback, WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
-import { cn, pluralize } from "@/lib/utils";
+import { cn, formatQuestionCategory, formatQuestionDifficulty, pluralize } from "@/lib/utils";
 import { Badge, categoryTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
@@ -100,7 +100,7 @@ function QuestionRow({
             active ? "text-indigo-700" : "text-zinc-400"
           )}
         >
-          {isFollowUp ? "Follow-up" : question.category}
+          {isFollowUp ? "Follow-up" : formatQuestionCategory(question.category)}
         </span>
         {question.status === "PRACTICED" && !isFollowUp && (
           <CheckCircle2 className="ml-auto size-4 shrink-0 text-emerald-500" aria-hidden />
@@ -227,6 +227,7 @@ function QuestionList({
                 reason: "",
                 suggestedAnswer: "",
                 followUps: [],
+                sourceContext: [],
                 orderIndex: idx,
                 status: "NOT_STARTED",
                 lastScore: null,
@@ -711,8 +712,8 @@ export function InterviewWorkspace({
                     </>
                   ) : (
                     <>
-                      <Badge tone={categoryTone(main.category)}>{main.category}</Badge>
-                      <Badge tone="neutral">{main.difficulty}</Badge>
+                      <Badge tone={categoryTone(main.category)}>{formatQuestionCategory(main.category)}</Badge>
+                      <Badge tone="neutral">{formatQuestionDifficulty(main.difficulty)}</Badge>
                       <StatusPill status={main.status} />
                     </>
                   )}

@@ -2,10 +2,13 @@ import {
   buildEvaluationUserPrompt,
   buildFollowUpUserPrompt,
   buildGenerationUserPrompt,
+  buildResumeExtractionUserPrompt,
   EVALUATION_SYSTEM_PROMPT,
   FOLLOWUP_SYSTEM_PROMPT,
   GENERATION_SYSTEM_PROMPT,
+  RESUME_EXTRACTION_SYSTEM_PROMPT,
 } from "./prompts";
+import type { ResumeData } from "@/lib/candidate-context";
 import type {
   AIProvider,
   EvaluationContext,
@@ -14,7 +17,7 @@ import type {
   GeneratedQuestion,
   GenerationContext,
 } from "./types";
-import { parseEvaluation, parseFollowUps, parseQuestions } from "./validate";
+import { parseEvaluation, parseFollowUps, parseQuestions, parseResume } from "./validate";
 
 const DEFAULT_MODEL = "openai/gpt-4o-mini";
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
@@ -95,5 +98,14 @@ export class OpenRouterProvider implements AIProvider {
       2_000
     );
     return parseEvaluation(raw);
+  }
+
+  async extractResume(text: string): Promise<ResumeData> {
+    const raw = await this.chatCompletion(
+      RESUME_EXTRACTION_SYSTEM_PROMPT,
+      buildResumeExtractionUserPrompt(text),
+      3_000
+    );
+    return parseResume(raw);
   }
 }

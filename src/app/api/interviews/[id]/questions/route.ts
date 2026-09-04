@@ -42,6 +42,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       reason: q.reason,
       suggestedAnswer: q.suggestedAnswer,
       followUps: q.followUps as string[],
+      sourceContext: Array.isArray(q.sourceContext) ? (q.sourceContext as string[]) : [],
       orderIndex: q.orderIndex,
       status: q.status,
       lastScore: q.attempts[0]?.score ?? null,

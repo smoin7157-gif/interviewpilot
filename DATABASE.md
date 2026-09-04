@@ -26,9 +26,26 @@ run `prisma migrate`, then enforce equivalent ownership with RLS policies.
 | `companyType` | nullable — Product Company / Service Company / Startup / MNC / Consulting / Other |
 | `interviewType` | nullable — General / Technical / Behavioral / HR Recruiter / Coding / System Design / Data ML / Product / Mixed |
 | `jobDescription` | nullable text (context for generation) |
+| `githubUrl` | nullable GitHub profile URL (public repos only are read) |
+| `githubContext` | nullable JSON `{ username, repoCount, languages[], topRepos[] }` |
+| `resumeFileName` | nullable original PDF filename (no raw file stored) |
+| `resumeContext` | nullable JSON — extracted resume facts (see below) |
 | `status` | `DRAFT` → `READY` once questions exist |
 | `questionCountTarget` | 10 / 15 / 20 |
 | `createdAt` / `updatedAt` | `updatedAt` bumped on practice activity |
+
+`resumeContext` JSON shape: `{ skills[], experience[], education[], projects[], achievements[], certifications[], technologies[] }` — only facts present in the uploaded PDF; never inferred.
+
+### candidate_projects
+Manual project entries the candidate adds during setup.
+
+| Column | Notes |
+| --- | --- |
+| `id` | cuid PK |
+| `sessionId` | FK → sessions (cascade) |
+| `name` | required |
+| `repositoryUrl` / `description` / `techStack` / `contribution` | nullable |
+| `createdAt` | |
 
 *Migration `interviewos_setup_fields` added `companyType`/`interviewType` and
 remapped legacy seniority values (Intern, Entry Level, Junior, Mid Level,
@@ -43,6 +60,7 @@ Senior, Lead) onto the InterviewOS experience-level vocabulary.*
 | `reason` | "why this matters" |
 | `suggestedAnswer` | revealed on demand |
 | `followUps` | JSON array of follow-up questions |
+| `sourceContext` | nullable JSON `string[]` — which candidate/job source the question draws from |
 | `orderIndex` | display order |
 | `status` | `NOT_STARTED` / `PRACTICED` / `SKIPPED` |
 | `createdAt` | |
@@ -72,12 +90,11 @@ Senior, Lead) onto the InterviewOS experience-level vocabulary.*
   `question_attempts(questionId)`.
 - **JSON columns**: `followUps`, `feedback` are validated before writing.
 
-## Planned entities (not yet in schema — Phase 2+)
+## Planned entities (not yet in schema)
 
 Reserved for the roadmap (see ROADMAP.md); do not create until wired:
 
 - `profiles` — full name / extended candidate profile
-- `candidate_projects` — session-linked manual project entries (+ GitHub metadata JSONB)
 - `mock_interview_sessions` — voice-mode sessions (status, overall score, debrief JSONB)
 - `interview_turns` — per-turn speaker/transcript/metadata for mock interviews
 

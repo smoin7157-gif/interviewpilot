@@ -8,6 +8,7 @@ export interface WorkspaceQuestion {
   reason: string;
   suggestedAnswer: string;
   followUps: string[];
+  sourceContext: string[];
   orderIndex: number;
   status: QuestionStatus;
   lastScore: number | null;

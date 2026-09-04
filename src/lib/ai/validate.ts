@@ -1,25 +1,41 @@
 import { z } from "zod";
-import { CATEGORIES } from "@/lib/validation";
+import { QUESTION_CATEGORIES } from "@/lib/validation";
 import type { GeneratedQuestion, QuestionCategory, QuestionDifficulty } from "./types";
 
-const categoryValues = CATEGORIES as readonly string[];
+const categoryValues = QUESTION_CATEGORIES as readonly string[];
 
 function normalizeCategory(raw: string): QuestionCategory {
   const value = raw.trim().toLowerCase();
-  const match = categoryValues.find((c) => value.includes(c.toLowerCase()));
+  // Legacy capitalized values map onto the InterviewOS vocabulary.
+  const exact: Record<string, QuestionCategory> = {
+    technical: "technical",
+    behavioral: "behavioral",
+    project: "project",
+    general: "general",
+    "role-specific": "job_description",
+    "role specific": "job_description",
+  };
+  if (value in exact) return exact[value];
+  if (value.includes("system_design") || value.includes("system design") || value.includes("architecture")) return "system_design";
+  if (value.includes("job_description") || value.includes("job description") || value.includes("jd") || value.includes("based on the role")) return "job_description";
+  if (value.includes("data_ml") || value.includes("data / ml") || value.includes("machine learning") || value.includes("ml") || value.includes("data science") || value.includes("statistics")) return "data_ml";
+  if (value.includes("coding") || value.includes("algorithm") || value.includes("data structure")) return "coding";
+  if (value.includes("company") || value.includes("role context")) return "company";
+  if (value.includes("project")) return "project";
+  if (value.includes("behavior") || value.includes("behaviour") || value.includes("cultural")) return "behavioral";
+  if (value.includes("technical") || value.includes("fundamentals")) return "technical";
+  if (value.includes("general") || value.includes("opening") || value.includes("introduction")) return "general";
+  // Last-resort containment against the canonical list.
+  const match = categoryValues.find((c) => value.includes(c));
   if (match) return match as QuestionCategory;
-  if (value.includes("role")) return "Role-specific";
-  if (value.includes("project")) return "Project";
-  if (value.includes("behavior") || value.includes("behaviour") || value.includes("cultural")) return "Behavioral";
-  if (value.includes("general") || value.includes("opening") || value.includes("introduction")) return "General";
-  return "Technical";
+  return "general";
 }
 
 function normalizeDifficulty(raw: string): QuestionDifficulty {
   const value = raw.trim().toLowerCase();
-  if (value.includes("easy") || value.includes("junior") || value.includes("entry")) return "Easy";
-  if (value.includes("hard") || value.includes("senior") || value.includes("difficult")) return "Hard";
-  return "Medium";
+  if (value.includes("easy") || value.includes("junior") || value.includes("entry") || value.includes("fresher")) return "easy";
+  if (value.includes("hard") || value.includes("senior") || value.includes("difficult")) return "hard";
+  return "medium";
 }
 
 const questionShape = z.object({
@@ -27,6 +43,7 @@ const questionShape = z.object({
   category: z.string(),
   difficulty: z.string(),
   reason: z.string(),
+  source_context: z.array(z.string()).optional().default([]),
   suggested_answer: z.string(),
   follow_up_questions: z.array(z.string()).optional().default([]),
 });
@@ -51,7 +68,7 @@ export function extractJsonObject(text: string): unknown {
     .replace(/```(?:json)?/gi, "")
     // Character-class negation already spans newlines, so no /s flag is needed.
     .replace(/^[^{[]*/, "")
-    .replace(/[^}\]]*$/, "");
+    .replace(/[^}\\]]*$/, "");
   try {
     return JSON.parse(cleaned);
   } catch {
@@ -75,6 +92,10 @@ export function parseQuestions(raw: string): GeneratedQuestion[] {
     category: normalizeCategory(q.category),
     difficulty: normalizeDifficulty(q.difficulty),
     reason: q.reason.trim(),
+    source_context: q.source_context
+      .map((s) => s.trim().toLowerCase())
+      .filter((s) => s.length > 0)
+      .slice(0, 8),
     suggested_answer: q.suggested_answer.trim(),
     follow_up_questions: q.follow_up_questions
       .map((f) => f.trim())
@@ -118,5 +139,42 @@ export function parseEvaluation(raw: string): { score: number; strengths: string
     strengths: asStringArray(parsed.strengths),
     missing: asStringArray(parsed.missing),
     improvements: asStringArray(parsed.improvements),
+  };
+}
+
+const resumeShape = z.object({
+  skills: z.array(z.string()).default([]),
+  experience: z.array(z.string()).default([]),
+  education: z.array(z.string()).default([]),
+  projects: z.array(z.string()).default([]),
+  achievements: z.array(z.string()).default([]),
+  certifications: z.array(z.string()).default([]),
+  technologies: z.array(z.string()).default([]),
+});
+
+export function parseResume(raw: string): {
+  skills: string[];
+  experience: string[];
+  education: string[];
+  projects: string[];
+  achievements: string[];
+  certifications: string[];
+  technologies: string[];
+} {
+  const parsed = extractJsonObject(raw);
+  const result = resumeShape.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Resume extraction failed validation: ${result.error.issues[0]?.message ?? "invalid shape"}`);
+  }
+  const clean = (list: string[], max: number) =>
+    list.map((s) => s.trim()).filter((s) => s.length > 0).slice(0, max);
+  return {
+    skills: clean(result.data.skills, 40),
+    experience: clean(result.data.experience, 15),
+    education: clean(result.data.education, 8),
+    projects: clean(result.data.projects, 10),
+    achievements: clean(result.data.achievements, 10),
+    certifications: clean(result.data.certifications, 10),
+    technologies: clean(result.data.technologies, 40),
   };
 }

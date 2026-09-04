@@ -1,5 +1,6 @@
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
+import type { ResumeData } from "@/lib/candidate-context";
 import type {
   AIProvider,
   EvaluationContext,
@@ -105,5 +106,24 @@ export async function evaluateAnswer(ctx: EvaluationContext): Promise<{ result: 
   }
   const fallback = new FallbackProvider();
   const result = await fallback.evaluateAnswer(ctx);
+  return { result, provider: fallback.name };
+}
+
+export async function extractResumeData(
+  text: string
+): Promise<{ result: ResumeData; provider: string; model?: string }> {
+  const primary = createBestProvider();
+  if (primary instanceof OpenRouterProvider) {
+    try {
+      const result = await primary.extractResume(text);
+      return { result, provider: primary.name, model: primary.model };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[ai] resume extraction failed: ${message}`);
+      // fall through to the deterministic extractor
+    }
+  }
+  const fallback = new FallbackProvider();
+  const result = await fallback.extractResume(text);
   return { result, provider: fallback.name };
 }

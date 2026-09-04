@@ -30,14 +30,22 @@ export function Badge({
 }
 
 export const categoryTone = (category: string): Tone => {
-  switch (category) {
-    case "Technical":
+  switch (category.toLowerCase()) {
+    case "technical":
+    case "coding":
       return "indigo";
-    case "Behavioral":
+    case "behavioral":
+    case "data_ml":
+    case "data / ml":
       return "green";
-    case "Project":
+    case "project":
+    case "system_design":
+    case "system design":
       return "amber";
-    case "Role-specific":
+    case "company":
+    case "job_description":
+    case "job description":
+    case "role-specific":
       return "neutral";
     default:
       return "zinc";

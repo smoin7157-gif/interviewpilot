@@ -7,6 +7,7 @@ import type {
   GenerationContext,
   QuestionCategory,
 } from "./types";
+import { EMPTY_RESUME, type ResumeData } from "@/lib/candidate-context";
 
 /**
  * Deterministic, offline provider. Used when OpenRouter is not configured or
@@ -16,7 +17,7 @@ import type {
 
 interface Template {
   category: QuestionCategory;
-  difficulty: "Easy" | "Medium" | "Hard";
+  difficulty: "easy" | "medium" | "hard";
   question: (ctx: GenerationContext) => string;
   reason: (ctx: GenerationContext) => string;
   answer: (ctx: GenerationContext) => string;
@@ -28,8 +29,8 @@ const level = (ctx: GenerationContext) => ctx.seniority.toLowerCase();
 
 const TEMPLATES: Template[] = [
   {
-    category: "General",
-    difficulty: "Easy",
+    category: "general",
+    difficulty: "easy",
     question: (c) => `Walk me through your background and why you are interested in the ${role(c)} role${c.company ? ` at ${c.company}` : ""}.`,
     reason: (c) => `Opens the interview and shows how the candidate frames their own story against this ${level(c)} ${role(c)} opportunity.`,
     answer: (c) =>
@@ -41,8 +42,8 @@ const TEMPLATES: Template[] = [
     ],
   },
   {
-    category: "Technical",
-    difficulty: "Easy",
+    category: "technical",
+    difficulty: "easy",
     question: () => `Can you explain an API and why it matters in software development?`,
     reason: (c) =>
       `A foundational check that the candidate can explain core concepts clearly — essential even at ${level(c)} level for ${role(c)}.`,
@@ -51,8 +52,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["What is the difference between REST and GraphQL?", "How would you secure an API?", "How do you decide what belongs in an API vs. in the client?"],
   },
   {
-    category: "Technical",
-    difficulty: "Medium",
+    category: "technical",
+    difficulty: "medium",
     question: () => `How do you approach debugging a production issue you cannot reproduce locally?`,
     reason: (c) =>
       `Real debugging skill separates prepared ${level(c)} candidates: they need a method, not just intuition.`,
@@ -61,8 +62,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["What was the hardest bug you ever fixed?", "How do you prioritize which alerts to act on?", "When would you roll back a deploy instead of hotfixing?"],
   },
   {
-    category: "Technical",
-    difficulty: "Medium",
+    category: "technical",
+    difficulty: "medium",
     question: () => `How do you design for performance, and when do you stop optimizing?`,
     reason: () => `Tests engineering judgment: knowing where bottlenecks actually come from and when effort is wasted.`,
     answer: () =>
@@ -70,8 +71,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["Describe a time an optimization backfired.", "How do you measure frontend vs. backend performance?", "How would you load-test a service before launch?"],
   },
   {
-    category: "Technical",
-    difficulty: "Hard",
+    category: "technical",
+    difficulty: "hard",
     question: () => `How would you scale a service that currently handles 100 requests per second to 10,000?`,
     reason: () => `A classic senior-leaning question that exposes whether the candidate reasons about bottlenecks, caching, and data consistency.`,
     answer: () =>
@@ -79,8 +80,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["How do you keep cached data consistent?", "How would you handle a sudden traffic spike?", "What breaks when you add a queue, and how do you handle it?"],
   },
   {
-    category: "Behavioral",
-    difficulty: "Medium",
+    category: "behavioral",
+    difficulty: "medium",
     question: () => `Tell me about a project where you had to learn new skills or technologies quickly.`,
     reason: (c) =>
       `Evaluates how the candidate learns unfamiliar technology under pressure — a core expectation for a ${role(c)} hire.`,
@@ -89,8 +90,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["Why did you choose that learning path?", "What did you not have time to learn properly?", "What would you do differently next time?"],
   },
   {
-    category: "Behavioral",
-    difficulty: "Medium",
+    category: "behavioral",
+    difficulty: "medium",
     question: () => `Tell me about a time you disagreed with a teammate or manager about the right approach.`,
     reason: () => `Reveals communication style, humility, and whether the candidate can push back professionally.`,
     answer: () =>
@@ -98,8 +99,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["What if they had still said no?", "How do you decide when to escalate a disagreement?", "Has a teammate ever changed your mind?"],
   },
   {
-    category: "Behavioral",
-    difficulty: "Easy",
+    category: "behavioral",
+    difficulty: "easy",
     question: () => `How do you prioritize your tasks when you have multiple responsibilities and a tight deadline?`,
     reason: () => `Checks for a repeatable prioritization system rather than reactive busywork.`,
     answer: () =>
@@ -107,8 +108,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["Give an example of a trade-off you had to make.", "What do you do when everything is truly urgent?", "How do you say no to low-value work?"],
   },
   {
-    category: "Behavioral",
-    difficulty: "Hard",
+    category: "behavioral",
+    difficulty: "hard",
     question: () => `Tell me about a time something you built failed or had a serious impact. What happened, and what did you do?`,
     reason: () => `Tests ownership and honesty — how the candidate behaves after an incident, not just during it.`,
     answer: () =>
@@ -116,8 +117,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["What was the first thing you did after the outage?", "How did your team's process change afterward?", "What did you learn about your own blind spots?"],
   },
   {
-    category: "Project",
-    difficulty: "Medium",
+    category: "project",
+    difficulty: "medium",
     question: () => `Walk me through your most impressive project from start to finish.`,
     reason: () => `The flagship project question: shows depth, ownership, and how the candidate communicates technical work.`,
     answer: (c) =>
@@ -129,8 +130,8 @@ const TEMPLATES: Template[] = [
     ],
   },
   {
-    category: "Project",
-    difficulty: "Medium",
+    category: "project",
+    difficulty: "medium",
     question: () => `How do you make sure the code you write is maintainable by others?`,
     reason: () => `Signals senior habits: code review, naming, tests, and documentation rather than cleverness.`,
     answer: () =>
@@ -138,8 +139,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["How do you handle legacy code you cannot rewrite?", "What does a good code review look like to you?", "How much test coverage is enough?"],
   },
   {
-    category: "Project",
-    difficulty: "Hard",
+    category: "project",
+    difficulty: "hard",
     question: () => `Describe a technical decision you made that you later regretted.`,
     reason: () => `Checks self-awareness: good engineers revisit decisions and can articulate what they would change.`,
     answer: () =>
@@ -147,8 +148,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["When is an abstraction actually worth it?", "How do you keep a growing codebase from becoming over-engineered?", "How do you reverse a decision once code is shipped?"],
   },
   {
-    category: "Role-specific",
-    difficulty: "Medium",
+    category: "company",
+    difficulty: "medium",
     question: (c) => `What do you think are the biggest challenges facing someone in a ${role(c)} role${c.company ? ` at ${c.company}` : ""} today?`,
     reason: () => `Shows whether the candidate has researched the role and thinks about the job beyond their own tasks.`,
     answer: (c) =>
@@ -160,8 +161,8 @@ const TEMPLATES: Template[] = [
     ],
   },
   {
-    category: "Role-specific",
-    difficulty: "Easy",
+    category: "company",
+    difficulty: "easy",
     question: () => `What tools and technologies are you most comfortable with, and which are you still learning?`,
     reason: (c) => `A direct fit check against the tooling this ${role(c)} role depends on, with honesty about gaps.`,
     answer: () =>
@@ -169,8 +170,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["Which tool would you drop from your stack if you could?", "How do you evaluate a new technology before adopting it?", "What is the last tool you taught yourself, and how?"],
   },
   {
-    category: "Role-specific",
-    difficulty: "Hard",
+    category: "company",
+    difficulty: "hard",
     question: () => `How would you improve a system or process you have never seen before, without breaking what works?`,
     reason: () => `Tests how a candidate enters an unfamiliar codebase or team: curiosity, caution, and evidence-based change.`,
     answer: () =>
@@ -178,8 +179,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["How do you build trust with a team that owns that system?", "How do you measure that an improvement actually helped?", "What kind of change would you never make without buy-in?"],
   },
   {
-    category: "General",
-    difficulty: "Medium",
+    category: "general",
+    difficulty: "medium",
     question: () => `Do you have any questions for me about the role or the team?`,
     reason: () => `The candidate's questions reveal what they actually care about and how deeply they have thought about the job.`,
     answer: () =>
@@ -187,8 +188,8 @@ const TEMPLATES: Template[] = [
     followUps: () => ["What questions would you ask that are risky to ask late in the process?", "How do you research a company before an interview?", "Which questions show the most insight about a role?"],
   },
   {
-    category: "Technical",
-    difficulty: "Hard",
+    category: "technical",
+    difficulty: "hard",
     question: () => `How do you stay current in a field that changes as fast as this one?`,
     reason: () => `Sustainable-growth check: the candidate needs a system for learning, not just enthusiasm.`,
     answer: () =>
@@ -197,10 +198,113 @@ const TEMPLATES: Template[] = [
   },
 ];
 
+/** Honest source tags per template category (fallback bank is generic, so tags stay conservative). */
+const SOURCE_SETS: Record<QuestionCategory, string[]> = {
+  technical: ["experience"],
+  behavioral: ["experience"],
+  project: ["project"],
+  job_description: ["job_description"],
+  coding: ["experience"],
+  system_design: ["experience"],
+  data_ml: ["experience"],
+  company: ["company", "experience"],
+  general: ["general"],
+};
+
+function templateSources(t: Template, ctx: GenerationContext): string[] {
+  const sources = new Set(SOURCE_SETS[t.category] ?? ["general"]);
+  if (t.category === "company" && ctx.company) sources.add("company");
+  if (t.category === "project" && ctx.jobDescription) sources.add("job_description");
+  return [...sources];
+}
+
+/* ------------------- Deterministic resume extraction ------------------- */
+
+const SECTION_HEADERS: Array<{ key: keyof ResumeData; pattern: RegExp }> = [
+  { key: "experience", pattern: /^(?:work|professional|employment|career)?\s*experience$/i },
+  { key: "education", pattern: /^education$/i },
+  { key: "projects", pattern: /^(?:personal |side |key )?projects?$/i },
+  { key: "achievements", pattern: /^achievements?$/i },
+  { key: "certifications", pattern: /^(?:certifications?|licenses?)$/i },
+  { key: "skills", pattern: /^(?:skills?|tech(?:nical)? skills?|technologies)$/i },
+];
+
+const TECH_KEYWORDS = [
+  "typescript", "javascript", "python", "java", "c++", "c#", "go", "rust", "swift", "kotlin", "php",
+  "ruby", "sql", "postgresql", "mysql", "sqlite", "mongodb", "redis", "dynamodb", "graphql", "rest",
+  "node", "node.js", "express", "react", "next.js", "nextjs", "angular", "vue", "svelte", "django", "flask",
+  "fastapi", "spring", "rails", "tailwind", "html", "css", "docker", "kubernetes", "k8s", "terraform", "aws",
+  "gcp", "azure", "firebase", "supabase", "prisma", "kafka", "rabbitmq", "tensorflow", "pytorch", "pandas",
+  "numpy", "scikit-learn", "git", "linux", "ci/cd", "jenkins", "figma", "tableau", "excel", "ml", "ai",
+] as const;
+
+const HEADER_SECTION_KEY = (line: string): keyof ResumeData | null => {
+  const trimmed = line.trim().replace(/:\s*$/, "");
+  if (trimmed.length < 2 || trimmed.length > 40) return null;
+  for (const { key, pattern } of SECTION_HEADERS) {
+    if (pattern.test(trimmed)) return key;
+  }
+  return null;
+};
+
+const cleanBullet = (line: string): string =>
+  line
+    .replace(/^[-•*▪o]\s*/, "")
+    .replace(/^\d+[.)]\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+function extractResumeHeuristic(text: string): ResumeData {
+  const result: ResumeData = { ...EMPTY_RESUME };
+  const lower = text.toLowerCase();
+
+  // Technologies: keyword scan across the whole text (only facts present).
+  const technologies: string[] = [];
+  for (const kw of TECH_KEYWORDS) {
+    if (technologies.length >= 25) break;
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`\\b${escaped}\\b`).test(lower)) technologies.push(kw === "node.js" ? "Node.js" : kw === "next.js" ? "Next.js" : kw === "ml" || kw === "ai" ? kw.toUpperCase() : kw);
+  }
+  result.technologies = technologies;
+
+  let section: keyof ResumeData | null = null;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const key = HEADER_SECTION_KEY(rawLine);
+    if (key) {
+      section = key;
+      continue;
+    }
+    if (!section) continue;
+    const bullet = cleanBullet(rawLine);
+    if (bullet.length < 3) continue;
+    if (section === "skills") {
+      for (const token of bullet.split(/[,;|•\/]|\s+and\s+/)) {
+        const t = token.trim();
+        if (t.length >= 2 && t.length <= 40 && result.skills.length < 20) result.skills.push(t);
+      }
+    } else {
+      const list = result[section] as string[];
+      const cap = section === "experience" ? 12 : section === "projects" ? 8 : 6;
+      if (list.length < cap && bullet.length <= 240) list.push(bullet);
+    }
+  }
+
+  // Dedupe skills case-insensitively, keep first occurrence.
+  const seen = new Set<string>();
+  result.skills = result.skills.filter((s) => {
+    const k = s.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  return result;
+}
+
 function pick(count: number): Template[] {
   // Rotate through categories so the set has variety regardless of count.
   const ordered = [...TEMPLATES].sort((a, b) => {
-    const order: QuestionCategory[] = ["General", "Technical", "Behavioral", "Project", "Role-specific"];
+    const order: QuestionCategory[] = ["general", "technical", "behavioral", "project", "company"];
     return order.indexOf(a.category) - order.indexOf(b.category) || a.difficulty.localeCompare(b.difficulty);
   });
   const result: Template[] = [];
@@ -226,9 +330,14 @@ export class FallbackProvider implements AIProvider {
       category: t.category,
       difficulty: t.difficulty,
       reason: t.reason(ctx),
+      source_context: templateSources(t, ctx),
       suggested_answer: t.answer(ctx),
       follow_up_questions: t.followUps(ctx).slice(0, 3),
     }));
+  }
+
+  async extractResume(text: string): Promise<ResumeData> {
+    return extractResumeHeuristic(text);
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {

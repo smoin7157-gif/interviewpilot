@@ -15,7 +15,7 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: "How do I start a practice session?",
-        a: "Click \"Create Interview\" in the sidebar. Fill in your target job — job role and experience level are required; company, company type, interview type, and a pasted job description add context — choose 10, 15, or 20 questions, and generate. Open the interview from \"My Interviews\" and start answering each question one at a time.",
+        a: "Click \"Create Interview\" in the sidebar. Fill in your target job — job role and experience level are required; company, company type, interview type, and a pasted job description add context. You can also add your resume (PDF), GitHub profile, and projects so questions reference what you've actually built. Choose 10, 15, or 20 questions, and generate. Open the interview from \"My Interviews\" and start answering each question one at a time.",
       },
       {
         q: "What roles can I practice?",

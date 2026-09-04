@@ -24,12 +24,23 @@ Create an interview session (status `DRAFT`, no questions yet).
   "companyType": "Product Company",
   "interviewType": "Technical",
   "jobDescription": "…",
+  "githubUrl": "https://github.com/username",
+  "projects": [
+    {
+      "name": "HireAI",
+      "repositoryUrl": "https://github.com/username/hireai",
+      "description": "…",
+      "techStack": "FastAPI, Supabase",
+      "contribution": "Led backend design"
+    }
+  ],
   "questionCount": 10
 }
 ```
 
 `role` and `seniority` (experience level) are required. `company`,
-`companyType`, `interviewType`, and `jobDescription` are optional.
+`companyType`, `interviewType`, and `jobDescription` are optional. `githubUrl`
+and `projects` (max 8) are optional candidate-context inputs.
 
 ### `GET /api/interviews` → 200
 List the caller's sessions, newest activity first, with `questionCount`,
@@ -59,9 +70,43 @@ stream with a user-safe message. Returns 409 if questions already exist.
 
 ### `GET /api/interviews/{id}/questions` → 200
 Persisted questions in order, each with `category`, `difficulty`, `reason`,
-`suggestedAnswer`, `followUps`, `status`, and latest `lastScore`. The `session`
-object includes `role`, `seniority`, `company`, `companyType`,
-`interviewType`, and `status`.
+`suggestedAnswer`, `followUps`, `sourceContext`, `status`, and latest
+`lastScore`. The `session` object includes `role`, `seniority`, `company`,
+`companyType`, `interviewType`, `jobDescription`, and `status`.
+
+### `POST /api/interviews/{id}/github` → 200
+Validates the URL, fetches the **public** GitHub profile, and stores a summary
+on the session.
+
+```json
+{ "url": "https://github.com/username" }
+```
+```json
+{
+  "ok": true,
+  "username": "username",
+  "repoCount": 23,
+  "languages": ["TypeScript", "Python"],
+  "topRepos": [{ "name": "hireai", "language": "TypeScript", "stars": 12 }]
+}
+```
+
+### `POST /api/interviews/{id}/resume` → 200 (`multipart/form-data`)
+Uploads a **PDF** resume (≤ 3 MB), extracts its text server-side, runs
+structured extraction (live AI with a deterministic fallback — never invents
+facts), and stores the parsed sections on the session.
+
+```text
+form-data: resume=@resume.pdf
+```
+```json
+{
+  "ok": true,
+  "filename": "resume.pdf",
+  "provider": "openrouter",
+  "summary": { "skills": 14, "experience": 3, "projects": 2, "education": 1, "technologies": 9 }
+}
+```
 
 ## Questions
 
@@ -109,8 +154,6 @@ marks the question `PRACTICED`.
 
 ```text
 PATCH  /api/interviews/:id                       (edit setup)
-POST   /api/resume/parse                          (PDF/DOCX → extracted sections)
-POST   /api/github/analyze                        (public repos, metadata, README)
 POST   /api/mock-interviews                       (start voice session)
 GET    /api/mock-interviews/:id
 POST   /api/mock-interviews/:id/turn              (AI question / candidate answer)

@@ -1,6 +1,12 @@
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateQuestions } from "@/lib/ai/service";
+import {
+  buildCandidateContextSummary,
+  type CandidateProjectData,
+  type GithubProfileData,
+  type ResumeData,
+} from "@/lib/candidate-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +23,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const session = await prisma.interviewSession.findFirst({
     where: { id, userId: user.id },
-    include: { questions: { select: { id: true } } },
+    include: { questions: { select: { id: true } }, projects: true },
   });
   if (!session) {
     return Response.json({ error: "Interview not found." }, { status: 404 });
@@ -49,6 +55,17 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
           companyType: session.companyType ?? undefined,
           interviewType: session.interviewType ?? undefined,
           jobDescription: session.jobDescription ?? undefined,
+          candidateContext: buildCandidateContextSummary({
+            role: session.role,
+            seniority: session.seniority,
+            company: session.company,
+            companyType: session.companyType,
+            interviewType: session.interviewType,
+            jobDescription: session.jobDescription,
+            resumeContext: session.resumeContext as ResumeData | null,
+            githubContext: session.githubContext as GithubProfileData | null,
+            projects: session.projects as CandidateProjectData[],
+          }),
           count: session.questionCountTarget,
         });
 
@@ -61,6 +78,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
           category: q.category,
           difficulty: q.difficulty,
           reason: q.reason,
+          sourceContext: q.source_context,
           suggestedAnswer: q.suggested_answer,
           followUps: q.follow_up_questions,
           orderIndex,

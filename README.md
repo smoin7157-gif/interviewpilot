@@ -20,6 +20,7 @@ resume/GitHub/project context and debriefs are planned next (see
 - **Prisma ORM** on **SQLite** (`prisma/dev.db`) — schema is portable to Postgres/Supabase
 - **Auth**: email + password (bcrypt), signed httpOnly session cookies (jose)
 - **AI**: OpenRouter with a provider abstraction and a deterministic offline fallback
+- **Resume parsing**: pdfjs-dist (server-side PDF text extraction; facts are structured by the AI provider)
 
 ## Getting started
 
