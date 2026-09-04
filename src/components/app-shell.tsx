@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from "lucide-react";
+import { CircleHelp, ClipboardList, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from "lucide-react";
 import { logoutAction } from "@/lib/auth-actions";
 import { cn, initials } from "@/lib/utils";
 import { LogoMark } from "@/components/logo";
@@ -11,6 +11,7 @@ import { LogoMark } from "@/components/logo";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/interviews", label: "My Interviews", icon: ClipboardList },
+  { href: "/faq", label: "FAQ", icon: CircleHelp },
 ];
 
 function SidebarContent({
