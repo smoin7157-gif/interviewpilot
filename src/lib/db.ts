@@ -11,12 +11,26 @@ import { PrismaClient } from "@prisma/client";
 // instead of Prisma's cryptic "You must provide `url`…" error.
 function assertDatabaseUrl(): void {
   const url = process.env.DATABASE_URL;
-  if (!url || url.trim().length === 0) {
-    throw new Error(
-      "DATABASE_URL is not set in this runtime environment. Add it in Vercel → Settings → " +
-        "Environment Variables (Production + Preview), then redeploy."
-    );
-  }
+  if (url && url.trim().length > 0) return;
+
+  // Diagnostics — key NAMES only, never values (secrets stay out of logs).
+  const dbLikeKeys = Object.keys(process.env)
+    .filter((k) => /(^|_)(DATABASE|DIRECT|PG|POSTGRES|NEON)/i.test(k))
+    .sort();
+  const details = [
+    `DATABASE_URL key present: ${url !== undefined}`,
+    `db-related env keys found: ${dbLikeKeys.length > 0 ? dbLikeKeys.join(", ") : "(none)"}`,
+    `NODE_ENV: ${process.env.NODE_ENV ?? "(unset)"}`,
+    `VERCEL_ENV: ${process.env.VERCEL_ENV ?? "(unset)"}`,
+    `running on Vercel: ${process.env.VERCEL ? "yes" : "no"}`,
+  ].join(" | ");
+
+  throw new Error(
+    `DATABASE_URL is not set in this runtime environment. ${details}. ` +
+      `On Vercel, environment variables are baked into each deployment when it is created — ` +
+      `after adding/changing them you must create a NEW deployment (push a commit or use ` +
+      `\"Redeploy\") for the change to take effect.`
+  );
 }
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
