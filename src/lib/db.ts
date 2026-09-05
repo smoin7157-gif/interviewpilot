@@ -9,27 +9,59 @@ import { PrismaClient } from "@prisma/client";
 // collection on Vercel, where build-time modules don't have DATABASE_URL set.
 // At runtime, a missing variable surfaces as a clear message on the first query
 // instead of Prisma's cryptic "You must provide `url`…" error.
-function assertDatabaseUrl(): void {
-  const url = process.env.DATABASE_URL;
-  if (url && url.trim().length > 0) return;
+//
+// Diagnostics describe the value's SHAPE only — length, whether it starts with
+// the postgres protocol, whether the key exists. The value itself is never
+// logged, so secrets stay out of logs.
+type UrlShape =
+  | { kind: "missing"; length: number }
+  | { kind: "empty"; length: number }
+  | { kind: "whitespace"; length: number }
+  | { kind: "bad-protocol"; length: number }
+  | { kind: "ok"; length: number };
 
-  // Diagnostics — key NAMES only, never values (secrets stay out of logs).
+function describeDatabaseUrl(raw: string | undefined): UrlShape {
+  if (raw === undefined) return { kind: "missing", length: 0 };
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return { kind: raw.length === 0 ? "empty" : "whitespace", length: raw.length };
+  }
+  if (!/^postgres(ql)?:\/\//i.test(trimmed)) {
+    return { kind: "bad-protocol", length: trimmed.length };
+  }
+  return { kind: "ok", length: trimmed.length };
+}
+
+function runtimeContext(): string {
   const dbLikeKeys = Object.keys(process.env)
     .filter((k) => /(^|_)(DATABASE|DIRECT|PG|POSTGRES|NEON)/i.test(k))
     .sort();
-  const details = [
-    `DATABASE_URL key present: ${url !== undefined}`,
-    `db-related env keys found: ${dbLikeKeys.length > 0 ? dbLikeKeys.join(", ") : "(none)"}`,
+  return [
+    `db-related env keys: ${dbLikeKeys.length > 0 ? dbLikeKeys.join(", ") : "(none)"}`,
     `NODE_ENV: ${process.env.NODE_ENV ?? "(unset)"}`,
     `VERCEL_ENV: ${process.env.VERCEL_ENV ?? "(unset)"}`,
     `running on Vercel: ${process.env.VERCEL ? "yes" : "no"}`,
   ].join(" | ");
+}
+
+function assertDatabaseUrl(): void {
+  const shape = describeDatabaseUrl(process.env.DATABASE_URL);
+  if (shape.kind === "ok") return;
+
+  const reason: Record<Exclude<UrlShape["kind"], "ok">, string> = {
+    missing: "is NOT SET (key absent) in this runtime environment",
+    empty: "is SET but its value is an EMPTY string",
+    whitespace: `is SET but its value is whitespace-only (${shape.length} chars)`,
+    "bad-protocol": `is SET (${shape.length} chars) but does not start with postgresql:// or postgres://`,
+  };
 
   throw new Error(
-    `DATABASE_URL is not set in this runtime environment. ${details}. ` +
-      `On Vercel, environment variables are baked into each deployment when it is created — ` +
-      `after adding/changing them you must create a NEW deployment (push a commit or use ` +
-      `\"Redeploy\") for the change to take effect.`
+    `DATABASE_URL ${reason[shape.kind]}. ` +
+      `${runtimeContext()}. ` +
+      `If you are on Vercel: check the VALUE (not just the variable name) under Settings → ` +
+      `Environment Variables — it must be the full postgresql:// connection string. Values are ` +
+      `baked into each deployment when it is created, so after fixing it you MUST create a NEW ` +
+      `deployment (push a commit or click \"Redeploy\").`
   );
 }
 
