@@ -1,25 +1,43 @@
 import { PrismaClient } from "@prisma/client";
 
-// Prisma resolves the datasource from process.env.DATABASE_URL at runtime.
-// Fail fast with a clear message when it's missing (e.g. a Vercel deployment
-// that predates the environment variable) instead of Prisma's cryptic
-// "You must provide `url`…" error on the first query.
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl || databaseUrl.trim().length === 0) {
-  throw new Error(
-    "DATABASE_URL is not set in this runtime environment. Add it in Vercel → Settings → " +
-      "Environment Variables (Production + Preview), then redeploy."
-  );
+// Prisma resolves the datasource from process.env.DATABASE_URL at runtime
+// (schema.prisma: url = env("DATABASE_URL")) — it never needs the URL at
+// module load, so constructing the client eagerly is safe during `next build`.
+//
+// The fail-fast check is deliberately LAZY (first property access = first real
+// query): if it ran at module scope it would throw during Next.js page-data
+// collection on Vercel, where build-time modules don't have DATABASE_URL set.
+// At runtime, a missing variable surfaces as a clear message on the first query
+// instead of Prisma's cryptic "You must provide `url`…" error.
+function assertDatabaseUrl(): void {
+  const url = process.env.DATABASE_URL;
+  if (!url || url.trim().length === 0) {
+    throw new Error(
+      "DATABASE_URL is not set in this runtime environment. Add it in Vercel → Settings → " +
+        "Environment Variables (Production + Preview), then redeploy."
+    );
+  }
 }
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  assertDatabaseUrl();
+  const client = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+  return client;
 }
+
+// Lazy proxy: validates DATABASE_URL only when a query actually runs. All
+// usage sites (`prisma.model.method(...)`) work unchanged.
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = globalForPrisma.prisma ?? createPrismaClient();
+    const value = Reflect.get(client, prop, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
