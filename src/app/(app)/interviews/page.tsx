@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList, Mic, Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { listSessionsForUser } from "@/lib/data";
 import { formatRelativeTime, pluralize } from "@/lib/utils";
@@ -86,15 +86,25 @@ export default async function InterviewsPage() {
                   </span>
                 </div>
 
-                <Link
-                  href={`/interviews/${session.id}`}
-                  className={buttonClasses({
-                    variant: session.questionCount === 0 ? "outline" : "primary",
-                    className: "mt-5 w-full",
-                  })}
-                >
-                  {actionLabel}
-                </Link>
+                <div className="mt-5 grid gap-2">
+                  {session.questionCount > 0 && (
+                    <Link
+                      href={`/mock/${session.id}`}
+                      className={buttonClasses({ variant: "outline", className: "w-full" })}
+                    >
+                      <Mic className="size-4 text-indigo-600" aria-hidden /> Practice aloud
+                    </Link>
+                  )}
+                  <Link
+                    href={`/interviews/${session.id}`}
+                    className={buttonClasses({
+                      variant: session.questionCount === 0 ? "outline" : "primary",
+                      className: "w-full",
+                    })}
+                  >
+                    {actionLabel}
+                  </Link>
+                </div>
               </Card>
             );
           })}

@@ -111,3 +111,42 @@ export const practiceStatusSchema = z.object({
 });
 
 export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;
+
+/* ----------------------- AI mock interview (Phase 3) ----------------------- */
+
+export const MOCK_SESSION_STATUSES = [
+  "SESSION_STARTED",
+  "QUESTION_COMPLETE",
+  "SESSION_COMPLETE",
+  "ERROR",
+] as const;
+
+export const INTERVIEWER_ACTIONS = [
+  "ask_question",
+  "ask_followup",
+  "move_topic",
+  "end_interview",
+] as const;
+
+export const mockCreateSchema = z.object({
+  interviewSessionId: z.string().trim().min(1, "Interview session is required.").max(64),
+  maxQuestions: z.coerce
+    .number()
+    .int()
+    .min(4, "At least 4 questions per mock.")
+    .max(20, "At most 20 questions per mock.")
+    .default(10),
+});
+
+export const mockTurnSchema = z.object({
+  /** Candidate's spoken transcript. Empty on the very first call (opening). */
+  transcript: z.string().trim().max(6_000, "Answer is too long.").optional().default(""),
+});
+
+export const mockEndSchema = z.object({
+  reason: z.enum(["user", "ai"]).default("user"),
+});
+
+export type MockCreateInput = z.infer<typeof mockCreateSchema>;
+export type MockTurnInput = z.infer<typeof mockTurnSchema>;
+export type MockEndInput = z.infer<typeof mockEndSchema>;

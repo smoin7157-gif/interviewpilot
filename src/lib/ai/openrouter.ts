@@ -2,10 +2,12 @@ import {
   buildEvaluationUserPrompt,
   buildFollowUpUserPrompt,
   buildGenerationUserPrompt,
+  buildInterviewerUserPrompt,
   buildResumeExtractionUserPrompt,
   EVALUATION_SYSTEM_PROMPT,
   FOLLOWUP_SYSTEM_PROMPT,
   GENERATION_SYSTEM_PROMPT,
+  INTERVIEWER_SYSTEM_PROMPT,
   RESUME_EXTRACTION_SYSTEM_PROMPT,
 } from "./prompts";
 import type { ResumeData } from "@/lib/candidate-context";
@@ -16,8 +18,16 @@ import type {
   FollowUpContext,
   GeneratedQuestion,
   GenerationContext,
+  InterviewerContext,
+  InterviewerDecision,
 } from "./types";
-import { parseEvaluation, parseFollowUps, parseQuestions, parseResume } from "./validate";
+import {
+  parseEvaluation,
+  parseFollowUps,
+  parseInterviewerDecision,
+  parseQuestions,
+  parseResume,
+} from "./validate";
 
 const DEFAULT_MODEL = "openai/gpt-4o-mini";
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
@@ -107,5 +117,14 @@ export class OpenRouterProvider implements AIProvider {
       3_000
     );
     return parseResume(raw);
+  }
+
+  async driveInterview(ctx: InterviewerContext): Promise<InterviewerDecision> {
+    const raw = await this.chatCompletion(
+      INTERVIEWER_SYSTEM_PROMPT,
+      buildInterviewerUserPrompt(ctx),
+      700
+    );
+    return parseInterviewerDecision(raw);
   }
 }

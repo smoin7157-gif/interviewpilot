@@ -90,13 +90,42 @@ Senior, Lead) onto the InterviewOS experience-level vocabulary.*
   `question_attempts(questionId)`.
 - **JSON columns**: `followUps`, `feedback` are validated before writing.
 
+### mock_interview_sessions
+Voice-mode practice sessions (Phase 3). A mock rehearses one interview session.
+
+| Column | Notes |
+| --- | --- |
+| `id` | cuid PK |
+| `userId` | FK → users, **ownership** |
+| `interviewSessionId` | FK → sessions (cascade) — the interview being rehearsed |
+| `status` | `SESSION_STARTED` → `QUESTION_COMPLETE` → `SESSION_COMPLETE` \| `ERROR` |
+| `maxQuestions` | cap on main (non-follow-up) questions |
+| `overallScore` | nullable — filled by the Phase 4 debrief |
+| `debrief` | nullable JSON — Phase 4 debrief payload |
+| `startedAt` / `endedAt` | endedAt set when the session completes |
+| `createdAt` / `updatedAt` | |
+
+### interview_turns
+One row per spoken exchange in a mock session — the transcript. Raw audio/video is never stored.
+
+| Column | Notes |
+| --- | --- |
+| `id` | cuid PK |
+| `mockSessionId` | FK → mock_interview_sessions (cascade) |
+| `turnIndex` | ordering within the session |
+| `speaker` | `AI` \| `CANDIDATE` |
+| `transcript` | the spoken text (AI question or candidate answer) |
+| `action` | nullable — interviewer structured action (`ask_question` / `ask_followup` / `move_topic` / `end_interview`) on AI turns |
+| `category` / `difficulty` | nullable — the question's category/difficulty on AI turns |
+| `createdAt` | |
+
+*Migration `interviewos_mock_interview` added the two mock entities above.*
+
 ## Planned entities (not yet in schema)
 
 Reserved for the roadmap (see ROADMAP.md); do not create until wired:
 
 - `profiles` — full name / extended candidate profile
-- `mock_interview_sessions` — voice-mode sessions (status, overall score, debrief JSONB)
-- `interview_turns` — per-turn speaker/transcript/metadata for mock interviews
 
 ## Local DB files
 

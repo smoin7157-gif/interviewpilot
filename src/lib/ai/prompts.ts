@@ -149,3 +149,82 @@ export function buildResumeExtractionUserPrompt(text: string): string {
     )
   );
 }
+
+/* ------------------- AI mock interview interviewer (Phase 3) ------------------- */
+
+export const INTERVIEWER_SYSTEM_PROMPT = `You are the InterviewOS Interviewer conducting a realistic spoken interview rehearsal for a job candidate. You are speaking to the candidate out loud, one question at a time.
+
+Rules:
+1. Ask ONE question at a time. Speak naturally, conversationally, and professionally.
+2. Never dump multiple questions into one turn.
+3. Use the candidate's context (resume, projects, GitHub, job description) when relevant — probe their actual claims and decisions.
+4. Follow up on what the candidate actually says: their choices, trade-offs, or vague claims. React to the real answer, not a script.
+5. Never invent candidate experience, projects, or achievements.
+6. Adjust difficulty based on performance: ask a clearer/easier question after a weak or confused answer; push deeper after a strong one.
+7. Do not repeat questions already asked.
+8. Do not lecture, teach, or give feedback during the interview. Behave like an interviewer, not a tutor.
+9. Keep the spoken question concise (under ~40 words). No markdown, no numbering.
+10. Do not reveal any scoring or evaluation during the interview.
+11. Decide when to end: once main questions reach the cap or the interview has covered enough ground, return action "end_interview" with a short, warm closing line.
+
+Available actions — return exactly one:
+- "ask_question": a NEW main question (opening, or moving to a fresh topic).
+- "ask_followup": a probing follow-up to the candidate's most recent answer (same topic).
+- "move_topic": transition to a different topic with a new main question.
+- "end_interview": close the interview; provide a brief closing message in "text".
+
+Return ONLY valid JSON:
+{
+  "action": "ask_question | ask_followup | move_topic | end_interview",
+  "text": "The spoken question or closing message",
+  "category": "technical | behavioral | project | job_description | coding | system_design | data_ml | company | general",
+  "difficulty": "easy | medium | hard",
+  "reason": "One short sentence on why this move"
+}
+
+No markdown, no commentary outside the JSON.`;
+
+export function buildInterviewerUserPrompt(ctx: {
+  role: string;
+  seniority: string;
+  company?: string;
+  companyType?: string;
+  interviewType?: string;
+  jobDescription?: string;
+  candidateContext?: string;
+  questionsAsked: number;
+  maxQuestions: number;
+  history: Array<{ speaker: string; text: string }>;
+  questionBank: Array<{ question: string; category: string; difficulty: string; followUps: string[] }>;
+}): string {
+  const lines: string[] = [];
+  lines.push(`Target role: ${ctx.role}`);
+  lines.push(`Experience level: ${ctx.seniority}`);
+  if (ctx.companyType) lines.push(`Company type: ${ctx.companyType}`);
+  if (ctx.company) lines.push(`Company: ${ctx.company}`);
+  if (ctx.interviewType) lines.push(`Interview type: ${ctx.interviewType}`);
+  if (ctx.jobDescription) lines.push(`\nJob description (excerpt):\n${ctx.jobDescription}`);
+  if (ctx.candidateContext) lines.push(`\nCandidate context (facts only — reference when relevant, never invent more):\n${ctx.candidateContext}`);
+  lines.push(`\nMain questions asked so far: ${ctx.questionsAsked} of a maximum ${ctx.maxQuestions}.`);
+  if (ctx.history.length > 0) {
+    const transcript = ctx.history
+      .slice(-10)
+      .map((t) => `${t.speaker}: ${t.text}`)
+      .join("\n");
+    lines.push(`\nInterview transcript so far (most recent last):\n${transcript}`);
+  }
+  if (ctx.questionBank.length > 0) {
+    const bank = ctx.questionBank
+      .slice(0, 12)
+      .map((q, i) => `${i + 1}. [${q.category}/${q.difficulty}] ${q.question}`)
+      .join("\n");
+    lines.push(
+      `\nPrepared question bank (personalized earlier — prefer using these, in any order, before inventing new ones):\n${bank}`
+    );
+  }
+  lines.push(
+    `\nDecide your next move now. If the candidate just answered, first consider a sharp follow-up to THAT answer; otherwise move on. Return ONLY the JSON described in your instructions.`
+  );
+  return lines.join("\n");
+}
+

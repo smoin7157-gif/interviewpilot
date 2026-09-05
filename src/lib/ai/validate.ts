@@ -4,7 +4,7 @@ import type { GeneratedQuestion, QuestionCategory, QuestionDifficulty } from "./
 
 const categoryValues = QUESTION_CATEGORIES as readonly string[];
 
-function normalizeCategory(raw: string): QuestionCategory {
+export function normalizeCategory(raw: string): QuestionCategory {
   const value = raw.trim().toLowerCase();
   // Legacy capitalized values map onto the InterviewOS vocabulary.
   const exact: Record<string, QuestionCategory> = {
@@ -31,7 +31,7 @@ function normalizeCategory(raw: string): QuestionCategory {
   return "general";
 }
 
-function normalizeDifficulty(raw: string): QuestionDifficulty {
+export function normalizeDifficulty(raw: string): QuestionDifficulty {
   const value = raw.trim().toLowerCase();
   if (value.includes("easy") || value.includes("junior") || value.includes("entry") || value.includes("fresher")) return "easy";
   if (value.includes("hard") || value.includes("senior") || value.includes("difficult")) return "hard";
@@ -151,6 +151,41 @@ const resumeShape = z.object({
   certifications: z.array(z.string()).default([]),
   technologies: z.array(z.string()).default([]),
 });
+
+const interviewerDecisionShape = z.object({
+  action: z.enum(["ask_question", "ask_followup", "move_topic", "end_interview"]),
+  text: z.string(),
+  category: z.string().optional().nullable(),
+  difficulty: z.string().optional().nullable(),
+  reason: z.string().optional().nullable(),
+});
+
+export function parseInterviewerDecision(raw: string): {
+  action: "ask_question" | "ask_followup" | "move_topic" | "end_interview";
+  text: string;
+  category?: QuestionCategory;
+  difficulty?: QuestionDifficulty;
+  reason?: string;
+} {
+  const parsed = extractJsonObject(raw);
+  const result = interviewerDecisionShape.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Interviewer output failed validation: ${result.error.issues[0]?.message ?? "invalid shape"}`);
+  }
+  const data = result.data;
+  const text = data.text.trim().replace(/\s+/g, " ");
+  if (data.action !== "end_interview") {
+    if (text.length < 3) throw new Error("Interviewer returned an empty question.");
+  }
+  if (text.length > 800) throw new Error("Interviewer text is unreasonably long.");
+  return {
+    action: data.action,
+    text,
+    category: data.category ? normalizeCategory(data.category) : undefined,
+    difficulty: data.difficulty ? normalizeDifficulty(data.difficulty) : undefined,
+    reason: data.reason?.trim().slice(0, 400) || undefined,
+  };
+}
 
 export function parseResume(raw: string): {
   skills: string[];

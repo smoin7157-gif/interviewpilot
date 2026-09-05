@@ -21,6 +21,7 @@ model User {
 
   sessions InterviewSession[]
   attempts QuestionAttempt[]
+  mocks    MockInterviewSession[]
 
   @@map("users")
 }
@@ -47,6 +48,7 @@ model InterviewSession {
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   questions InterviewQuestion[]
   projects  CandidateProject[]
+  mocks     MockInterviewSession[]
 
   @@index([userId])
   @@map("interview_sessions")
@@ -105,4 +107,47 @@ model QuestionAttempt {
   @@index([userId])
   @@index([questionId])
   @@map("question_attempts")
+}
+
+// Phase 3 — AI mock interview (spoken practice).
+// A mock rehearses one InterviewSession. Turns hold the full transcript;
+// raw audio/video is never stored. overallScore + debrief arrive with Phase 4.
+model MockInterviewSession {
+  id                 String    @id @default(cuid())
+  userId             String
+  interviewSessionId String
+  status             String    @default("SESSION_STARTED")
+  // SESSION_STARTED | QUESTION_COMPLETE | SESSION_COMPLETE | ERROR
+  maxQuestions       Int       @default(10)
+  overallScore       Int?
+  debrief            Json?
+  startedAt          DateTime  @default(now())
+  endedAt            DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  turns   InterviewTurn[]
+
+  @@index([userId])
+  @@index([interviewSessionId, status])
+  @@map("mock_interview_sessions")
+}
+
+model InterviewTurn {
+  id            String   @id @default(cuid())
+  mockSessionId String
+  turnIndex     Int
+  speaker       String // AI | CANDIDATE
+  transcript    String
+  action        String? // interviewer structured action when speaker=AI
+  category      String?
+  difficulty    String?
+  createdAt     DateTime @default(now())
+
+  mockSession MockInterviewSession @relation(fields: [mockSessionId], references: [id], onDelete: Cascade)
+
+  @@index([mockSessionId, turnIndex])
+  @@map("interview_turns")
 }

@@ -5,8 +5,11 @@ import type {
   FollowUpContext,
   GeneratedQuestion,
   GenerationContext,
+  InterviewerContext,
+  InterviewerDecision,
   QuestionCategory,
 } from "./types";
+import { normalizeCategory, normalizeDifficulty } from "./validate";
 import { EMPTY_RESUME, type ResumeData } from "@/lib/candidate-context";
 
 /**
@@ -347,6 +350,85 @@ export class FallbackProvider implements AIProvider {
       "What would you change if you had to do it again?",
       "How would you measure whether it worked?",
     ].slice(0, 3);
+  }
+
+  /** Deterministic mock interviewer: walks the prepared bank, cycles each
+   *  question's stored follow-ups after the candidate answers, then ends when
+   *  the main-question cap is reached or the bank is exhausted. */
+  async driveInterview(ctx: InterviewerContext): Promise<InterviewerDecision> {
+    const bank =
+      ctx.questionBank.length > 0
+        ? ctx.questionBank
+        : (await this.generateQuestions({
+            role: ctx.role,
+            seniority: ctx.seniority,
+            company: ctx.company,
+            companyType: ctx.companyType,
+            interviewType: ctx.interviewType,
+            jobDescription: ctx.jobDescription,
+            candidateContext: ctx.candidateContext,
+            count: ctx.maxQuestions,
+          })).map((q) => ({
+            question: q.question,
+            category: q.category,
+            difficulty: q.difficulty,
+            followUps: q.follow_up_questions,
+          }));
+
+    const aiTurns = ctx.history.filter((t) => t.speaker === "AI");
+    const mainAsked = ctx.questionsAsked;
+
+    const closing = () =>
+      ({
+        action: "end_interview" as const,
+        text: `That's all the questions I have for today. Thank you for practicing with InterviewOS — best of luck in your real interview!`,
+        category: undefined,
+        difficulty: undefined,
+        reason: "Question cap reached.",
+      }) satisfies InterviewerDecision;
+
+    if (mainAsked >= ctx.maxQuestions || bank.length === 0) return closing();
+
+    // Opening: no AI has spoken yet.
+    if (aiTurns.length === 0) {
+      const first = bank[0];
+      return {
+        action: "ask_question",
+        text: first.question,
+        category: normalizeCategory(first.category),
+        difficulty: normalizeDifficulty(first.difficulty),
+        reason: "Opening question.",
+      };
+    }
+
+    // After an answer: use stored follow-ups of the most recent main question
+    // before moving on, then ask the next main question from the bank.
+    let trailingFollowUps = 0;
+    for (let i = aiTurns.length - 1; i >= 0; i--) {
+      if (aiTurns[i].action === "ask_followup") trailingFollowUps++;
+      else break;
+    }
+    const current = mainAsked >= 1 ? bank[Math.min(mainAsked - 1, bank.length - 1)] : undefined;
+    if (current && trailingFollowUps < current.followUps.length && mainAsked <= ctx.maxQuestions) {
+      return {
+        action: "ask_followup",
+        text: current.followUps[trailingFollowUps],
+        category: normalizeCategory(current.category),
+        difficulty: normalizeDifficulty(current.difficulty),
+        reason: "Probing the candidate's previous answer.",
+      };
+    }
+    if (mainAsked < bank.length) {
+      const next = bank[mainAsked];
+      return {
+        action: mainAsked === 0 ? "ask_question" : "move_topic",
+        text: next.question,
+        category: normalizeCategory(next.category),
+        difficulty: normalizeDifficulty(next.difficulty),
+        reason: "Moving to the next prepared question.",
+      };
+    }
+    return closing();
   }
 
   async evaluateAnswer(ctx: EvaluationContext): Promise<EvaluationResult> {

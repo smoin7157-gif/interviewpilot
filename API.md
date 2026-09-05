@@ -108,6 +108,69 @@ form-data: resume=@resume.pdf
 }
 ```
 
+## AI Mock Interviews (spoken practice)
+
+Voice runs in the browser (no keys): mic permission + optional private camera
+self-view via `getUserMedia`, speech-to-text via the Web Speech API, and TTS
+via `speechSynthesis`. The interviewer brain is server-side and driven by the
+same provider abstraction as question generation. Raw audio/video is never
+stored — only transcripts.
+
+### `POST /api/mock-interviews` → 200/201
+Creates a mock session for an owned, generated interview, or returns the
+in-progress one (`resumed: true`).
+
+```json
+{ "interviewSessionId": "…", "maxQuestions": 10 }
+```
+```json
+{ "mockSessionId": "…", "status": "SESSION_STARTED", "resumed": false, "maxQuestions": 10 }
+```
+
+Rejects with 422 when the interview has no generated questions yet.
+
+### `GET /api/mock-interviews?interviewSessionId=…` → 200
+Returns `{ "active": { …lastQuestion } | null }` — used by the mock screen to
+resume an unfinished session.
+
+### `GET /api/mock-interviews/{id}` → 200
+Session status, counts, and the full ordered transcript (`speaker`, `text`,
+`action`, `category`, `difficulty` per turn). 404 when not owned.
+
+### `POST /api/mock-interviews/{id}/turn` → 200
+One exchange. The **first** call (empty `transcript`) opens the interview; every
+later call carries the candidate's spoken answer and returns the interviewer's
+next move as structured output.
+
+```json
+{ "transcript": "I chose Supabase because it gave us Postgres and auth…" }
+```
+```json
+{
+  "action": "ask_followup",
+  "text": "You mentioned Postgres — what made a relational DB the right fit here?",
+  "category": "project",
+  "difficulty": "medium",
+  "reason": "Probing the candidate's actual answer",
+  "questionNumber": 2,
+  "maxQuestions": 10,
+  "completed": false,
+  "provider": "openrouter",
+  "model": "openai/gpt-4o-mini"
+}
+```
+
+`action` is one of `ask_question | ask_followup | move_topic | end_interview`.
+When `completed: true` the session is closed (status `SESSION_COMPLETE`). 422
+when an answer is expected but empty; 409 when the session is finished.
+
+### `POST /api/mock-interviews/{id}/end` → 200
+Ends the session (`SESSION_COMPLETE`, sets `endedAt`).
+
+```json
+{ "reason": "user" | "ai" }
+```
+
 ## Questions
 
 ### `POST /api/questions/{id}/practice` → `{ "ok": true, "status": … }`
@@ -154,9 +217,5 @@ marks the question `PRACTICED`.
 
 ```text
 PATCH  /api/interviews/:id                       (edit setup)
-POST   /api/mock-interviews                       (start voice session)
-GET    /api/mock-interviews/:id
-POST   /api/mock-interviews/:id/turn              (AI question / candidate answer)
-POST   /api/mock-interviews/:id/end
-GET    /api/mock-interviews/:id/debrief
+GET    /api/mock-interviews/:id/debrief          (Phase 4 — score + debrief)
 ```

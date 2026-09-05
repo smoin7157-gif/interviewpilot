@@ -42,24 +42,45 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
 - DOCX resume support if clean; GitHub repo README/metadata depth
 - Seed script + automated tests for setup → generate → practice flows
 
-## Phase 3 — AI Mock Interview ⬜
+## Phase 3 — AI Mock Interview ✅ (this build)
 
-- Preflight: mic/camera permission flow (granted only after user starts),
-  self-view camera, device checks, permission errors + retry, voice-only
-  fallback
-- Browser media API, tracks stopped on end, no hidden capture
-- Session state machine (`SESSION_STARTED` → `AI_SPEAKING` →
-  `LISTENING` → `PROCESSING_ANSWER` → `GENERATING_FOLLOWUP` →
-  `QUESTION_COMPLETE` … `SESSION_COMPLETE` / `ERROR`), no overlapping turns
-- STT + AI interviewer (structured action output: ask_question / ask_followup /
-  move_topic / end_interview) + TTS — provider-replaceable
-- DB: `mock_interview_sessions`, `interview_turns`
+- Preflight screen at `/mock/{interviewId}`: context summary (role/company/
+  level/type), mic status, optional camera self-view checkbox, headphones +
+  privacy notes. Permissions are requested only after the user presses Start.
+- Mic required (permission denied → real error + retry; never start voice
+  without it), camera optional with voice-only fallback + notice. Tracks stop
+  when the session ends or the screen unmounts.
+- Replaceable speech layer (`src/lib/speech.ts`): browser STT (Web Speech
+  API), TTS (speechSynthesis), media helpers — no API keys, no server-side
+  audio. A cloud provider can swap in without touching the interview UI.
+- AI interviewer (server-side, same provider abstraction): structured
+  actions `ask_question | ask_followup | move_topic | end_interview` with
+  zod validation, deterministic fallback interviewer, and a hard question cap
+  — uses the session's prepared question bank + candidate context, probes the
+  candidate's actual answers, one spoken question at a time.
+- Live screen: current question bubble, live STT interim caption, listening /
+  thinking / speaking states, mute + camera toggles, Done/try-again and
+  type-answer fallbacks when no speech is heard, End + confirm.
+- Session state machine on DB (`SESSION_STARTED` → `QUESTION_COMPLETE` →
+  `SESSION_COMPLETE`), transcripts persisted in `interview_turns` (no raw
+  audio/video stored), unfinished sessions resume from where they stopped.
+- Entry points: “Practice aloud” on each interview card and in the workspace
+  header; completion screen with transcript.
+
+Remaining in Phase 3 (roadmap notes):
+- Cloud STT/TTS provider option behind the speech interface (browser voice is
+  default; Chrome/Edge recommended)
+- Device picker for multiple mics/cameras; answer-reactive difficulty already
+  partial via the interviewer prompt
+
 
 ## Phase 4 — Debrief & History ⬜
 
-- Transcript, overall score + breakdown (technical, communication, structure,
-  relevance, project knowledge, problem solving), strengths/weaknesses,
-  missed opportunities, strongest/weakest answers, recommended practice
+- Debrief from the stored mock transcript (`mock_interview_sessions.debrief`,
+  `interview_turns`) — overall score + breakdown (technical, communication,
+  structure, relevance, project knowledge, problem solving), strengths/
+  weaknesses, missed opportunities, strongest/weakest answers, recommended
+  practice
 - Session-level AI practice scores only — no fake "employability" claims; no
   emotion/eye-tracking claims
 - History: saved sessions, debriefs, re-practice, delete

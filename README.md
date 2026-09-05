@@ -4,14 +4,16 @@
 
 InterviewOS is an AI-powered interview practice platform. Tell it about the job
 you're targeting — role, experience level, company, company type, interview
-type and the job description — and it generates a realistic question set,
-then gives you written practice with specific AI feedback on every answer you
-write.
+type and the job description — and optionally add your resume, public GitHub
+profile and projects. It generates a realistic, personalized question set and
+offers two practice modes: **written practice** with specific AI feedback on
+every answer, and an **AI mock interview** where you practice aloud with an AI
+interviewer that asks live follow-ups (mic + optional private camera view).
 
-This build is the **V1 foundation**: a working written-practice loop with the
-InterviewOS setup model, docs, and roadmap in place. AI Mock Interviews,
-resume/GitHub/project context and debriefs are planned next (see
-[ROADMAP.md](./ROADMAP.md)).
+This build covers **Phases 1–3** of the V1 roadmap: the InterviewOS setup
+model, candidate context (resume/GitHub/projects), the question engine,
+written practice, and the AI mock interview. Debriefs and history polish are
+planned next (see [ROADMAP.md](./ROADMAP.md)).
 
 ## Stack
 
@@ -21,6 +23,7 @@ resume/GitHub/project context and debriefs are planned next (see
 - **Auth**: email + password (bcrypt), signed httpOnly session cookies (jose)
 - **AI**: OpenRouter with a provider abstraction and a deterministic offline fallback
 - **Resume parsing**: pdfjs-dist (server-side PDF text extraction; facts are structured by the AI provider)
+- **Mock interview voice**: browser-native (Web Speech API STT + speechSynthesis TTS + getUserMedia) through a swappable speech layer — no API keys, audio never stored
 
 ## Getting started
 
@@ -55,6 +58,7 @@ Create an account at `/signup` to start.
 | `/interviews` | My Interviews (cards, progress, delete) |
 | `/interviews/new` | Interview setup → streams AI generation |
 | `/interviews/[id]` | Practice workspace (questions, follow-ups, answers, evaluation) |
+| `/mock/[id]` | AI Mock Interview (preflight → live spoken interview) |
 | `/faq` | Frequently asked questions |
 | `/settings` | Profile name + password |
 
@@ -73,6 +77,14 @@ Open app → Create account / Log in
     → submit → score + strengths / missing / improvements
   → Progress bar tracks practiced/total per interview
   → /interviews lists sessions with progress; delete via the ⋯ menu
+
+AI Mock Interview (from any interview card or the workspace header):
+
+```text
+Practice aloud → preflight (mic + optional camera self-view, permission copy)
+  → Start → AI interviewer speaks the first question (TTS)
+  → answer aloud → live transcript → interviewer reacts with follow-ups / new questions
+  → End → completion screen with your session transcript (debrief comes in Phase 4)
 ```
 
 ## Useful commands

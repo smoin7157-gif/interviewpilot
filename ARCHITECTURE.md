@@ -14,22 +14,25 @@ Browser
   │  (React Server Components + client components)
   ▼
 Next.js App Router
-  ├── (app)  → protected pages (dashboard, interviews, workspace, faq, settings)
-  ├── (auth) → /login /signup (server actions)
-  └── /api   → route handlers (interviews CRUD, generate, evaluate, …)
+  ├── (app)   → protected pages (dashboard, interviews, workspace, faq, settings)
+  ├── (focus) → protected, shell-less pages (AI mock interview screen)
+  ├── (auth)  → /login /signup (server actions)
+  └── /api    → route handlers (interviews CRUD, generate, evaluate, mock …)
         │
         ▼
    lib/
   ├── auth.ts                session cookie (jose HS256) + bcrypt
   ├── data.ts                ownership-scoped Prisma queries
+  ├── mock.ts                mock-interview queries + interviewer context builder
   ├── validation.ts          zod schemas (shared by UI + API)
   ├── candidate-context.ts   normalized candidate-context types + summary
   ├── resume.ts              PDF → text extraction
   ├── github.ts              public GitHub profile analysis
+  ├── speech.ts              client-only replaceable speech layer (STT/TTS/media)
   └── ai/
       ├── service.ts     facade: pick provider, retry, graceful fallback
-      ├── openrouter.ts  OpenRouter chat-completions provider (+ resume extraction)
-      ├── fallback.ts    deterministic offline provider (+ resume extractor)
+      ├── openrouter.ts  OpenRouter chat-completions provider (+ interviewer)
+      ├── fallback.ts    deterministic offline provider (+ interviewer + resume)
       ├── prompts.ts     system/user prompt builders
       └── validate.ts    tolerant JSON extraction + strict validation
 ```
@@ -40,12 +43,13 @@ Next.js App Router
    API keys never reach the client. Auth uses server actions with an httpOnly
    signed session cookie — no tokens in the browser.
 2. **Provider abstraction.** `AIProvider` exposes `generateQuestions`,
-   `generateFollowUps`, `evaluateAnswer`. OpenRouter is the primary provider;
-   when it is unconfigured, fails, or returns invalid output, the service
-   retries once (on retryable failures) and then falls back to the
-   deterministic `FallbackProvider`. Responses identify `provider`/`model` so
-   the UI can note fallback mode. This is the seam where future providers
-   (speech-to-text, text-to-speech, mock-interview driver) plug in.
+   `generateFollowUps`, `evaluateAnswer`, `extractResume`, and
+   `driveInterview` (the live mock-interviewer). OpenRouter is the primary
+   provider; when it is unconfigured, fails, or returns invalid output, the
+   service retries once (on retryable failures) and then falls back to the
+   deterministic `FallbackProvider` — including a deterministic interviewer
+   that walks the session's question bank. Responses identify
+   `provider`/`model` so the UI can note fallback mode.
 3. **Structured, validated AI output.** Generation prompts demand strict JSON;
    `validate.ts` strips fences/prose, extracts the JSON object, and validates
    with Zod. Malformed output is never rendered.
@@ -58,6 +62,14 @@ Next.js App Router
 6. **Cache-free workspace.** Question data is persisted at generation time and
    reused; selecting questions never triggers AI calls. Follow-ups are
    generated up-front with each question and served from the DB.
+7. **Voice runs in the browser; the interviewer runs on the server.** The mock
+   interview screen (`/mock/[id]`) requests mic (required) and camera
+   (optional self-view) only after the user presses Start, and uses the
+   replaceable speech layer in `src/lib/speech.ts` (Web Speech API STT +
+   speechSynthesis TTS). Audio is never uploaded or stored — the server only
+   sees the transcript. Each spoken answer is sent to
+   `POST /api/mock-interviews/[id]/turn`, which asks the AI provider for a
+   single structured move and persists both sides of the exchange.
 
 ## Routing map
 
@@ -71,8 +83,10 @@ Next.js App Router
 | Create flow | `src/app/(app)/interviews/new/page.tsx` + `new-interview-flow.tsx` (setup → sync → generate) |
 | Resume/GitHub attach | `src/app/api/interviews/[id]/resume/route.ts`, `src/app/api/interviews/[id]/github/route.ts` |
 | Workspace | `src/app/(app)/interviews/[id]/page.tsx` + `interview-workspace.tsx` |
+| Mock interview | `src/app/(focus)/mock/[id]/page.tsx` + `mock-interview.tsx` |
 | FAQ | `src/app/(app)/faq/page.tsx` |
 | Settings | `src/app/(app)/settings/page.tsx` |
+| Mock API | `src/app/api/mock-interviews/**` (create/active, turn, end, detail) |
 | API | `src/app/api/**` |
 
 ## Domain vocabulary (InterviewOS V1)
@@ -122,13 +136,30 @@ instructed to probe the candidate's real claims ("You built HireAI with
 FastAPI — why FastAPI?") and never invent experience. Legacy rows keep their
 older category labels and render fine through display helpers.
 
+## Mock interview (Phase 3)
+
+A mock session rehearses an existing generated interview. The screen is a
+focused, shell-less route (`(focus)` group — still auth-guarded) so nothing
+distracts during practice.
+
+- **Preflight** explains permissions and only calls `getUserMedia` after the
+  user clicks Start. Mic denial blocks voice mode with a real error + retry;
+  camera denial continues voice-only. Media tracks stop on end/unmount.
+- **Live loop**: interviewer text → TTS → STT listening (live interim) → the
+  candidate's transcript is posted to the turn API → the server returns the
+  next structured move → repeat. No speech is heard → try-again or type-answer
+  fallbacks. Mute and camera toggles are local only.
+- **Server state**: `mock_interview_sessions` + `interview_turns` (see
+  DATABASE.md). Unfinished sessions can be resumed from the last AI question;
+  every mock ends in `SESSION_COMPLETE`. Debrief/overall score are Phase 4.
+
 ## Client/server split
 
 - **Server components**: landing, auth pages, dashboard, lists, workspace
-  hydration, FAQ (they own auth + DB reads).
+  hydration, mock page shell, FAQ (they own auth + DB reads).
 - **Client components**: auth forms, create-interview form, streaming
   generation panel, interview workspace (tabs, reveal/hide, practice,
-  evaluation, keyboard nav), session delete menu.
+  evaluation, keyboard nav), mock interview screen, session delete menu.
 - **Server actions**: `signupAction`, `loginAction`, `logoutAction`,
   `updateProfileAction`, `changePasswordAction`.
 - **Route handlers**: data API + AI endpoints (see API.md).
@@ -142,9 +173,9 @@ server-side only.
 
 ## Future modules (extension points)
 
-AI Mock Interview, Debrief, and remaining Phase 2 items (answer-reactive
-follow-ups, DOCX resumes) are planned (see ROADMAP.md). Extending the model
-means adding tables + owner-scoped services under `src/lib/`, route groups per
-module, and sidebar entries — nothing about the current data flow needs to
-change shape. The AI provider layer is where voice (STT/TTS) and richer
-capabilities slot in later.
+Phase 4 (debrief + mock history) and remaining Phase 2 items (answer-reactive
+follow-ups, DOCX resumes) are planned (see ROADMAP.md). The debrief will read
+stored transcripts via the existing mock API; cloud STT/TTS can swap in behind
+`src/lib/speech.ts` without touching the UI. Extending the model means adding
+tables + owner-scoped services under `src/lib/`, route groups per module, and
+sidebar entries — nothing about the current data flow needs to change shape.

@@ -8,6 +8,8 @@ import type {
   FollowUpContext,
   GenerationContext,
   GenerationResult,
+  InterviewerContext,
+  InterviewerResult,
 } from "./types";
 
 /**
@@ -126,4 +128,23 @@ export async function extractResumeData(
   const fallback = new FallbackProvider();
   const result = await fallback.extractResume(text);
   return { result, provider: fallback.name };
+}
+
+export async function driveInterview(ctx: InterviewerContext): Promise<InterviewerResult> {
+  const primary = createBestProvider();
+  if (primary instanceof OpenRouterProvider) {
+    try {
+      const decision = await primary.driveInterview(ctx);
+      return { decision, provider: primary.name, model: primary.model };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[ai] interviewer decision failed: ${message}`);
+      if (!isRetryable(message)) {
+        // fall through to the deterministic interviewer
+      }
+    }
+  }
+  const fallback = new FallbackProvider();
+  const decision = await fallback.driveInterview(ctx);
+  return { decision, provider: fallback.name };
 }

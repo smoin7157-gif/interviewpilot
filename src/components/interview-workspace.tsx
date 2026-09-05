@@ -15,6 +15,7 @@ import {
   Lightbulb,
   List,
   MessageCircleQuestion,
+  Mic,
   PenLine,
   Sparkles,
   X,
@@ -650,9 +651,17 @@ export function InterviewWorkspace({
               style={{ width: `${(practicedCount / questions.length) * 100}%` }}
             />
           </div>
-          <span className="shrink-0 text-xs font-medium tabular-nums text-zinc-500">
+          <span className="hidden shrink-0 text-xs font-medium tabular-nums text-zinc-500 sm:block">
             {practicedCount}/{questions.length} practiced
           </span>
+          <Link
+            href={`/mock/${session.id}`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-zinc-800 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <Mic className="size-3.5 text-indigo-600" aria-hidden />
+            <span className="hidden sm:inline">Practice aloud</span>
+            <span className="sm:hidden">Mock</span>
+          </Link>
         </div>
       </div>
 
