@@ -7,7 +7,8 @@
 Next.js 16 App Router monolith: pages render on the server with React Server
 Components; interactivity lives in client components; AI and database access
 happen exclusively server-side (server components, server actions, and route
-handlers). SQLite via Prisma, session auth via signed cookies.
+handlers). PostgreSQL via Prisma (Neon serverless Postgres — Vercel-compatible),
+session auth via signed cookies.
 
 ```
 Browser
@@ -166,10 +167,10 @@ distracts during practice.
 
 ## Environment
 
-See `.env.example`. `AUTH_SECRET` signs session cookies; `OPENROUTER_API_KEY`
-enables live AI (optional — the deterministic fallback keeps the flow working
-without it). `DATABASE_URL` points at the local SQLite file. All keys are
-server-side only.
+See `.env.example`. `DATABASE_URL` is the Postgres connection string (Neon
+pooled URL in production), `AUTH_SECRET` signs session cookies,
+`OPENROUTER_API_KEY` enables live AI (optional — the deterministic fallback
+keeps the flow working without it). All keys are server-side only.
 
 ## Future modules (extension points)
 

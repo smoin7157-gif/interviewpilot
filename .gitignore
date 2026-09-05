@@ -44,3 +44,4 @@ next-env.d.ts
 # local database
 /prisma/*.db
 /prisma/*.db-journal
+/prisma/*.sqlite-backup

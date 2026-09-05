@@ -1,13 +1,13 @@
-// InterviewOS — V1 schema (SQLite)
-// Designed so it can be lifted to PostgreSQL/Supabase later:
-// switch provider + url and enable RLS policies at the database layer.
+// InterviewOS — V1 schema (PostgreSQL)
+// Runs on Neon (serverless Postgres) for Vercel deploys and locally.
+// Ownership is enforced at the query layer; RLS policies can be layered on.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

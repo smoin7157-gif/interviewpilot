@@ -19,7 +19,7 @@ planned next (see [ROADMAP.md](./ROADMAP.md)).
 
 - **Next.js 16** (App Router, React 19, TypeScript) — pages + API routes
 - **Tailwind CSS v4** + hand-rolled UI primitives + Lucide icons
-- **Prisma ORM** on **SQLite** (`prisma/dev.db`) — schema is portable to Postgres/Supabase
+- **Prisma ORM** on **PostgreSQL** (Neon serverless Postgres — works on Vercel and locally)
 - **Auth**: email + password (bcrypt), signed httpOnly session cookies (jose)
 - **AI**: OpenRouter with a provider abstraction and a deterministic offline fallback
 - **Resume parsing**: pdfjs-dist (server-side PDF text extraction; facts are structured by the AI provider)
@@ -30,7 +30,7 @@ planned next (see [ROADMAP.md](./ROADMAP.md)).
 ```bash
 npm install
 cp .env.example .env        # then fill in values
-npx prisma migrate dev      # creates prisma/dev.db
+npx prisma migrate dev      # applies migrations to the Postgres DB in DATABASE_URL
 npm run dev                 # http://localhost:3000
 ```
 
@@ -38,7 +38,7 @@ Required in `.env`:
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | `file:./dev.db` (SQLite) |
+| `DATABASE_URL` | PostgreSQL connection string (e.g. Neon `-pooler` URL) |
 | `AUTH_SECRET` | random string signing session cookies |
 | `OPENROUTER_API_KEY` | enables live AI generation/evaluation |
 

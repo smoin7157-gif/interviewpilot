@@ -1,8 +1,10 @@
 # InterviewOS — Database
 
-SQLite via Prisma. Schema in `prisma/schema.prisma`, migrations in
-`prisma/migrations/`. **Postgres/Supabase ready**: swap the `provider`/`url`,
-run `prisma migrate`, then enforce equivalent ownership with RLS policies.
+PostgreSQL via Prisma (runs on **Neon** serverless Postgres for Vercel deploys
+and locally). Schema in `prisma/schema.prisma`, migrations in
+`prisma/migrations/`. `DATABASE_URL` is a Postgres connection string (pooled
+`-pooler` URL for serverless). Ownership is enforced at the query layer; RLS
+policies can be layered on later.
 
 ## Entities
 
@@ -127,7 +129,8 @@ Reserved for the roadmap (see ROADMAP.md); do not create until wired:
 
 - `profiles` — full name / extended candidate profile
 
-## Local DB files
+## Local setup
 
-`prisma/dev.db` (+ `-journal`) are created by `npx prisma migrate dev` and are
-gitignored. Inspect with `npx prisma studio`.
+Migrations apply to the Postgres DB in `DATABASE_URL` (`npx prisma migrate
+deploy` on deploys, `npx prisma migrate dev` locally). Inspect with
+`npx prisma studio`. No local database files are used anymore.
