@@ -24,7 +24,8 @@ Next.js App Router
    lib/
   ├── auth.ts                session cookie (jose HS256) + bcrypt
   ├── data.ts                ownership-scoped Prisma queries
-  ├── mock.ts                mock-interview queries + interviewer context builder
+  ├── mock.ts                mock-interview queries + interviewer context builder + history rows
+  ├── debrief.ts             debrief context assembly + transcript budget (Phase 4)
   ├── validation.ts          zod schemas (shared by UI + API)
   ├── candidate-context.ts   normalized candidate-context types + summary
   ├── resume.ts              PDF → text extraction
@@ -44,12 +45,13 @@ Next.js App Router
    API keys never reach the client. Auth uses server actions with an httpOnly
    signed session cookie — no tokens in the browser.
 2. **Provider abstraction.** `AIProvider` exposes `generateQuestions`,
-   `generateFollowUps`, `evaluateAnswer`, `extractResume`, and
-   `driveInterview` (the live mock-interviewer). OpenRouter is the primary
-   provider; when it is unconfigured, fails, or returns invalid output, the
-   service retries once (on retryable failures) and then falls back to the
-   deterministic `FallbackProvider` — including a deterministic interviewer
-   that walks the session's question bank. Responses identify
+   `generateFollowUps`, `evaluateAnswer`, `extractResume`,
+   `driveInterview` (the live mock-interviewer), and `generateDebrief`
+   (Phase 4). OpenRouter is the primary provider; when it is unconfigured,
+   fails, or returns invalid output, the service retries once (on retryable
+   failures) and then falls back to the deterministic `FallbackProvider` —
+   including a deterministic interviewer and a heuristic debrief scorer that
+   is honest about which dimensions had evidence. Responses identify
    `provider`/`model` so the UI can note fallback mode.
 3. **Structured, validated AI output.** Generation prompts demand strict JSON;
    `validate.ts` strips fences/prose, extracts the JSON object, and validates
@@ -71,6 +73,13 @@ Next.js App Router
    sees the transcript. Each spoken answer is sent to
    `POST /api/mock-interviews/[id]/turn`, which asks the AI provider for a
    single structured move and persists both sides of the exchange.
+8. **Debriefs come from stored transcripts only (Phase 4).** When a mock ends
+   (or on demand), `POST /api/mock-interviews/[id]/debrief` assembles a
+   budget-capped transcript (`src/lib/debrief.ts`), asks the AI provider for a
+   structured 6-dimension debrief (Zod-validated, deterministic fallback), and
+   persists `overallScore` + `debrief` on the session. Scores are explicitly
+   session-level practice feedback — never employability claims. History
+   lives at `/history` and `/history/[id]` with re-practice and delete.
 
 ## Routing map
 
@@ -85,9 +94,10 @@ Next.js App Router
 | Resume/GitHub attach | `src/app/api/interviews/[id]/resume/route.ts`, `src/app/api/interviews/[id]/github/route.ts` |
 | Workspace | `src/app/(app)/interviews/[id]/page.tsx` + `interview-workspace.tsx` |
 | Mock interview | `src/app/(focus)/mock/[id]/page.tsx` + `mock-interview.tsx` |
+| Mock history | `src/app/(app)/history/page.tsx` + `history/[id]/page.tsx` + `debrief-view.tsx`, `debrief-panel.tsx` |
 | FAQ | `src/app/(app)/faq/page.tsx` |
 | Settings | `src/app/(app)/settings/page.tsx` |
-| Mock API | `src/app/api/mock-interviews/**` (create/active, turn, end, detail) |
+| Mock API | `src/app/api/mock-interviews/**` (create/active, turn, end, detail, debrief, history, delete) |
 | API | `src/app/api/**` |
 
 ## Domain vocabulary (InterviewOS V1)
@@ -174,9 +184,9 @@ keeps the flow working without it). All keys are server-side only.
 
 ## Future modules (extension points)
 
-Phase 4 (debrief + mock history) and remaining Phase 2 items (answer-reactive
-follow-ups, DOCX resumes) are planned (see ROADMAP.md). The debrief will read
-stored transcripts via the existing mock API; cloud STT/TTS can swap in behind
-`src/lib/speech.ts` without touching the UI. Extending the model means adding
-tables + owner-scoped services under `src/lib/`, route groups per module, and
-sidebar entries — nothing about the current data flow needs to change shape.
+Remaining Phase 2 items (answer-reactive written follow-ups, DOCX resumes) and
+Phase 5 polish (a11y, rate limiting, security headers, tests, seed script) are
+planned (see ROADMAP.md). Cloud STT/TTS can swap in behind `src/lib/speech.ts`
+without touching the UI. Extending the model means adding tables + owner-scoped
+services under `src/lib/`, route groups per module, and sidebar entries —
+nothing about the current data flow needs to change shape.

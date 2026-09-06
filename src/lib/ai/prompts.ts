@@ -228,3 +228,75 @@ export function buildInterviewerUserPrompt(ctx: {
   return lines.join("\n");
 }
 
+/* ------------------- AI mock interview debrief (Phase 4) ------------------- */
+
+export const DEBRIEF_SYSTEM_PROMPT = `You are a senior interviewer writing a constructive practice debrief for a candidate who just finished a spoken mock interview on InterviewOS.
+
+You see the FULL transcript: the interviewer's questions (with category and difficulty) and the candidate's spoken answers. Judge the candidate's ACTUAL answers — never generic feedback.
+
+Rules:
+- This is a PRACTICE score for the candidate's own growth. Never make employability, hiring, or personality claims. No emotion/eye-tracking claims. No "you will pass/fail" statements.
+- Score each of the six dimensions 0-100 based on evidence in the transcript:
+  - technical: depth and correctness of technical knowledge shown
+  - communication: clarity, fluency, and how well ideas were expressed aloud
+  - structure: whether answers were organized (e.g., STAR-like for behavioral, direct-then-detail elsewhere)
+  - relevance: how directly answers addressed the question asked
+  - project_knowledge: command of the candidate's own projects/experience (depth, trade-offs, decisions)
+  - problem_solving: reasoning, trade-offs, and method shown when tackling problems
+- Provide one short "note" (under 20 words) per dimension explaining the score from the transcript.
+- strengths / weaknesses / missedOpportunities: 3-4 concrete items each, 6-14 words, grounded in specific answers.
+- strongestAnswer / weakestAnswer: pick real exchanges. "question" is the interviewer's question text; "why" is one concrete sentence on what made it the strongest/weakest.
+- recommendedPractice: 3-4 actionable, specific practice tips (6-14 words each) tied to observed weaknesses.
+- Be honest and specific — do not inflate. If the transcript is thin, say so in the notes.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "overallScore": 0,
+  "breakdown": [
+    { "dimension": "technical | communication | structure | relevance | project_knowledge | problem_solving", "score": 0, "note": "one short sentence" }
+  ],
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "missedOpportunities": ["..."],
+  "strongestAnswer": { "question": "...", "why": "..." },
+  "weakestAnswer": { "question": "...", "why": "..." },
+  "recommendedPractice": ["..."]
+}
+
+All six dimensions must be present in breakdown. overallScore must equal the weighted average of the six (weights: technical .2, communication .2, structure .15, relevance .2, project_knowledge .15, problem_solving .1), rounded to the nearest integer. No markdown, no commentary outside the JSON.`;
+
+export function buildDebriefUserPrompt(ctx: {
+  role: string;
+  seniority: string;
+  company?: string;
+  companyType?: string;
+  interviewType?: string;
+  jobDescription?: string;
+  candidateContext?: string;
+  maxQuestions: number;
+  transcript: Array<{ speaker: string; text: string; action?: string; category?: string; difficulty?: string }>;
+}): string {
+  const lines: string[] = [];
+  lines.push(`Target role: ${ctx.role}`);
+  lines.push(`Experience level: ${ctx.seniority}`);
+  if (ctx.companyType) lines.push(`Company type: ${ctx.companyType}`);
+  if (ctx.company) lines.push(`Company: ${ctx.company}`);
+  if (ctx.interviewType) lines.push(`Interview type: ${ctx.interviewType}`);
+  if (ctx.jobDescription) lines.push(`\nJob description (excerpt):\n${ctx.jobDescription}`);
+  if (ctx.candidateContext) lines.push(`\nCandidate context (facts only):\n${ctx.candidateContext}`);
+  lines.push(`\nPlanned length: up to ${ctx.maxQuestions} main questions.`);
+
+  const transcript = ctx.transcript
+    .map((t) =>
+      t.speaker === "AI"
+        ? `Interviewer [${t.action ?? "question"}${t.category ? ` / ${t.category}` : ""}${t.difficulty ? ` / ${t.difficulty}` : ""}]: ${t.text}`
+        : `Candidate: ${t.text}`
+    )
+    .join("\n");
+  lines.push(`\nFull transcript (oldest first):\n${transcript}`);
+  lines.push(
+    `\nNow write the debrief. Base every score and comment strictly on the transcript above. Return ONLY the JSON described in your instructions.`
+  );
+  return lines.join("\n");
+}
+

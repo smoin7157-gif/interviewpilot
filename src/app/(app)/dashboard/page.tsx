@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Mic, Plus, Sparkles } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getRecentSessions } from "@/lib/data";
+import { getRecentMocks, getRecentSessions } from "@/lib/data";
 import { greeting, formatRelativeTime, pluralize } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,9 +24,15 @@ function ProgressBar({ practiced, total }: { practiced: number; total: number })
   );
 }
 
+function MockScoreChip({ score }: { score: number }) {
+  const tone = score >= 80 ? "green" : score >= 60 ? "amber" : "red";
+  return <Badge tone={tone}>{score}/100</Badge>;
+}
+
 export default async function DashboardPage() {
   const user = await requireUser();
   const recent = await getRecentSessions(user.id, 3);
+  const recentMocks = await getRecentMocks(user.id, 3);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
@@ -44,6 +50,57 @@ export default async function DashboardPage() {
           <Plus className="size-4" aria-hidden /> New Interview
         </Link>
       </div>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-zinc-900">Recent Mock Interviews</h2>
+          <Link
+            href="/history"
+            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            View all <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        </div>
+
+        {recentMocks.length === 0 ? (
+          <Card className="mt-4 flex flex-col items-center justify-center px-6 py-10 text-center">
+            <div className="flex size-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+              <Mic className="size-5" aria-hidden />
+            </div>
+            <h3 className="mt-3 text-base font-semibold text-zinc-900">Practice aloud with the AI interviewer.</h3>
+            <p className="mt-1 max-w-sm text-sm leading-relaxed text-zinc-500">
+              From any interview, hit &ldquo;Practice aloud&rdquo; to rehearse spoken answers and get a
+              scored debrief.
+            </p>
+          </Card>
+        ) : (
+          <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+            {recentMocks.map((mock) => (
+              <li key={mock.id}>
+                <Link href={`/history/${mock.id}`} className="group block h-full">
+                  <Card className="flex h-full flex-col gap-2.5 p-4 transition-colors group-hover:border-zinc-300">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="size-3.5 shrink-0 text-indigo-500" aria-hidden />
+                      <span className="truncate text-sm font-semibold text-zinc-950">{mock.role}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {mock.company && <span className="text-xs text-zinc-400">{mock.company}</span>}
+                      <Badge tone="zinc">{mock.seniority}</Badge>
+                      {mock.hasDebrief && mock.overallScore != null && (
+                        <MockScoreChip score={mock.overallScore} />
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-400">
+                      {mock.questionsAsked} {pluralize(mock.questionsAsked, "question")} ·{" "}
+                      {formatRelativeTime(mock.createdAt)}
+                    </p>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-10">
         <div className="flex items-center justify-between">

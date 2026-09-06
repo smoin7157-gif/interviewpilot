@@ -171,6 +171,50 @@ Ends the session (`SESSION_COMPLETE`, sets `endedAt`).
 { "reason": "user" | "ai" }
 ```
 
+### `POST /api/mock-interviews/{id}/debrief` → 200
+Generates and persists a session debrief from the stored transcript, or returns
+the stored one when it already exists (pass `{ "force": true }` to
+regenerate). Requires at least 2 spoken candidate answers (422 otherwise).
+Persists `overallScore` + `debrief` on the session.
+
+```json
+{ "force": false }
+```
+```json
+{
+  "mockSessionId": "…",
+  "overallScore": 78,
+  "debrief": {
+    "overallScore": 78,
+    "breakdown": [
+      { "dimension": "technical", "score": 75, "note": "…" },
+      { "dimension": "communication", "score": 82, "note": "…" },
+      { "dimension": "structure", "score": 70, "note": "…" },
+      { "dimension": "relevance", "score": 80, "note": "…" },
+      { "dimension": "project_knowledge", "score": 74, "note": "…" },
+      { "dimension": "problem_solving", "score": 78, "note": "…" }
+    ],
+    "strengths": ["…"],
+    "weaknesses": ["…"],
+    "missedOpportunities": ["…"],
+    "strongestAnswer": { "question": "…", "why": "…" },
+    "weakestAnswer": { "question": "…", "why": "…" },
+    "recommendedPractice": ["…"],
+    "provider": "openrouter",
+    "model": "openai/gpt-4o-mini"
+  },
+  "generated": true
+}
+```
+
+### `DELETE /api/mock-interviews/{id}` → `{ "ok": true }`
+Deletes a mock session (turns cascade). Ownership-scoped; 404 when not owned.
+
+### `GET /api/mock-interviews/history` → 200
+All of the caller's mock sessions, newest first, with interview context
+(`role`, `company`, `seniority`, `interviewType`), `status`, `overallScore`,
+`hasDebrief`, `questionsAsked`, and timestamps.
+
 ## Questions
 
 ### `POST /api/questions/{id}/practice` → `{ "ok": true, "status": … }`
@@ -217,5 +261,4 @@ marks the question `PRACTICED`.
 
 ```text
 PATCH  /api/interviews/:id                       (edit setup)
-GET    /api/mock-interviews/:id/debrief          (Phase 4 — score + debrief)
 ```

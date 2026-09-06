@@ -51,12 +51,20 @@ export async function getActiveMock(userId: string, interviewSessionId: string) 
   });
 }
 
-export function turnsToHistory(turns: Array<{ speaker: string; transcript: string; action?: string | null }>): InterviewTranscriptTurn[] {
+export function turnsToHistory(turns: Array<{
+  speaker: string;
+  transcript: string;
+  action?: string | null;
+  category?: string | null;
+  difficulty?: string | null;
+}>): InterviewTranscriptTurn[] {
   return turns.map((t) => ({
     speaker: t.speaker === "AI" ? "AI" : "CANDIDATE",
     // Trim long utterances so repeated LLM calls stay cheap.
     text: t.transcript.trim().slice(0, 900),
     action: t.speaker === "AI" ? (t.action ?? undefined) : undefined,
+    category: t.speaker === "AI" ? (t.category ?? undefined) : undefined,
+    difficulty: t.speaker === "AI" ? (t.difficulty ?? undefined) : undefined,
   }));
 }
 
@@ -137,4 +145,71 @@ export interface MockTurnOutcome {
   completed: boolean;
   provider: string;
   model?: string;
+}
+
+/* ----------------------- Mock history (Phase 4) ----------------------- */
+
+export interface MockHistoryRow {
+  id: string;
+  interviewSessionId: string;
+  role: string;
+  company: string | null;
+  seniority: string;
+  interviewType: string | null;
+  status: string;
+  overallScore: number | null;
+  hasDebrief: boolean;
+  questionsAsked: number;
+  startedAt: Date;
+  endedAt: Date | null;
+  createdAt: Date;
+}
+
+/** Every mock session a user owns, newest first, with its interview context. */
+export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> {
+  const mocks = await prisma.mockInterviewSession.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" as const },
+    include: {
+      session: {
+        select: { role: true, company: true, seniority: true, interviewType: true },
+      },
+      turns: { select: { speaker: true, action: true } },
+    },
+  });
+  return mocks.map((mock) => ({
+    id: mock.id,
+    interviewSessionId: mock.interviewSessionId,
+    role: mock.session.role,
+    company: mock.session.company,
+    seniority: mock.session.seniority,
+    interviewType: mock.session.interviewType,
+    status: mock.status,
+    overallScore: mock.overallScore,
+    hasDebrief: Boolean(mock.debrief && mock.overallScore != null),
+    questionsAsked: countMainQuestions(mock.turns),
+    startedAt: mock.startedAt,
+    endedAt: mock.endedAt,
+    createdAt: mock.createdAt,
+  }));
+}
+
+/** One owned mock with its full transcript + interview context (debrief page). */
+export async function getOwnedMockWithInterview(userId: string, mockId: string) {
+  return prisma.mockInterviewSession.findFirst({
+    where: { id: mockId, userId },
+    include: {
+      turns: { orderBy: { turnIndex: "asc" as const } },
+      session: {
+        select: {
+          id: true,
+          role: true,
+          company: true,
+          seniority: true,
+          interviewType: true,
+          companyType: true,
+        },
+      },
+    },
+  });
 }

@@ -3,6 +3,8 @@ import { OpenRouterProvider } from "./openrouter";
 import type { ResumeData } from "@/lib/candidate-context";
 import type {
   AIProvider,
+  DebriefContext,
+  DebriefResult,
   EvaluationContext,
   EvaluationResult,
   FollowUpContext,
@@ -147,4 +149,23 @@ export async function driveInterview(ctx: InterviewerContext): Promise<Interview
   const fallback = new FallbackProvider();
   const decision = await fallback.driveInterview(ctx);
   return { decision, provider: fallback.name };
+}
+
+export async function generateDebrief(ctx: DebriefContext): Promise<{ result: DebriefResult; provider: string; model?: string }> {
+  const primary = createBestProvider();
+  if (primary instanceof OpenRouterProvider) {
+    try {
+      const result = await primary.generateDebrief(ctx);
+      return { result, provider: primary.name, model: primary.model };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[ai] debrief generation failed: ${message}`);
+      if (!isRetryable(message)) {
+        // fall through to the deterministic debrief
+      }
+    }
+  }
+  const fallback = new FallbackProvider();
+  const result = await fallback.generateDebrief(ctx);
+  return { result, provider: fallback.name };
 }

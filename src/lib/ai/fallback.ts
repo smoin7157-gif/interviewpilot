@@ -1,5 +1,8 @@
 import type {
   AIProvider,
+  DebriefContext,
+  DebriefDimension,
+  DebriefResult,
   EvaluationContext,
   EvaluationResult,
   FollowUpContext,
@@ -429,6 +432,223 @@ export class FallbackProvider implements AIProvider {
       };
     }
     return closing();
+  }
+
+  /* ------------------- Deterministic debrief (Phase 4) ------------------- */
+
+  /**
+   * Session-level practice debrief from the transcript. Scores are honest
+   * heuristics over the candidate's actual spoken answers (depth, structure,
+   * examples, outcomes) — never invented. When a dimension had no matching
+   * questions, the note says so instead of pretending it was assessed.
+   */
+  async generateDebrief(ctx: DebriefContext): Promise<DebriefResult> {
+    const samples: Array<{
+      question: string;
+      category: string;
+      difficulty: string;
+      text: string;
+      words: number;
+      structured: boolean;
+      example: boolean;
+      result: boolean;
+    }> = [];
+    let pendingQuestion: string | null = null;
+    let pendingCategory = "general";
+    let pendingDifficulty = "medium";
+    for (const turn of ctx.transcript) {
+      if (turn.speaker === "AI") {
+        pendingQuestion = turn.text;
+        pendingCategory = turn.category ?? "general";
+        pendingDifficulty = turn.difficulty ?? "medium";
+        continue;
+      }
+      const text = turn.text.trim();
+      if (!text) continue;
+      samples.push({
+        question: pendingQuestion ?? "",
+        category: pendingCategory,
+        difficulty: pendingDifficulty,
+        text,
+        words: text.split(/\s+/).length,
+        structured: /\b(first|then|finally|after|next|because|in order to|as a result)\b/i.test(text),
+        example: /\b(for example|for instance|in one case|specifically|such as)\b/i.test(text),
+        result: /\b(result|outcome|impact|improved|reduced|increased|shipped|launched|saved|cut)\b/i.test(text),
+      });
+    }
+
+    const count = samples.length;
+    const clamp = (n: number) => Math.min(100, Math.max(0, Math.round(n)));
+    const avg = (nums: number[]) => (nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length);
+
+    const quality = (s: (typeof samples)[number]) => {
+      let score = 40;
+      if (s.words >= 35) score += 15;
+      if (s.words >= 80) score += 10;
+      if (s.structured) score += 10;
+      if (s.example) score += 15;
+      if (s.result) score += 10;
+      return Math.min(95, score);
+    };
+
+    const dimension = (key: DebriefDimension, score: number, note: string): DebriefResult["breakdown"][number] => ({
+      dimension: key,
+      score: clamp(score),
+      note,
+    });
+
+    if (count === 0) {
+      const empty: DebriefResult["breakdown"] = ctx.transcript.some((t) => t.speaker === "AI")
+        ? ["technical", "communication", "structure", "relevance", "project_knowledge", "problem_solving"].map((d) =>
+            dimension(d as DebriefDimension, 0, "No spoken answers were captured — nothing to score.")
+          )
+        : ["technical", "communication", "structure", "relevance", "project_knowledge", "problem_solving"].map((d) =>
+            dimension(d as DebriefDimension, 0, "The session ended before the first question was answered.")
+          );
+      return {
+        overallScore: 0,
+        breakdown: empty,
+        strengths: [],
+        weaknesses: ["No spoken answers were captured in this session"],
+        missedOpportunities: [
+          "End the interview only after answering at least a few questions aloud — a fuller transcript produces a fairer debrief",
+        ],
+        strongestAnswer: { question: "", why: "No answers were recorded." },
+        weakestAnswer: { question: "", why: "No answers were recorded." },
+        recommendedPractice: [
+          "Re-practice this interview and speak a full answer to every question",
+        ],
+        provider: "fallback",
+      };
+    }
+
+    const qualities = samples.map(quality);
+    const avgWords = avg(samples.map((s) => s.words));
+    const structuredFrac = samples.filter((s) => s.structured).length / count;
+    const exampleFrac = samples.filter((s) => s.example).length / count;
+    const resultFrac = samples.filter((s) => s.result).length / count;
+    const onTopic = (s: (typeof samples)[number]) => {
+      const qTokens = new Set(s.question.toLowerCase().match(/[a-z][a-z-]{3,}/g) ?? []);
+      if (qTokens.size === 0) return true;
+      return (s.text.toLowerCase().match(/[a-z][a-z-]{3,}/g) ?? []).some((t) => qTokens.has(t));
+    };
+    const relevanceFrac = samples.filter(onTopic).length / count;
+
+    const TECH = new Set(["technical", "coding", "system_design", "data_ml"]);
+    const techSamples = samples.filter((s) => TECH.has(s.category));
+    const projSamples = samples.filter((s) => s.category === "project");
+    const probeSamples = samples.filter(
+      (s) => s.difficulty === "hard" || s.difficulty === "medium"
+    );
+
+    const technicalScore = techSamples.length > 0 ? avg(techSamples.map(quality)) : avg(qualities);
+    const communicationScore = avg(qualities);
+    const structureScore = 45 + structuredFrac * 40 + (avgWords >= 60 ? 10 : 0);
+    const relevanceScore = 50 + relevanceFrac * 40 + (samples.every((s) => s.words >= 20) ? 10 : 0);
+    const projectScore = projSamples.length > 0 ? avg(projSamples.map(quality)) : avg(qualities);
+    const problemScore = probeSamples.length > 0 ? avg(probeSamples.map(quality)) : avg(qualities);
+
+    const breakdown: DebriefResult["breakdown"] = [
+      dimension(
+        "technical",
+        technicalScore,
+        techSamples.length > 0
+          ? `Based on ${techSamples.length} technical answer${techSamples.length === 1 ? "" : "s"}.`
+          : "No technical questions were asked in this session — this reflects general reasoning only."
+      ),
+      dimension(
+        "communication",
+        communicationScore,
+        `Answers averaged ${Math.round(avgWords)} words; ${Math.round(exampleFrac * 100)}% used concrete examples.`
+      ),
+      dimension(
+        "structure",
+        structureScore,
+        `${Math.round(structuredFrac * 100)}% of answers used an explicit structure (first/then/result).`
+      ),
+      dimension(
+        "relevance",
+        relevanceScore,
+        `${Math.round(relevanceFrac * 100)}% of answers directly addressed the question asked.`
+      ),
+      dimension(
+        "project_knowledge",
+        projectScore,
+        projSamples.length > 0
+          ? `Based on ${projSamples.length} project/experience answer${projSamples.length === 1 ? "" : "s"}.`
+          : "No project questions were asked in this session — this reflects general answers only."
+      ),
+      dimension(
+        "problem_solving",
+        problemScore,
+        probeSamples.length > 0
+          ? `Based on ${probeSamples.length} medium/hard question${probeSamples.length === 1 ? "" : "s"}.`
+          : "No probing questions were asked — this reflects the depth of the answers given."
+      ),
+    ];
+
+    const overallScore = clamp(
+      technicalScore * 0.2 +
+        communicationScore * 0.2 +
+        structureScore * 0.15 +
+        relevanceScore * 0.2 +
+        projectScore * 0.15 +
+        problemScore * 0.1
+    );
+
+    const strengths: string[] = [];
+    if (avgWords >= 60) strengths.push(`Answers averaged ${Math.round(avgWords)} words — good depth`);
+    if (structuredFrac >= 0.6) strengths.push("Most answers followed a clear structure (direct answer → detail → result)");
+    if (exampleFrac >= 0.4) strengths.push("You grounded several answers in concrete examples");
+    if (resultFrac >= 0.3) strengths.push("Several answers closed with results or outcomes");
+    if (strengths.length === 0) strengths.push("You answered every question that was asked");
+
+    const weaknesses: string[] = [];
+    if (avgWords < 50) weaknesses.push(`Answers averaged only ${Math.round(avgWords)} words — expand with specifics`);
+    if (structuredFrac < 0.5) weaknesses.push("Answers often lacked a clear structure — open with the direct answer, then detail");
+    if (exampleFrac < 0.4) weaknesses.push("Few concrete examples — ground your claims in specific situations");
+    if (resultFrac < 0.3) weaknesses.push("Few measurable outcomes — state what changed because of your actions");
+
+    const missedOpportunities: string[] = [];
+    if (techSamples.length > 0 && technicalScore < 65) {
+      missedOpportunities.push("Technical answers were shallow — practice articulating trade-offs and alternatives");
+    }
+    if (projSamples.length > 0 && projectScore < 65) {
+      missedOpportunities.push("Project questions were a chance to show depth — discuss decisions you made and why");
+    }
+    if (techSamples.length === 0) {
+      missedOpportunities.push("This session had no technical questions — pick a Technical or Coding interview type to practice them");
+    }
+    if (missedOpportunities.length < 2) {
+      missedOpportunities.push("Where possible use STAR for behavioral answers: Situation, Task, Action, Result");
+    }
+
+    const recommendedPractice: string[] = [];
+    if (avgWords < 80) recommendedPractice.push("Aim for a full minute per answer — roughly 120–150 words");
+    if (resultFrac < 0.5) recommendedPractice.push("Prepare a \"decision + trade-off + outcome\" story for each project");
+    recommendedPractice.push("Practice opening every answer with a one-sentence direct response");
+    recommendedPractice.push("Re-practice this interview aloud once more to beat this score");
+
+    const strongest = samples.reduce((best, s) => (quality(s) > quality(best) ? s : best), samples[0]);
+    const weakest = samples.reduce((worst, s) => (quality(s) < quality(worst) ? s : worst), samples[0]);
+
+    return {
+      overallScore,
+      breakdown,
+      strengths: strengths.slice(0, 4),
+      weaknesses: weaknesses.slice(0, 4),
+      missedOpportunities: missedOpportunities.slice(0, 4),
+      strongestAnswer: {
+        question: strongest.question || "(question not captured)",
+        why: "Your most complete and specific answer of the session.",
+      },
+      weakestAnswer: {
+        question: weakest.question || "(question not captured)",
+        why: "The thinnest answer — it lacked detail, structure, or a concrete outcome.",
+      },
+      recommendedPractice: recommendedPractice.slice(0, 4),
+      provider: "fallback",
+    };
   }
 
   async evaluateAnswer(ctx: EvaluationContext): Promise<EvaluationResult> {

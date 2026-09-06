@@ -10,10 +10,12 @@ offers two practice modes: **written practice** with specific AI feedback on
 every answer, and an **AI mock interview** where you practice aloud with an AI
 interviewer that asks live follow-ups (mic + optional private camera view).
 
-This build covers **Phases 1–3** of the V1 roadmap: the InterviewOS setup
+This build covers **Phases 1–4** of the V1 roadmap: the InterviewOS setup
 model, candidate context (resume/GitHub/projects), the question engine,
-written practice, and the AI mock interview. Debriefs and history polish are
-planned next (see [ROADMAP.md](./ROADMAP.md)).
+written practice, the AI mock interview, and the mock **debrief + history**
+(scored 6-dimension feedback from your spoken answers, saved sessions,
+re-practice, delete). Remaining: Phase 5 polish — accessibility, rate
+limiting, security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
 
 ## Stack
 
@@ -58,7 +60,9 @@ Create an account at `/signup` to start.
 | `/interviews` | My Interviews (cards, progress, delete) |
 | `/interviews/new` | Interview setup → streams AI generation |
 | `/interviews/[id]` | Practice workspace (questions, follow-ups, answers, evaluation) |
-| `/mock/[id]` | AI Mock Interview (preflight → live spoken interview) |
+| `/mock/[id]` | AI Mock Interview (preflight → live spoken interview → debrief) |
+| `/history` | Mock history — every spoken session, scores, re-practice, delete |
+| `/history/[id]` | Full debrief (6-dimension breakdown, strengths/weaknesses, transcript) |
 | `/faq` | Frequently asked questions |
 | `/settings` | Profile name + password |
 
@@ -84,7 +88,9 @@ AI Mock Interview (from any interview card or the workspace header):
 Practice aloud → preflight (mic + optional camera self-view, permission copy)
   → Start → AI interviewer speaks the first question (TTS)
   → answer aloud → live transcript → interviewer reacts with follow-ups / new questions
-  → End → completion screen with your session transcript (debrief comes in Phase 4)
+  → End → completion screen auto-generates your debrief (6-dimension score,
+    strengths/weaknesses, recommended practice) → full debrief + transcript
+    saved to /history for re-practice or delete
 ```
 
 ## Useful commands

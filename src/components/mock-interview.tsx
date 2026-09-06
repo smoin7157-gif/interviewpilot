@@ -49,6 +49,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
+import { DebriefView } from "@/components/debrief-view";
+import type { DebriefData } from "@/lib/types";
 
 type Stage = "preflight" | "starting" | "live" | "done";
 
@@ -137,6 +139,9 @@ export function MockInterview({
   const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [doneSummary, setDoneSummary] = useState<MockDetail | null>(null);
   const [isMutedGlobally, setIsMutedGlobally] = useState(false);
+  const [debrief, setDebrief] = useState<DebriefData | null>(null);
+  const [debriefLoading, setDebriefLoading] = useState(false);
+  const [debriefError, setDebriefError] = useState<string | null>(null);
 
   /* ------------------------------ refs ------------------------------ */
   const mockIdRef = useRef<string | null>(null);
@@ -388,6 +393,9 @@ export function MockInterview({
     setError(null);
     setMicError(null);
     setCamNote(null);
+    setDebrief(null);
+    setDebriefError(null);
+    setDebriefLoading(false);
     setStage("starting");
 
     const sttOk = browserSttSupported();
@@ -460,6 +468,31 @@ export function MockInterview({
     }
   }
 
+  /* ------------------------------ debrief ------------------------------ */
+
+  async function fetchDebrief(force = false) {
+    if (!mockIdRef.current || !aliveRef.current) return;
+    setDebriefLoading(true);
+    setDebriefError(null);
+    try {
+      const res = await fetch(`/api/mock-interviews/${mockIdRef.current}/debrief`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
+      const data = (await res.json()) as { debrief?: DebriefData; error?: string };
+      if (!res.ok) {
+        setDebriefError(data.error ?? "We couldn't prepare your debrief.");
+        return;
+      }
+      if (data.debrief) setDebrief(data.debrief);
+    } catch {
+      setDebriefError("We couldn't prepare your debrief.");
+    } finally {
+      setDebriefLoading(false);
+    }
+  }
+
   /* ------------------------------ finishing ------------------------------ */
 
   async function finishInterview(reason: "ai" | "user") {
@@ -489,6 +522,7 @@ export function MockInterview({
     setTrackEnabled(camStreamRef.current, "video", false);
     setStage("done");
     setPhase("ai_speaking");
+    void fetchDebrief();
   }
 
   async function handleEnd() {
@@ -590,6 +624,47 @@ export function MockInterview({
               >
                 Back to practice
               </Link>
+            </div>
+
+            {/* Debrief — auto-generated from the stored transcript */}
+            <div className="mt-6" aria-live="polite">
+              {debriefLoading ? (
+                <div className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-6 text-sm text-zinc-400">
+                  <LoaderCircle className="size-4 animate-spin text-indigo-400" aria-hidden />
+                  Preparing your debrief…
+                </div>
+              ) : debrief ? (
+                <>
+                  <DebriefView debrief={debrief} tone="dark" />
+                  <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+                    <Link
+                      href={`/history/${doneSummary?.id ?? ""}`}
+                      className={cn(buttonClasses({ variant: "outline", className: "flex-1 justify-center" }))}
+                    >
+                      <Sparkles className="size-4" aria-hidden /> View full debrief
+                    </Link>
+                    <Link
+                      href="/history"
+                      className={cn(buttonClasses({ variant: "outline", className: "flex-1 justify-center" }))}
+                    >
+                      All mock sessions
+                    </Link>
+                  </div>
+                </>
+              ) : debriefError ? (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5 py-4">
+                  <p className="text-sm leading-relaxed text-zinc-300">{debriefError}</p>
+                  {!debriefError.includes("Answer at least") && (
+                    <button
+                      type="button"
+                      onClick={() => void fetchDebrief()}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-100 transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      <RotateCcw className="size-3.5" aria-hidden /> Try again
+                    </button>
+                  )}
+                </div>
+              ) : null}
             </div>
 
             {(doneSummary?.turns.length ?? 0) > 0 && (

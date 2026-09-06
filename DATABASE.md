@@ -102,10 +102,14 @@ Voice-mode practice sessions (Phase 3). A mock rehearses one interview session.
 | `interviewSessionId` | FK → sessions (cascade) — the interview being rehearsed |
 | `status` | `SESSION_STARTED` → `QUESTION_COMPLETE` → `SESSION_COMPLETE` \| `ERROR` |
 | `maxQuestions` | cap on main (non-follow-up) questions |
-| `overallScore` | nullable — filled by the Phase 4 debrief |
-| `debrief` | nullable JSON — Phase 4 debrief payload |
+| `overallScore` | nullable — set by the debrief (Phase 4) |
+| `debrief` | nullable JSON — full debrief payload (Phase 4): `{ overallScore, breakdown[{dimension,score,note}], strengths[], weaknesses[], missedOpportunities[], strongestAnswer{question,why}, weakestAnswer{question,why}, recommendedPractice[], provider, model }` |
 | `startedAt` / `endedAt` | endedAt set when the session completes |
 | `createdAt` / `updatedAt` | |
+
+Debriefs are generated from the stored transcript (`interview_turns` only —
+raw audio/video is never stored) by the AI provider abstraction and persisted
+here. The endpoint is `POST /api/mock-interviews/:id/debrief` (see API.md).
 
 ### interview_turns
 One row per spoken exchange in a mock session — the transcript. Raw audio/video is never stored.

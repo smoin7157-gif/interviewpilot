@@ -1,9 +1,11 @@
 import {
+  buildDebriefUserPrompt,
   buildEvaluationUserPrompt,
   buildFollowUpUserPrompt,
   buildGenerationUserPrompt,
   buildInterviewerUserPrompt,
   buildResumeExtractionUserPrompt,
+  DEBRIEF_SYSTEM_PROMPT,
   EVALUATION_SYSTEM_PROMPT,
   FOLLOWUP_SYSTEM_PROMPT,
   GENERATION_SYSTEM_PROMPT,
@@ -13,6 +15,8 @@ import {
 import type { ResumeData } from "@/lib/candidate-context";
 import type {
   AIProvider,
+  DebriefContext,
+  DebriefResult,
   EvaluationContext,
   EvaluationResult,
   FollowUpContext,
@@ -22,6 +26,7 @@ import type {
   InterviewerDecision,
 } from "./types";
 import {
+  parseDebrief,
   parseEvaluation,
   parseFollowUps,
   parseInterviewerDecision,
@@ -126,5 +131,27 @@ export class OpenRouterProvider implements AIProvider {
       700
     );
     return parseInterviewerDecision(raw);
+  }
+
+  async generateDebrief(ctx: DebriefContext): Promise<DebriefResult> {
+    const raw = await this.chatCompletion(
+      DEBRIEF_SYSTEM_PROMPT,
+      buildDebriefUserPrompt(ctx),
+      2_500
+    );
+    const parsed = parseDebrief(raw);
+    return {
+      ...parsed,
+      strongestAnswer: parsed.strongestAnswer ?? {
+        question: "(not identified)",
+        why: "No single answer stood out as clearly strongest in this session.",
+      },
+      weakestAnswer: parsed.weakestAnswer ?? {
+        question: "(not identified)",
+        why: "No single answer stood out as clearly weakest in this session.",
+      },
+      provider: this.name,
+      model: this.model,
+    };
   }
 }

@@ -34,3 +34,40 @@ export interface EvaluationFeedback {
   missing: string[];
   improvements: string[];
 }
+
+/* ----------------------- Mock interview debrief (Phase 4) ----------------------- */
+
+export interface DebriefDimensionScore {
+  dimension: string;
+  score: number;
+  note?: string;
+}
+
+export interface DebriefData {
+  overallScore: number;
+  breakdown: DebriefDimensionScore[];
+  strengths: string[];
+  weaknesses: string[];
+  missedOpportunities: string[];
+  strongestAnswer: { question: string; why: string };
+  weakestAnswer: { question: string; why: string };
+  recommendedPractice: string[];
+  provider?: string;
+  model?: string;
+}
+
+export interface MockHistoryItem {
+  id: string;
+  interviewSessionId: string;
+  role: string;
+  company: string | null;
+  seniority: string;
+  interviewType: string | null;
+  status: string;
+  overallScore: number | null;
+  hasDebrief: boolean;
+  questionsAsked: number;
+  startedAt: string;
+  endedAt: string | null;
+  createdAt: string;
+}

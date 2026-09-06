@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { listOwnedMocks } from "@/lib/mock";
 
 export const sessionInclude = {
   questions: {
@@ -82,4 +83,10 @@ export async function listSessionsForUser(userId: string): Promise<InterviewSumm
 export async function getRecentSessions(userId: string, limit = 3) {
   const sessions = await listSessionsForUser(userId);
   return sessions.slice(0, limit);
+}
+
+/** Recent mock sessions for the dashboard strip (Phase 4), newest first. */
+export async function getRecentMocks(userId: string, limit = 3) {
+  const mocks = await listOwnedMocks(userId);
+  return mocks.slice(0, limit);
 }

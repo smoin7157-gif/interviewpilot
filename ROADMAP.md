@@ -74,16 +74,24 @@ Remaining in Phase 3 (roadmap notes):
   partial via the interviewer prompt
 
 
-## Phase 4 — Debrief & History ⬜
+## Phase 4 — Debrief & History ✅ (this build)
 
-- Debrief from the stored mock transcript (`mock_interview_sessions.debrief`,
-  `interview_turns`) — overall score + breakdown (technical, communication,
-  structure, relevance, project knowledge, problem solving), strengths/
-  weaknesses, missed opportunities, strongest/weakest answers, recommended
-  practice
-- Session-level AI practice scores only — no fake "employability" claims; no
-  emotion/eye-tracking claims
-- History: saved sessions, debriefs, re-practice, delete
+- Debrief generated from the stored mock transcript
+  (`mock_interview_sessions.debrief`, `interview_turns`) via the same
+  provider abstraction — OpenRouter LLM with a deterministic offline
+  fallback. Output: overall score + 6-dimension breakdown (technical,
+  communication, structure, relevance, project knowledge, problem solving),
+  strengths/weaknesses, missed opportunities, strongest/weakest answers,
+  recommended practice. Zod-validated; transcript budget-capped for cost.
+- Auto-generated on the mock completion screen (`/mock/[id]`) and available
+  on demand at `POST /api/mock-interviews/:id/debrief` (idempotent, `force`
+  to regenerate). Requires ≥ 2 spoken answers.
+- Session-level practice scores only — no "employability" claims, no
+  emotion/eye-tracking claims; the UI says so explicitly.
+- History: `/history` (all sessions, scores, re-practice, delete),
+  `/history/[id]` (full debrief + transcript), `GET
+  /api/mock-interviews/history`, `DELETE /api/mock-interviews/:id`,
+  dashboard "Recent Mock Interviews" strip.
 
 ## Phase 5 — Polish ⬜
 

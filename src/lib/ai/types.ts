@@ -91,6 +91,9 @@ export interface InterviewTranscriptTurn {
   text: string;
   /** Interviewer structured action, present on AI turns (Phase 3). */
   action?: string;
+  /** Question category/difficulty, present on AI turns (used by debriefs). */
+  category?: string;
+  difficulty?: string;
 }
 
 /** One question available to the interviewer, drawn from the session bank. */
@@ -126,6 +129,71 @@ export interface InterviewerResult {
   model?: string;
 }
 
+/* ----------------------- AI mock interview debrief (Phase 4) ----------------------- */
+
+/** The six debrief dimensions (InterviewOS V1 vocabulary). */
+export type DebriefDimension =
+  | "technical"
+  | "communication"
+  | "structure"
+  | "relevance"
+  | "project_knowledge"
+  | "problem_solving";
+
+export const DEBRIEF_DIMENSIONS: DebriefDimension[] = [
+  "technical",
+  "communication",
+  "structure",
+  "relevance",
+  "project_knowledge",
+  "problem_solving",
+];
+
+export interface DebriefDimensionScore {
+  dimension: DebriefDimension;
+  /** 0–100. Session-level practice signal only — never an employability claim. */
+  score: number;
+  /** One short sentence on what the score reflects. */
+  note?: string;
+}
+
+export interface DebriefAnswerHighlight {
+  /** The question the candidate answered (the AI turn text that preceded it). */
+  question: string;
+  /** Why this answer stood out (good or bad). */
+  why: string;
+}
+
+export interface DebriefResult {
+  /** 0–100. Weighted from the breakdown below; practice score only. */
+  overallScore: number;
+  breakdown: DebriefDimensionScore[];
+  strengths: string[];
+  weaknesses: string[];
+  missedOpportunities: string[];
+  strongestAnswer: DebriefAnswerHighlight;
+  weakestAnswer: DebriefAnswerHighlight;
+  recommendedPractice: string[];
+  /** Which provider produced this debrief ("openrouter" | "fallback"). */
+  provider: string;
+  model?: string;
+}
+
+export interface DebriefContext {
+  role: string;
+  seniority: string;
+  company?: string;
+  companyType?: string;
+  interviewType?: string;
+  jobDescription?: string;
+  /** Compact normalized candidate context (see buildCandidateContextSummary). */
+  candidateContext?: string;
+  /** Cap on main questions for this session. */
+  maxQuestions: number;
+  /** Full transcript, oldest first. */
+  transcript: InterviewTranscriptTurn[];
+}
+
 export interface AIProvider {
   readonly name: string;
   readonly model?: string;
@@ -136,4 +204,6 @@ export interface AIProvider {
   extractResume(text: string): Promise<ResumeData>;
   /** Decide the interviewer's next move during a live mock interview. */
   driveInterview(ctx: InterviewerContext): Promise<InterviewerDecision>;
+  /** Produce a session-level debrief from a completed mock transcript. */
+  generateDebrief(ctx: DebriefContext): Promise<DebriefResult>;
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { QUESTION_CATEGORIES } from "@/lib/validation";
-import type { GeneratedQuestion, QuestionCategory, QuestionDifficulty } from "./types";
+import type { DebriefDimension, GeneratedQuestion, QuestionCategory, QuestionDifficulty } from "./types";
 
 const categoryValues = QUESTION_CATEGORIES as readonly string[];
 
@@ -211,5 +211,103 @@ export function parseResume(raw: string): {
     achievements: clean(result.data.achievements, 10),
     certifications: clean(result.data.certifications, 10),
     technologies: clean(result.data.technologies, 40),
+  };
+}
+
+/* ------------------- Debrief (Phase 4) ------------------- */
+
+const debriefDimensions = [
+  "technical",
+  "communication",
+  "structure",
+  "relevance",
+  "project_knowledge",
+  "problem_solving",
+] as const;
+
+const debriefShape = z.object({
+  overallScore: z.union([z.number(), z.string()]),
+  breakdown: z
+    .array(
+      z.object({
+        dimension: z.enum(debriefDimensions),
+        score: z.union([z.number(), z.string()]),
+        note: z.string().optional().nullable(),
+      })
+    )
+    .min(6)
+    .max(6),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
+  missedOpportunities: z.array(z.string()).default([]),
+  strongestAnswer: z
+    .object({ question: z.string(), why: z.string() })
+    .optional()
+    .nullable(),
+  weakestAnswer: z
+    .object({ question: z.string(), why: z.string() })
+    .optional()
+    .nullable(),
+  recommendedPractice: z.array(z.string()).default([]),
+});
+
+const asInt = (value: unknown): number => {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? Math.round(n) : NaN;
+};
+
+const cleanStrings = (list: string[], max: number): string[] =>
+  list
+    .map((s) => s.trim().replace(/\s+/g, " "))
+    .filter((s) => s.length > 0)
+    .slice(0, max);
+
+export function parseDebrief(raw: string): {
+  overallScore: number;
+  breakdown: Array<{ dimension: DebriefDimension; score: number; note?: string }>;
+  strengths: string[];
+  weaknesses: string[];
+  missedOpportunities: string[];
+  strongestAnswer: { question: string; why: string } | null;
+  weakestAnswer: { question: string; why: string } | null;
+  recommendedPractice: string[];
+} {
+  const parsed = extractJsonObject(raw);
+  const result = debriefShape.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Debrief output failed validation: ${result.error.issues[0]?.message ?? "invalid shape"}`);
+  }
+  const data = result.data;
+
+  const breakdown = data.breakdown.map((b) => {
+    const score = asInt(b.score);
+    if (Number.isNaN(score)) throw new Error("Debrief output contains a non-numeric dimension score.");
+    return {
+      dimension: b.dimension,
+      score: Math.min(100, Math.max(0, score)),
+      note: b.note?.trim().slice(0, 200) || undefined,
+    };
+  });
+
+  const allSix = debriefDimensions.every((d) => breakdown.some((b) => b.dimension === d));
+  if (!allSix) throw new Error("Debrief output is missing one or more dimensions.");
+
+  const overall = asInt(data.overallScore);
+  if (Number.isNaN(overall)) throw new Error("Debrief output has a non-numeric overall score.");
+
+  const highlight = (value: { question: string; why: string } | null | undefined) =>
+    value && value.question.trim() && value.why.trim()
+      ? { question: value.question.trim().slice(0, 500), why: value.why.trim().slice(0, 300) }
+      : null;
+
+  return {
+    overallScore: Math.min(100, Math.max(0, overall)),
+    breakdown,
+    strengths: cleanStrings(data.strengths, 6),
+    weaknesses: cleanStrings(data.weaknesses, 6),
+    missedOpportunities: cleanStrings(data.missedOpportunities, 6),
+    strongestAnswer: highlight(data.strongestAnswer),
+    weakestAnswer: highlight(data.weakestAnswer),
+    recommendedPractice: cleanStrings(data.recommendedPractice, 6),
   };
 }
