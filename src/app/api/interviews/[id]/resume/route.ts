@@ -4,6 +4,7 @@ import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { extractPdfText } from "@/lib/resume";
 import { extractResumeData } from "@/lib/ai/service";
+import { isPdfBuffer, looksLikePdfName, sanitizeFilename } from "@/lib/file-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No resume file was uploaded." }, { status: 400 });
   }
-  if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
+  if (!looksLikePdfName(file.name) && file.type !== "application/pdf") {
     return NextResponse.json(
       { error: "Please upload a PDF resume (text-based PDFs work best)." },
       { status: 415 }
@@ -46,23 +47,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   let text: string;
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
+    // Magic-byte check: the extension/MIME can be spoofed, the content cannot.
+    if (!isPdfBuffer(buffer)) {
+      return NextResponse.json(
+        { error: "That file is not a valid PDF (missing the PDF header)." },
+        { status: 415 }
+      );
+    }
     text = await extractPdfText(buffer);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "We couldn't read that PDF.";
-    return NextResponse.json({ error: message }, { status: 422 });
+  } catch {
+    // Never surface parser internals (they can leak paths/versions); the
+    // details go to the server log instead.
+    console.error("Resume parse failed for interview", session.id);
+    return NextResponse.json(
+      { error: "We couldn't read that PDF. Please upload a valid text-based PDF." },
+      { status: 422 }
+    );
   }
 
   const { result, provider, model } = await extractResumeData(text);
 
   await prisma.interviewSession.update({
     where: { id: session.id },
-    data: { resumeFileName: file.name, resumeContext: result as unknown as Prisma.InputJsonValue },
+    data: { resumeFileName: sanitizeFilename(file.name), resumeContext: result as unknown as Prisma.InputJsonValue },
   });
 
   const count = (list: string[]) => list.length;
   return NextResponse.json({
     ok: true,
-    filename: file.name,
+    filename: sanitizeFilename(file.name),
     provider,
     model: model ?? null,
     summary: {

@@ -32,8 +32,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   try {
     data = await analyzeGithubProfile(body.url);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "GitHub is unavailable right now.";
-    return NextResponse.json({ error: message }, { status: 422 });
+    console.error("GitHub profile fetch failed:", body.url, err instanceof Error ? err.message : err);
+    return NextResponse.json(
+      { error: "We couldn't reach GitHub for that profile. Check the URL and try again." },
+      { status: 422 }
+    );
   }
 
   await prisma.interviewSession.update({
