@@ -35,6 +35,9 @@ import {
 } from "./validate";
 
 const DEFAULT_MODEL = "openai/gpt-4o-mini";
+// Cheap/fast model for bulk extraction tasks (resume parsing, answer
+// evaluation). Override with OPENROUTER_CHEAP_MODEL to cut costs further.
+const CHEAP_MODEL = process.env.OPENROUTER_CHEAP_MODEL ?? DEFAULT_MODEL;
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
 const API_KEY = process.env.OPENROUTER_API_KEY;
 
@@ -52,7 +55,12 @@ export class OpenRouterProvider implements AIProvider {
     }
   }
 
-  private async chatCompletion(system: string, user: string, maxTokens: number): Promise<string> {
+  private async chatCompletion(
+    system: string,
+    user: string,
+    maxTokens: number,
+    model: string = this.model
+  ): Promise<string> {
     const res = await fetch(`${BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
@@ -62,7 +70,7 @@ export class OpenRouterProvider implements AIProvider {
         "X-Title": "InterviewOS",
       },
       body: JSON.stringify({
-        model: this.model,
+        model,
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
@@ -102,7 +110,7 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {
-    const raw = await this.chatCompletion(FOLLOWUP_SYSTEM_PROMPT, buildFollowUpUserPrompt(ctx), 2_000);
+    const raw = await this.chatCompletion(FOLLOWUP_SYSTEM_PROMPT, buildFollowUpUserPrompt(ctx), 2_000, CHEAP_MODEL);
     return parseFollowUps(raw);
   }
 
@@ -110,7 +118,8 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       EVALUATION_SYSTEM_PROMPT,
       buildEvaluationUserPrompt(ctx),
-      2_000
+      2_000,
+      CHEAP_MODEL
     );
     return parseEvaluation(raw);
   }
@@ -119,7 +128,8 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       RESUME_EXTRACTION_SYSTEM_PROMPT,
       buildResumeExtractionUserPrompt(text),
-      3_000
+      3_000,
+      CHEAP_MODEL
     );
     return parseResume(raw);
   }

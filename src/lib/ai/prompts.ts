@@ -293,7 +293,14 @@ export function buildDebriefUserPrompt(ctx: {
         : `Candidate: ${t.text}`
     )
     .join("\n");
-  lines.push(`\nFull transcript (oldest first):\n${transcript}`);
+  // Cost guard: keep the transcript within a fixed budget for debriefing
+  // (trim the middle, keep the most recent turns which matter most).
+  const MAX_TRANSCRIPT_CHARS = 30_000;
+  const trimmed =
+    transcript.length > MAX_TRANSCRIPT_CHARS
+      ? `[${transcript.length - MAX_TRANSCRIPT_CHARS} characters trimmed from the middle of the transcript]\n${transcript.slice(-MAX_TRANSCRIPT_CHARS)}`
+      : transcript;
+  lines.push(`\nFull transcript (oldest first):\n${trimmed}`);
   lines.push(
     `\nNow write the debrief. Base every score and comment strictly on the transcript above. Return ONLY the JSON described in your instructions.`
   );
