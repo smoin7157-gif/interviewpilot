@@ -6,5 +6,9 @@ import { requireUser } from "@/lib/auth";
  */
 export default async function FocusLayout({ children }: { children: React.ReactNode }) {
   await requireUser();
-  return <div className="h-dvh bg-zinc-950 text-white">{children}</div>;
+  return (
+    <div id="main-content" tabIndex={-1} className="h-dvh bg-zinc-950 text-white outline-none">
+      {children}
+    </div>
+  );
 }

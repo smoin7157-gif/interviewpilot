@@ -743,7 +743,10 @@ export function MockInterview({
               <div className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-950/50">
                 <Sparkles className="size-6 text-white" aria-hidden />
               </div>
-              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
+              <p
+                aria-live="polite"
+                className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300"
+              >
                 {thinking ? "Interviewer is thinking…" : phase === "listening" ? "Your turn" : "AI Interviewer"}
               </p>
 

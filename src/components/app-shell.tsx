@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleHelp, ClipboardList, History, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from "lucide-react";
@@ -133,6 +133,16 @@ export function AppShell({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Close the mobile drawer on Escape, and restore focus to the open button.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [drawerOpen]);
+
   return (
     <div className="flex h-dvh overflow-hidden bg-zinc-50">
       {/* Desktop sidebar */}
@@ -175,7 +185,7 @@ export function AppShell({
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label="Open navigation"
-          className="rounded-md p-2 text-zinc-600 hover:bg-zinc-100"
+          className="rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <Menu className="size-5" aria-hidden />
         </button>
@@ -183,7 +193,7 @@ export function AppShell({
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="min-w-0 flex-1 overflow-hidden">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-hidden outline-none">
           <div className="h-full overflow-y-auto">{children}</div>
         </main>
       </div>
