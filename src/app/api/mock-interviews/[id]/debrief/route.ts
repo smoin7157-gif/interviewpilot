@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateDebrief } from "@/lib/ai/service";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 import { getOwnedInterviewSession, getOwnedMockSession, TERMINAL_STATUSES } from "@/lib/mock";
 import {
   buildDebriefContext,
@@ -24,6 +25,9 @@ const debriefBodySchema = z.object({
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = checkRateLimit(`debrief:${user.id}`, { limit: 15, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
 

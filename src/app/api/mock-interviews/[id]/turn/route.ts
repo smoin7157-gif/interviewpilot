@@ -10,6 +10,7 @@ import {
   getOwnedMockSession,
   turnsToHistory,
 } from "@/lib/mock";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ export const maxDuration = 90;
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = checkRateLimit(`mock-turn:${user.id}`, { limit: 200, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
 

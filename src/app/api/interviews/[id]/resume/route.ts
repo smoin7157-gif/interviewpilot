@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { extractPdfText } from "@/lib/resume";
 import { extractResumeData } from "@/lib/ai/service";
 import { isPdfBuffer, looksLikePdfName, sanitizeFilename } from "@/lib/file-check";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,9 @@ const MAX_FILE_BYTES = 3 * 1024 * 1024; // 3 MB
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = checkRateLimit(`resume:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
   const session = await prisma.interviewSession.findFirst({

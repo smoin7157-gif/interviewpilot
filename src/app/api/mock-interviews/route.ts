@@ -3,6 +3,7 @@ import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { mockCreateSchema } from "@/lib/validation";
 import { getActiveMock, getOwnedInterviewSession, TERMINAL_STATUSES } from "@/lib/mock";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = checkRateLimit(`mock-create:${user.id}`, { limit: 20, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   let body: unknown;
   try {

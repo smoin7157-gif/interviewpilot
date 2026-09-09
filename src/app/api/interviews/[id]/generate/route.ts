@@ -1,6 +1,7 @@
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateQuestions } from "@/lib/ai/service";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 import {
   buildCandidateContextSummary,
   type CandidateProjectData,
@@ -19,6 +20,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rl = checkRateLimit(`generate:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
   const session = await prisma.interviewSession.findFirst({

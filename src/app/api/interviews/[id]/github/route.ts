@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { analyzeGithubProfile } from "@/lib/github";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = checkRateLimit(`github:${user.id}`, { limit: 20, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
   const session = await prisma.interviewSession.findFirst({
