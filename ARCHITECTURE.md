@@ -180,7 +180,27 @@ distracts during practice.
 See `.env.example`. `DATABASE_URL` is the Postgres connection string (Neon
 pooled URL in production), `AUTH_SECRET` signs session cookies,
 `OPENROUTER_API_KEY` enables live AI (optional — the deterministic fallback
-keeps the flow working without it). All keys are server-side only.
+keeps the flow working without it). `OPENROUTER_CHEAP_MODEL` optionally
+routes bulk extraction tasks (resume parsing, evaluation, follow-ups) to a
+cheaper model. All keys are server-side only.
+
+## Security & abuse controls (Phase 5)
+
+- **Rate limiting** (`src/lib/rate-limit.ts`): in-memory sliding-window
+  limiter keyed per user on every AI/expensive endpoint; `429` +
+  `Retry-After` on exceed. Best-effort per serverless instance by design.
+- **Upload validation** (`src/lib/file-check.ts`): PDF magic-byte check
+  (`%PDF-`), size cap, filename sanitization — extension/MIME alone are
+  never trusted.
+- **Safe errors**: parser/network internals are logged server-side, users
+  get generic messages.
+- **Response headers** (`next.config.ts`): nosniff, frame denial, referrer
+  policy, camera/mic-only permissions policy.
+- **Cost controls**: per-task `max_tokens`, debrief transcript capped at 30k
+  chars, interviewer context summarized to the last 10 turns.
+- **Tests**: `npm test` (node:test + tsx) covers validation schemas, file
+  checks, the rate limiter, utils, and the fallback AI provider.
+- **Seed**: `npm run db:seed` provisions an idempotent demo account.
 
 ## Future modules (extension points)
 

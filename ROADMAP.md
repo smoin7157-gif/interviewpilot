@@ -15,8 +15,10 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
 - ✅ Navigation shell + dashboard (real data only)
 - ✅ Interview creation: company, company type, job role, experience level,
   interview type, job description, question count (10/15/20) — all persisted
-- 🟡 InterviewOS brand/identity pass (wordmark, metadata, copy)
-- ⬜ Seed script + minimal automated tests for the Phase 1 flows
+- ✅ InterviewOS brand/identity pass (wordmark, metadata, copy)
+- ✅ Seed script (`prisma/seed.ts`, `npm run db:seed`) + automated test
+  suite (`npm test`, 39 tests — validation, file safety, rate limiter,
+  utils, fallback AI provider)
 
 ## Phase 2 — Written practice + candidate context 🟡
 
@@ -40,7 +42,6 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
 - Follow-up engine reacting to the candidate's actual answer (not
   pre-generated picks) — dynamic follow-up on evaluation
 - DOCX resume support if clean; GitHub repo README/metadata depth
-- Seed script + automated tests for setup → generate → practice flows
 
 ## Phase 3 — AI Mock Interview ✅ (this build)
 
@@ -93,11 +94,28 @@ Remaining in Phase 3 (roadmap notes):
   /api/mock-interviews/history`, `DELETE /api/mock-interviews/:id`,
   dashboard "Recent Mock Interviews" strip.
 
-## Phase 5 — Polish ⬜
+## Phase 5 — Polish ✅ (this build)
 
-- Responsive/accessibility pass, performance + cost control (context
-  summarization, cheap models for extraction, token limits), security audit
-  (file validation, rate limiting, safe errors), tests, deployment
+- **Accessibility:** skip-to-content link, focusable main anchors across
+  layouts, mobile drawer closes on Escape, visible focus rings, aria-live
+  interviewer status, reduced-motion CSS
+- **Security:** security response headers (nosniff / frame denial / referrer /
+  permissions policy), PDF magic-byte validation on resume upload,
+  filename sanitization, safe error messages (no parser/network internals
+  leaked to users)
+- **Rate limiting:** per-user sliding-window limits on all AI/expensive
+  endpoints (generation 10/h, resume 10/h, github 20/h, evaluation 60/h,
+  practice 60/h, mock create 20/h, mock turns 200/h, debrief 15/h) → 429 +
+  Retry-After
+- **Performance/cost:** cheap model routing for extraction tasks
+  (`OPENROUTER_CHEAP_MODEL`), debrief transcript budget-capped at 30k
+  chars, interviewer context already summarized to the last 10 turns
+- **Tests:** `npm test` — 39 unit tests (validation schemas, file-check,
+  rate limiter, utils, fallback AI provider)
+- **Seed:** `npm run db:seed` — atomic, idempotent demo account + sample
+  interview (verified against Neon)
+- **Deployment:** Prisma client generation fixed for Vercel builds
+  (`postinstall` + `prisma generate` in `build`)
 
 ## Explicitly out of scope (do not build)
 

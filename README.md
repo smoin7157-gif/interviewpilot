@@ -99,9 +99,17 @@ Practice aloud → preflight (mic + optional camera self-view, permission copy)
 npm run dev       # dev server on :3000
 npm run build     # production build
 npm run lint      # eslint
+npm test          # unit tests (node:test + tsx, 39 tests)
+npm run db:seed   # idempotent demo account + sample interview
 npx tsc --noEmit  # typecheck
 npx prisma studio # inspect the local database
 ```
+
+Optional AI cost control: set `OPENROUTER_CHEAP_MODEL` to route resume
+parsing / answer evaluation / follow-up generation through a cheaper model
+than `OPENROUTER_MODEL`. AI/expensive endpoints are rate-limited per user
+(see `src/lib/rate-limit.ts`); exceeding a limit returns `429` with
+`Retry-After`.
 
 ## Docs
 
