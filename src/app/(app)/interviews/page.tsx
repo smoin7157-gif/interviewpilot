@@ -71,9 +71,7 @@ export default async function InterviewsPage() {
                   <p>
                     {session.lastActivityAt
                       ? `Last practiced ${formatRelativeTime(session.lastActivityAt)}`
-                      : session.questionCount > 0
-                        ? "Not started"
-                        : "Not started"}
+                      : "Not started"}
                   </p>
                 </div>
 

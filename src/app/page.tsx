@@ -2,9 +2,9 @@ import Link from "next/link";
 import {
   ArrowRight,
   FileQuestion,
-  Lightbulb,
   ListChecks,
   MessagesSquare,
+  Mic,
   ShieldCheck,
   Sparkles,
   Target,
@@ -23,15 +23,15 @@ const features = [
     tag: "01",
   },
   {
-    icon: Lightbulb,
-    title: "Suggested answers",
-    body: "Practice first, then see a strong, natural example you can compare your own answer against.",
+    icon: Mic,
+    title: "Voice mock interviews",
+    body: "Practice aloud with an AI interviewer that asks live follow-ups — just like the real thing, in your browser.",
     tag: "02",
   },
   {
-    icon: ListChecks,
-    title: "Follow-up questions",
-    body: "Go deeper instead of practicing isolated questions, the way a real interviewer would.",
+    icon: Sparkles,
+    title: "Scored debriefs",
+    body: "Every mock ends with a score across six dimensions, strengths, gaps, and exactly what to practice next.",
     tag: "03",
   },
 ];
@@ -53,7 +53,13 @@ const steps = [
     icon: FileQuestion,
     step: "03",
     title: "Practice and get feedback",
-    body: "Answer out loud or in writing, compare with the suggestion, and get specific feedback on your answer.",
+    body: "Answer out loud in a voice mock or in writing, compare with the suggestion, and get specific feedback on every answer.",
+  },
+  {
+    icon: ListChecks,
+    step: "04",
+    title: "Review your debrief",
+    body: "Finish with a scored debrief — strengths, gaps, and a recommended practice list — saved to your history.",
   },
 ];
 
@@ -62,6 +68,11 @@ const trust = [
     icon: Zap,
     title: "Built for the role",
     body: "Every question is generated around the exact job you're walking into — not generic lists.",
+  },
+  {
+    icon: Mic,
+    title: "Speak your answers",
+    body: "Run full spoken mock interviews in your browser — audio never leaves your device.",
   },
   {
     icon: MessagesSquare,
@@ -144,9 +155,9 @@ export default async function Home() {
               </span>
             </h1>
             <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-500">
-              Tell InterviewOS about the job you&rsquo;re targeting — role, experience level, company
-              and interview type — and practice realistic questions with specific AI feedback on
-              every answer you write.
+              Tell InterviewOS about the job you&rsquo;re targeting, then practice realistic questions —
+              written or spoken aloud with an AI interviewer — with scored feedback and a debrief on
+              every session.
             </p>
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
               <Link href={primaryHref} className={buttonClasses({ size: "lg" })}>
@@ -164,7 +175,7 @@ export default async function Home() {
                 Free to start
               </span>
               <span className="rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-zinc-600 shadow-sm">
-                Role-tailored questions
+                Written + voice practice
               </span>
               <span className="rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-zinc-600 shadow-sm">
                 No credit card
@@ -234,7 +245,7 @@ export default async function Home() {
                 How it works
               </p>
               <h2 className="mt-4 text-balance text-4xl font-bold tracking-[-0.03em] text-white sm:text-[44px] sm:leading-[1.08]">
-                From role to ready in three steps.
+                From role to ready in four steps.
               </h2>
               <p className="mt-5 text-lg leading-relaxed text-[#b8c0de]">
                 No spreadsheets, no generic lists — just a focused session you can finish before the
@@ -242,7 +253,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="mx-auto mt-16 grid max-w-5xl gap-5 md:grid-cols-3">
+            <div className="mx-auto mt-16 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {steps.map((step) => (
                 <div
                   key={step.step}

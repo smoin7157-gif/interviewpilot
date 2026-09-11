@@ -36,11 +36,32 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: "Is there a limit on interviews, questions, or attempts?",
-        a: "No. There are currently no usage caps — you can create as many interviews as you like. The only built-in limits are the question count you choose when creating an interview (10, 15, or 20) and one question generation per interview (generate again and it will reuse the existing questions).",
+        a: "There are no caps on how many interviews you create or questions you practice. To keep the AI fast and reliable for everyone, a few actions are rate-limited per hour — things like generating interviews, running mock sessions, and requesting debriefs. If you hit a limit you'll see a clear message telling you how long to wait; your data is never affected.",
       },
       {
         q: "Can I delete an interview?",
         a: "Yes. Open the \"⋯\" menu on any interview card (on the My Interviews page or inside the interview) and choose \"Delete interview\". This removes the interview, its questions, and its practice history. It can't be undone.",
+      },
+    ],
+  },
+  {
+    heading: "Voice mock interviews & debriefs",
+    items: [
+      {
+        q: "How does the AI mock interview work?",
+        a: "Open any generated interview and press \"Practice aloud\". After a quick microphone check, an AI interviewer asks your questions out loud, listens to your spoken answers, and reacts with live follow-ups — one question at a time. Speech recognition and voice playback run entirely in your browser; your audio is never recorded or uploaded, only the text transcript is saved. You can also type answers at any point if you'd rather not speak.",
+      },
+      {
+        q: "What is the debrief and how is my score calculated?",
+        a: "When a mock interview ends, InterviewOS reviews your saved transcript and produces a debrief: an overall practice score plus a breakdown across six dimensions — technical depth, communication, structure, relevance, project knowledge, and problem solving — along with strengths, weaknesses, your strongest and weakest answers, and a recommended practice list. Scores reflect that practice session only; they are not a prediction of interview outcomes.",
+      },
+      {
+        q: "Can I review past mock interviews?",
+        a: "Yes. Every completed session is saved under \"Mock History\" in the sidebar, with its score, transcript, and full debrief. You can re-practice the same interview anytime, and unfinished mock sessions resume exactly where you left off.",
+      },
+      {
+        q: "Which browser should I use for voice practice?",
+        a: "Chrome or Edge give the best voice-recognition experience. If your browser doesn't support speech recognition, the mock interview still works — you'll be offered a text box to type your answers instead, and the session is scored the same way.",
       },
     ],
   },
@@ -53,7 +74,7 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: "What happens if the AI isn't available?",
-        a: "InterviewOS falls back to a built-in question bank, so you can keep practicing even when the AI service isn't reachable or isn't configured. Your interviews and history are never lost.",
+        a: "InterviewOS falls back to a built-in question bank and a deterministic evaluator, so you can keep practicing even when the AI service isn't reachable or isn't configured. Your interviews and history are never lost, and the app always tells you which mode produced your feedback.",
       },
       {
         q: "Who can see my data?",

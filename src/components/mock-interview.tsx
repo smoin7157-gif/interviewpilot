@@ -637,12 +637,14 @@ export function MockInterview({
                 <>
                   <DebriefView debrief={debrief} tone="dark" />
                   <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
-                    <Link
-                      href={`/history/${doneSummary?.id ?? ""}`}
-                      className={cn(buttonClasses({ variant: "outline", className: "flex-1 justify-center" }))}
-                    >
-                      <Sparkles className="size-4" aria-hidden /> View full debrief
-                    </Link>
+                    {doneSummary?.id ? (
+                      <Link
+                        href={`/history/${doneSummary.id}`}
+                        className={cn(buttonClasses({ variant: "outline", className: "flex-1 justify-center" }))}
+                      >
+                        <Sparkles className="size-4" aria-hidden /> View full debrief
+                      </Link>
+                    ) : null}
                     <Link
                       href="/history"
                       className={cn(buttonClasses({ variant: "outline", className: "flex-1 justify-center" }))}
