@@ -131,6 +131,7 @@ model MockInterviewSession {
   turns   InterviewTurn[]
 
   @@index([userId])
+  @@index([userId, createdAt])
   @@index([interviewSessionId, status])
   @@map("mock_interview_sessions")
 }

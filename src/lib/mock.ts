@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import {
   buildCandidateContextSummary,
   type GithubProfileData,
@@ -165,18 +166,21 @@ export interface MockHistoryRow {
   createdAt: Date;
 }
 
-/** Every mock session a user owns, newest first, with its interview context. */
-export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> {
-  const mocks = await prisma.mockInterviewSession.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" as const },
-    include: {
-      session: {
-        select: { role: true, company: true, seniority: true, interviewType: true },
-      },
-      turns: { select: { speaker: true, action: true } },
-    },
-  });
+/**
+ * Assemble MockHistoryRows from already-fetched mocks.
+ * (Kept separate from the query so both the full history and the
+ * take-limited dashboard strip share the same mapping.)
+ */
+function toHistoryRows(
+  mocks: Array<
+    Prisma.MockInterviewSessionGetPayload<{
+      include: {
+        session: { select: { role: true; company: true; seniority: true; interviewType: true } };
+        turns: { select: { speaker: true; action: true } };
+      };
+    }>
+  >
+): MockHistoryRow[] {
   return mocks.map((mock) => ({
     id: mock.id,
     interviewSessionId: mock.interviewSessionId,
@@ -192,6 +196,41 @@ export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> 
     endedAt: mock.endedAt,
     createdAt: mock.createdAt,
   }));
+}
+
+/** Every mock session a user owns, newest first, with its interview context. */
+export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> {
+  const mocks = await prisma.mockInterviewSession.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" as const },
+    include: {
+      session: {
+        select: { role: true, company: true, seniority: true, interviewType: true },
+      },
+      turns: { select: { speaker: true, action: true } },
+    },
+  });
+  return toHistoryRows(mocks);
+}
+
+/**
+ * Take-limited mock history for the dashboard strip — same shape as
+ * listOwnedMocks but only loads `limit` rows (and only their turn
+ * speaker/action columns) instead of the user's entire mock history.
+ */
+export async function listRecentMocks(userId: string, limit = 3): Promise<MockHistoryRow[]> {
+  const mocks = await prisma.mockInterviewSession.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" as const },
+    take: limit,
+    include: {
+      session: {
+        select: { role: true, company: true, seniority: true, interviewType: true },
+      },
+      turns: { select: { speaker: true, action: true } },
+    },
+  });
+  return toHistoryRows(mocks);
 }
 
 /** One owned mock with its full transcript + interview context (debrief page). */

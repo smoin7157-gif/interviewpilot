@@ -1,11 +1,25 @@
 import { prisma } from "@/lib/db";
-import { listOwnedMocks } from "@/lib/mock";
+import { listRecentMocks } from "@/lib/mock";
 
 export const sessionInclude = {
   questions: {
     orderBy: { orderIndex: "asc" as const },
   },
 } as const;
+
+/** Shape returned by Prisma when including question id/sessionId/status. */
+type SessionWithQuestionStats = {
+  id: string;
+  role: string;
+  company: string | null;
+  companyType: string | null;
+  interviewType: string | null;
+  seniority: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  questions: Array<{ id: string; sessionId: string; status: string }>;
+};
 
 /** Fetch one session belonging to a user (null if not found / not owned). */
 export async function getOwnedSession(userId: string, sessionId: string) {
@@ -44,24 +58,52 @@ export interface InterviewSummary {
   lastActivityAt: Date | null;
 }
 
-/** List a user's interview sessions with question/practice stats, newest first. */
-export async function listSessionsForUser(userId: string): Promise<InterviewSummary[]> {
-  const sessions = await prisma.interviewSession.findMany({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-    include: { questions: { select: { status: true } } },
+const summarySelect = {
+  id: true,
+  role: true,
+  company: true,
+  companyType: true,
+  interviewType: true,
+  seniority: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  questions: { select: { id: true, sessionId: true, status: true } },
+} as const;
+
+/**
+ * Assemble InterviewSummaries from already-fetched sessions.
+ *
+ * Last activity comes from ONE grouped query (latest attempt per question)
+ * instead of loading every attempt row — the old implementation fetched the
+ * user's entire attempt history just to read timestamps.
+ */
+async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<InterviewSummary[]> {
+  if (sessions.length === 0) return [];
+
+  const latestByQuestion = await prisma.questionAttempt.groupBy({
+    by: ["questionId"],
+    where: {
+      question: { sessionId: { in: sessions.map((s) => s.id) } },
+    },
+    _max: { createdAt: true },
   });
 
-  const lastAttempts = await prisma.questionAttempt.findMany({
-    where: { userId, question: { session: { userId } } },
-    select: { question: { select: { sessionId: true } }, createdAt: true },
-    orderBy: { createdAt: "desc" },
-  });
+  // Map questionId -> sessionId via the questions we already have in memory.
+  const sessionOfQuestion = new Map<string, string>();
+  for (const session of sessions) {
+    for (const q of session.questions) sessionOfQuestion.set(q.id, session.id);
+  }
 
   const lastActivityBySession = new Map<string, Date>();
-  for (const attempt of lastAttempts) {
-    const key = attempt.question.sessionId;
-    if (!lastActivityBySession.has(key)) lastActivityBySession.set(key, attempt.createdAt);
+  for (const row of latestByQuestion) {
+    if (row._max.createdAt == null) continue;
+    const sessionId = sessionOfQuestion.get(row.questionId);
+    if (!sessionId) continue;
+    const existing = lastActivityBySession.get(sessionId);
+    if (!existing || row._max.createdAt > existing) {
+      lastActivityBySession.set(sessionId, row._max.createdAt);
+    }
   }
 
   return sessions.map((session) => ({
@@ -79,14 +121,28 @@ export async function listSessionsForUser(userId: string): Promise<InterviewSumm
   }));
 }
 
+/** List a user's interview sessions with question/practice stats, newest first. */
+export async function listSessionsForUser(userId: string): Promise<InterviewSummary[]> {
+  const sessions = await prisma.interviewSession.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    select: summarySelect,
+  });
+  return buildSummaries(sessions);
+}
+
 /** Dashboard greeting data: recent sessions (latest first) capped at `limit`. */
-export async function getRecentSessions(userId: string, limit = 3) {
-  const sessions = await listSessionsForUser(userId);
-  return sessions.slice(0, limit);
+export async function getRecentSessions(userId: string, limit = 3): Promise<InterviewSummary[]> {
+  const sessions = await prisma.interviewSession.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    select: summarySelect,
+  });
+  return buildSummaries(sessions);
 }
 
 /** Recent mock sessions for the dashboard strip (Phase 4), newest first. */
 export async function getRecentMocks(userId: string, limit = 3) {
-  const mocks = await listOwnedMocks(userId);
-  return mocks.slice(0, limit);
+  return listRecentMocks(userId, limit);
 }
