@@ -36,12 +36,30 @@ export async function getOwnedSession(userId: string, sessionId: string) {
   };
 }
 
-/** Fetch one question that belongs to a session owned by the user. */
-export async function getOwnedQuestion(userId: string, questionId: string) {
-  return prisma.interviewQuestion.findFirst({
-    where: { id: questionId, session: { userId } },
-    include: { attempts: { orderBy: { createdAt: "desc" }, take: 5 } },
+/**
+ * Full workspace payload for one owned session: the session, its questions,
+ * and the latest scored attempt per question (for the "last score" chip).
+ */
+export async function getOwnedWorkspaceSession(userId: string, sessionId: string) {
+  const session = await prisma.interviewSession.findFirst({
+    where: { id: sessionId, userId },
+    include: { questions: { orderBy: { orderIndex: "asc" as const } } },
   });
+  if (!session) return null;
+
+  const lastAttempts = await prisma.questionAttempt.findMany({
+    where: { userId, questionId: { in: session.questions.map((q) => q.id) } },
+    orderBy: { createdAt: "desc" },
+    select: { questionId: true, score: true },
+  });
+  const lastScoreByQuestion = new Map<string, number>();
+  for (const attempt of lastAttempts) {
+    if (!lastScoreByQuestion.has(attempt.questionId) && attempt.score != null) {
+      lastScoreByQuestion.set(attempt.questionId, attempt.score);
+    }
+  }
+
+  return { session, lastScoreByQuestion };
 }
 
 export interface InterviewSummary {

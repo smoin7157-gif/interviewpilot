@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getOwnedWorkspaceSession } from "@/lib/data";
 import type { WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
 import { InterviewWorkspace } from "@/components/interview-workspace";
 
@@ -15,25 +15,9 @@ export default async function InterviewWorkspacePage({
   const user = await requireUser();
   const { id } = await params;
 
-  const session = await prisma.interviewSession.findFirst({
-    where: { id, userId: user.id },
-    include: {
-      questions: { orderBy: { orderIndex: "asc" as const } },
-    },
-  });
-  if (!session) notFound();
-
-  const lastAttempts = await prisma.questionAttempt.findMany({
-    where: { userId: user.id, questionId: { in: session.questions.map((q) => q.id) } },
-    orderBy: { createdAt: "desc" },
-    select: { questionId: true, score: true },
-  });
-  const lastScoreByQuestion = new Map<string, number>();
-  for (const attempt of lastAttempts) {
-    if (!lastScoreByQuestion.has(attempt.questionId) && attempt.score != null) {
-      lastScoreByQuestion.set(attempt.questionId, attempt.score);
-    }
-  }
+  const owned = await getOwnedWorkspaceSession(user.id, id);
+  if (!owned) notFound();
+  const { session, lastScoreByQuestion } = owned;
 
   const sessionDto: WorkspaceSession = {
     id: session.id,
