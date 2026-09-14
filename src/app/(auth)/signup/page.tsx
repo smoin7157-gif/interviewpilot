@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SignupForm } from "@/components/auth-forms";
+import { safeRedirectPath } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Create your account" };
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const nextPath = safeRedirectPath(next);
+
   return (
     <div className="w-full max-w-sm">
       <div className="text-center">
@@ -18,7 +26,7 @@ export default function SignupPage() {
           Practice for the roles that matter to you — free to start.
         </p>
       </div>
-      <SignupForm />
+      <SignupForm nextPath={nextPath} />
       <p className="mt-6 text-center text-sm text-zinc-500">
         Already have an account?{" "}
         <Link href="/login" className="font-semibold text-indigo-600 hover:text-indigo-500">

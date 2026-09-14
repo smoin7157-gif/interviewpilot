@@ -36,7 +36,7 @@ function SuccessBanner({ message }: { message?: string }) {
 
 const initialState: AuthActionState = {};
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string }) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
@@ -44,6 +44,9 @@ export function LoginForm() {
       action={formAction}
       className="mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
     >
+      {nextPath && nextPath !== "/dashboard" && (
+        <input type="hidden" name="next" value={nextPath} />
+      )}
       {state.error && <ErrorBanner error={state.error} />}
       <Field label="Email" htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
         <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
@@ -58,7 +61,7 @@ export function LoginForm() {
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ nextPath }: { nextPath?: string }) {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
 
   return (
@@ -66,6 +69,9 @@ export function SignupForm() {
       action={formAction}
       className="mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
     >
+      {nextPath && nextPath !== "/dashboard" && (
+        <input type="hidden" name="next" value={nextPath} />
+      )}
       {state.error && <ErrorBanner error={state.error} />}
       <Field label="Name" htmlFor="name" required error={state.fieldErrors?.name?.[0]}>
         <Input id="name" name="name" type="text" autoComplete="name" placeholder="Alex Rivera" required />

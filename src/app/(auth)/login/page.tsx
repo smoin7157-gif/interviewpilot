@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth-forms";
+import { safeRedirectPath } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Log in" };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const nextPath = safeRedirectPath(next);
+
   return (
     <div className="w-full max-w-sm">
       <div className="text-center">
@@ -16,7 +24,7 @@ export default function LoginPage() {
         </h1>
         <p className="mt-2 text-[15px] text-zinc-500">Pick up where your practice left off.</p>
       </div>
-      <LoginForm />
+      <LoginForm nextPath={nextPath} />
       <p className="mt-6 text-center text-sm text-zinc-500">
         New to InterviewOS?{" "}
         <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">

@@ -26,6 +26,28 @@ export function initials(name: string): string {
     .join("");
 }
 
+/**
+ * Validates a `?next=` redirect target so login/signup can return users to
+ * where they were headed. Only same-app absolute paths are honored —
+ * protocol-relative (//evil.com), encoded, and foreign URLs fall back to
+ * /dashboard so the parameter can never be used for open redirects.
+ */
+export function safeRedirectPath(raw: unknown): string {
+  if (typeof raw !== "string") return "/dashboard";
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return "/dashboard";
+  }
+  if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.startsWith("/\\")) {
+    return "/dashboard";
+  }
+  // One level of decoding can hide a second; reject anything protocol-ish.
+  if (/:/.test(decoded)) return "/dashboard";
+  return decoded;
+}
+
 export function greeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";

@@ -12,10 +12,14 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { changePasswordSchema, loginSchema, signupSchema, updateProfileSchema } from "@/lib/validation";
+import { safeRedirectPath } from "@/lib/utils";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
 
 export async function signupAction(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  // `next` arrives as a hidden form field (seeded from the query param).
+  const nextPath = safeRedirectPath(formData.get("next"));
+
   const parsed = signupSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -41,10 +45,13 @@ export async function signupAction(_prev: AuthActionState, formData: FormData): 
 
   const token = await createSessionToken(user.id);
   await setSessionCookie(token);
-  redirect("/dashboard");
+  redirect(nextPath);
 }
 
 export async function loginAction(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  // `next` arrives as a hidden form field (seeded from the query param).
+  const nextPath = safeRedirectPath(formData.get("next"));
+
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -68,7 +75,7 @@ export async function loginAction(_prev: AuthActionState, formData: FormData): P
 
   const token = await createSessionToken(user.id);
   await setSessionCookie(token);
-  redirect("/dashboard");
+  redirect(nextPath);
 }
 
 export async function logoutAction(): Promise<void> {
