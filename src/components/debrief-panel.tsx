@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
 import type { DebriefData } from "@/lib/types";
 import { DebriefView } from "@/components/debrief-view";
 import { cn } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
+
+function formatWait(seconds: number): string {
+  if (seconds < 90) return `${seconds}s`;
+  return `${Math.ceil(seconds / 60)} min`;
+}
 
 /**
  * Generates a debrief for an already-finished mock session (used on the
@@ -15,6 +20,23 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
   const [loading, setLoading] = useState(false);
   const [debrief, setDebrief] = useState<DebriefData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
+
+  // Count the cooldown down each second. Hooks stay above the early returns
+  // so they run unconditionally on every render. When the final second is
+  // consumed, clear the rate-limit error so the button returns to its normal
+  // "Generate debrief" state.
+  useEffect(() => {
+    if (cooldownSeconds == null || cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds((s) => {
+        if (s != null && s > 1) return s - 1;
+        setError(null);
+        return null;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
 
   async function generate() {
     setLoading(true);
@@ -27,6 +49,18 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
       });
       const data = (await res.json()) as { debrief?: DebriefData; error?: string };
       if (!res.ok) {
+        if (res.status === 429) {
+          // Honor the server's Retry-After and surface it as real feedback.
+          const retryAfter = Number(res.headers.get("Retry-After"));
+          const seconds = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : null;
+          setCooldownSeconds(seconds);
+          setError(
+            seconds
+              ? `You're generating debriefs quickly — try again in about ${formatWait(seconds)}.`
+              : "You're generating debriefs quickly — please wait a minute and try again."
+          );
+          return;
+        }
         setError(data.error ?? "We couldn't prepare your debrief.");
         return;
       }
@@ -57,6 +91,7 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
   }
 
   const tooFewAnswers = error?.includes("Answer at least");
+  const cooldownActive = cooldownSeconds != null && cooldownSeconds > 0;
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white px-5 py-6">
@@ -73,7 +108,7 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
         <button
           type="button"
           onClick={() => void generate()}
-          disabled={loading}
+          disabled={loading || cooldownActive}
           className={cn(buttonClasses({ className: "mt-4" }))}
         >
           {error ? (
@@ -86,6 +121,11 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
             </>
           )}
         </button>
+      )}
+      {cooldownActive && (
+        <p className="mt-2 text-xs text-zinc-400">
+          Retry available in {formatWait(cooldownSeconds)}.
+        </p>
       )}
     </div>
   );

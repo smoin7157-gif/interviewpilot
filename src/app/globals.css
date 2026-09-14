@@ -70,6 +70,50 @@
 
 html {
   scrollbar-gutter: stable;
+  color-scheme: light;
+}
+
+/* Dot-grid ambient backdrop used on marketing + auth surfaces. */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(35, 43, 69, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.mask-fade-y {
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 35%, transparent 78%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 35%, transparent 78%);
+}
+
+/* Gentle entrance for hero/section content. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rise-in-1 {
+  animation-delay: 60ms;
+}
+.rise-in-2 {
+  animation-delay: 130ms;
+}
+.rise-in-3 {
+  animation-delay: 200ms;
+}
+.rise-in-4 {
+  animation-delay: 270ms;
+}
+.rise-in-5 {
+  animation-delay: 340ms;
 }
 
 body {
@@ -112,5 +156,9 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .rise-in {
+    animation: none;
   }
 }
