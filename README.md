@@ -55,7 +55,7 @@ Create an account at `/signup` to start.
 | Route | Purpose |
 | --- | --- |
 | `/` | Landing page |
-| `/signup`, `/login` | Auth (server actions + session cookie) |
+| `/signup`, `/login` | Auth (server actions + session cookie; protected routes are gated at the edge by `src/proxy.ts` and support `?next=` redirects) |
 | `/dashboard` | Greeting + recent interviews (real data) |
 | `/interviews` | My Interviews (cards, progress, delete) |
 | `/interviews/new` | Interview setup → streams AI generation |
@@ -109,7 +109,7 @@ Optional AI cost control: set `OPENROUTER_CHEAP_MODEL` to route resume
 parsing / answer evaluation / follow-up generation through a cheaper model
 than `OPENROUTER_MODEL`. AI/expensive endpoints are rate-limited per user
 (see `src/lib/rate-limit.ts`); exceeding a limit returns `429` with
-`Retry-After`.
+`Retry-After` — the debrief UI counts the cooldown down for you.
 
 ## Docs
 

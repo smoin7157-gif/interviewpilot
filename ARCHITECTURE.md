@@ -80,13 +80,20 @@ Next.js App Router
    persists `overallScore` + `debrief` on the session. Scores are explicitly
    session-level practice feedback — never employability claims. History
    lives at `/history` and `/history/[id]` with re-practice and delete.
+9. **Edge auth gate before render.** `src/proxy.ts` (Next.js 16 proxy, the
+   successor to middleware) validates the session cookie at the edge and
+   redirects unauthenticated users to `/login?next=…` before any server
+   component or DB query runs — protected pages never pay render-then-redirect
+   latency. `loginAction`/`signupAction` honor the sanitized `next` param so
+   users land where they were headed; `src/lib/utils.ts` `sanitizeRedirect`
+   only allows same-origin relative paths.
 
 ## Routing map
 
 | Area | Files |
 | --- | --- |
 | Landing | `src/app/page.tsx` |
-| Auth | `src/app/(auth)/*`, `src/lib/auth-actions.ts` |
+| Auth | `src/app/(auth)/*`, `src/lib/auth-actions.ts`, `src/proxy.ts` (edge gate) |
 | Shell | `src/components/app-shell.tsx` (sidebar, mobile drawer) |
 | Dashboard | `src/app/(app)/dashboard/page.tsx` |
 | Interviews list | `src/app/(app)/interviews/page.tsx` |
@@ -201,12 +208,15 @@ cheaper model. All keys are server-side only.
 - **Tests**: `npm test` (node:test + tsx) covers validation schemas, file
   checks, the rate limiter, utils, and the fallback AI provider.
 - **Seed**: `npm run db:seed` provisions an idempotent demo account.
+- **Client resilience**: the dark `(focus)` route group has its own error
+  boundary (interviewer crashes mid-session recover in place), and the history
+  debrief panel honors the rate limiter's `Retry-After` with a visible
+  countdown instead of a generic error.
 
 ## Future modules (extension points)
 
-Remaining Phase 2 items (answer-reactive written follow-ups, DOCX resumes) and
-Phase 5 polish (a11y, rate limiting, security headers, tests, seed script) are
-planned (see ROADMAP.md). Cloud STT/TTS can swap in behind `src/lib/speech.ts`
+Remaining Phase 2 items (answer-reactive written follow-ups, DOCX resumes)
+are planned (see ROADMAP.md). Cloud STT/TTS can swap in behind `src/lib/speech.ts`
 without touching the UI. Extending the model means adding tables + owner-scoped
 services under `src/lib/`, route groups per module, and sidebar entries —
 nothing about the current data flow needs to change shape.
