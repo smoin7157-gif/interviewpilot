@@ -80,6 +80,50 @@ export function extractJsonObject(text: string): unknown {
   }
 }
 
+/** Which candidate/job source a question may draw from (prompt vocabulary). */
+const SOURCE_CONTEXT_VALUES = [
+  "experience",
+  "company",
+  "interview_type",
+  "job_description",
+  "resume",
+  "github",
+  "project",
+  "general",
+] as const;
+
+/** Map an arbitrary source tag onto the documented vocabulary (best effort). */
+function normalizeSourceTag(raw: string): string | null {
+  const v = raw.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (v.length === 0) return null;
+  if ((SOURCE_CONTEXT_VALUES as readonly string[]).includes(v)) return v;
+  if (v.includes("resume") || v.includes("cv")) return "resume";
+  if (v.includes("github") || v.includes("repo")) return "github";
+  if (v.includes("job") || v.includes("jd") || v.includes("description")) return "job_description";
+  if (v.includes("project")) return "project";
+  if (v.includes("experience") || v.includes("work")) return "experience";
+  if (v.includes("company")) return "company";
+  if (v.includes("interview")) return "interview_type";
+  return "general";
+}
+
+/**
+ * Cheap content fingerprint for near-duplicate suppression. Keeps word tokens
+ * of length ≥ 4 (drops filler like "the", "and", "your"), so two rephrases of
+ * the same question collapse to the same key set.
+ */
+function questionFingerprint(question: string): string[] {
+  return [...new Set((question.toLowerCase().match(/[a-z][a-z-]{3,}/g) ?? []).sort())];
+}
+
+function isNearDuplicate(a: string[], b: string[]): boolean {
+  if (a.length === 0 || b.length === 0) return false;
+  const shared = a.filter((t) => b.includes(t)).length;
+  const smaller = Math.min(a.length, b.length);
+  // ≥ 60% token overlap on the smaller question ⇒ effectively the same ask.
+  return shared / smaller >= 0.6;
+}
+
 export function parseQuestions(raw: string): GeneratedQuestion[] {
   const parsed = extractJsonObject(raw);
   const result = outputShape.safeParse(parsed);
@@ -93,8 +137,8 @@ export function parseQuestions(raw: string): GeneratedQuestion[] {
     difficulty: normalizeDifficulty(q.difficulty),
     reason: q.reason.trim(),
     source_context: q.source_context
-      .map((s) => s.trim().toLowerCase())
-      .filter((s) => s.length > 0)
+      .map(normalizeSourceTag)
+      .filter((s): s is string => s !== null)
       .slice(0, 8),
     suggested_answer: q.suggested_answer.trim(),
     follow_up_questions: q.follow_up_questions
@@ -102,9 +146,17 @@ export function parseQuestions(raw: string): GeneratedQuestion[] {
       .filter((f) => f.length > 0)
       .slice(0, 5),
   }));
-  const cleaned = questions.filter(
-    (q) => q.question.length >= 10 && q.reason.length >= 5 && q.suggested_answer.length >= 20
-  );
+  const cleaned: GeneratedQuestion[] = [];
+  const seenFingerprints: string[][] = [];
+  for (const q of questions) {
+    if (q.question.length < 10 || q.reason.length < 5 || q.suggested_answer.length < 20) continue;
+    // Near-duplicate suppression: drop rephrased repeats so the practice set
+    // always covers distinct topics.
+    const fp = questionFingerprint(q.question);
+    if (seenFingerprints.some((prev) => isNearDuplicate(fp, prev))) continue;
+    seenFingerprints.push(fp);
+    cleaned.push(q);
+  }
   if (cleaned.length === 0) throw new Error("Model returned no usable questions.");
   return cleaned.slice(0, 24);
 }

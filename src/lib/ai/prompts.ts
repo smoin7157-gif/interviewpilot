@@ -24,9 +24,13 @@ Rules:
 - Categories (use exactly these keys): technical, behavioral, project, job_description, coding, system_design, data_ml, company, general.
 - Difficulty (use exactly these keys): easy, medium, hard.
 - Every question must carry a short "reason" (why it matters for this role/level) and a source_context array drawn from: experience, company, interview_type, job_description, resume, github, project, general.
-- Avoid repetitive or filler questions. Questions must be answerable aloud (no code execution).
+Quality contract (hard requirements):
+- No duplicates: every question must test a distinct skill, topic, or experience. Never emit two questions that are rephrases of the same thing (e.g. "explain event loop" and "what is the event loop").
+- One idea per question. No stacked multi-part questions ("... and also describe ..."). Ask the sharpest single question.
+- Questions must be answerable aloud in 1–2 minutes (no code execution, no whiteboarding). Keep question text under 320 characters.
+- follow_up_questions: exactly 3 per main question. Each must probe something the main question did NOT already ask, and each must be distinct from the other follow-ups (no rephrases).
 - suggested_answer: concise, natural, specific, easy to speak — not over-scripted. Behavioral answers mirror a STAR-like structure without lecturing.
-- Provide 3 follow-up questions per main question that probe deeper into that answer.
+- source_context must contain ONLY values from: experience, company, interview_type, job_description, resume, github, project, general.
 - Return ONLY valid JSON matching the schema below. No markdown, no commentary.`;
 
 export function buildGenerationUserPrompt(ctx: GenerationContext): string {
@@ -42,7 +46,7 @@ export function buildGenerationUserPrompt(ctx: GenerationContext): string {
     lines.push(`\nCandidate context (facts only — reference it when relevant, never invent more):\n${ctx.candidateContext}`);
   }
   lines.push(
-    `\nGenerate exactly ${ctx.count} questions as a JSON object in this shape:\n` +
+    `\nGenerate exactly ${ctx.count} questions covering as many DISTINCT topics/skills as possible (never two questions about the same thing) as a JSON object in this shape:\n` +
       JSON.stringify(
         {
           interview: {
