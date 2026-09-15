@@ -118,7 +118,6 @@ export function MockInterview({
 }) {
   /* ------------------------------ state ------------------------------ */
   const [stage, setStage] = useState<Stage>("preflight");
-  const [error, setError] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [camNote, setCamNote] = useState<string | null>(null);
   const [wantCamera, setWantCamera] = useState(true);
@@ -138,7 +137,6 @@ export function MockInterview({
   const [maxQuestions, setMaxQuestions] = useState(Math.min(targetCount || 10, questionCount));
   const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [doneSummary, setDoneSummary] = useState<MockDetail | null>(null);
-  const [isMutedGlobally, setIsMutedGlobally] = useState(false);
   const [debrief, setDebrief] = useState<DebriefData | null>(null);
   const [debriefLoading, setDebriefLoading] = useState(false);
   const [debriefError, setDebriefError] = useState<string | null>(null);
@@ -146,6 +144,7 @@ export function MockInterview({
   /* ------------------------------ refs ------------------------------ */
   const mockIdRef = useRef<string | null>(null);
   const voiceRef = useRef(true); // STT available + mic granted
+  const mutedRef = useRef(false); // mirror of `muted` so STT callbacks never read stale state
   const sttRef = useRef<SttSession | null>(null);
   const cancelSpeakRef = useRef<(() => void) | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -207,7 +206,7 @@ export function MockInterview({
       setPhase("typing");
       return;
     }
-    if (isMutedGlobally) {
+    if (mutedRef.current) {
       setInputMessage("Microphone is muted. Unmute to speak.");
       setPhase("input_needed");
       return;
@@ -256,7 +255,7 @@ export function MockInterview({
           if (cycle !== listenCycleRef.current) return;
           // Reached after silence (no final) or after manual stop.
           if (answeredRef.current) return;
-          if (isMutedGlobally) {
+          if (mutedRef.current) {
             setInputMessage("Microphone is muted. Unmute to speak.");
             setPhase("input_needed");
           } else {
@@ -390,7 +389,6 @@ export function MockInterview({
   /* --------------------------- start (preflight) --------------------------- */
 
   async function handleStart() {
-    setError(null);
     setMicError(null);
     setCamNote(null);
     setDebrief(null);
@@ -518,8 +516,12 @@ export function MockInterview({
     } catch {
       // ignore
     }
-    setTrackEnabled(micStreamRef.current, "audio", false);
-    setTrackEnabled(camStreamRef.current, "video", false);
+    // Fully release the devices — a disabled track keeps the browser's
+    // recording indicator (and the mic) alive on the completion screen.
+    stopMediaStream(micStreamRef.current);
+    stopMediaStream(camStreamRef.current);
+    micStreamRef.current = null;
+    camStreamRef.current = null;
     setStage("done");
     setPhase("ai_speaking");
     void fetchDebrief();
@@ -536,12 +538,12 @@ export function MockInterview({
     if (busyRef.current) return;
     if (muted) {
       setMuted(false);
-      setIsMutedGlobally(false);
+      mutedRef.current = false;
       setInputMessage(null);
       listen();
     } else {
       setMuted(true);
-      setIsMutedGlobally(true);
+      mutedRef.current = true;
       stopEverything();
       setInputMessage("Microphone muted. Unmute to speak, or type your answer.");
       setPhase("input_needed");
@@ -1087,12 +1089,6 @@ export function MockInterview({
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-400">
               <CameraOff className="mt-0.5 size-4 shrink-0 text-zinc-500" aria-hidden /> {camNote}
             </div>
-          )}
-
-          {error && (
-            <p role="alert" className="mt-4 text-sm text-red-300">
-              {error}
-            </p>
           )}
 
           <div className="mt-7">

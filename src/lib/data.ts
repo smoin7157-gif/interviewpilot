@@ -1,12 +1,6 @@
 import { prisma } from "@/lib/db";
 import { listRecentMocks } from "@/lib/mock";
 
-export const sessionInclude = {
-  questions: {
-    orderBy: { orderIndex: "asc" as const },
-  },
-} as const;
-
 /** Shape returned by Prisma when including question id/sessionId/status. */
 type SessionWithQuestionStats = {
   id: string;
@@ -20,21 +14,6 @@ type SessionWithQuestionStats = {
   updatedAt: Date;
   questions: Array<{ id: string; sessionId: string; status: string }>;
 };
-
-/** Fetch one session belonging to a user (null if not found / not owned). */
-export async function getOwnedSession(userId: string, sessionId: string) {
-  const session = await prisma.interviewSession.findFirst({
-    where: { id: sessionId, userId },
-    include: sessionInclude,
-  });
-  if (!session) return null;
-
-  return {
-    ...session,
-    questionCount: session.questions.length,
-    practicedCount: session.questions.filter((q) => q.status === "PRACTICED").length,
-  };
-}
 
 /**
  * Full workspace payload for one owned session: the session, its questions,

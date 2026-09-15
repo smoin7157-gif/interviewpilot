@@ -104,7 +104,11 @@ export function createBrowserStt(lang: string, handlers: SttHandlers): SttSessio
 
 /* ---------------------------------- TTS ---------------------------------- */
 
-/** Speak a line through the browser's voice. Returns a cancel function. */
+/**
+ * Speak a line through the browser's voice. Returns a cancel function.
+ * Calls `onEnd` immediately (text-only fallback) when speech synthesis is
+ * unavailable, so the interview loop never stalls on an unsupported browser.
+ */
 export function speak(
   text: string,
   opts: {
@@ -113,7 +117,11 @@ export function speak(
     onError?: (message: string) => void;
   } = {}
 ): () => void {
-  const synth = window.speechSynthesis;
+  const synth = typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
+  if (!synth) {
+    opts.onEnd?.();
+    return () => undefined;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   const voice = pickEnglishVoice();
   if (voice) utterance.voice = voice;
