@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/db";
 import { listRecentMocks } from "@/lib/mock";
 
-/** Shape returned by Prisma when including question id/sessionId/status. */
+/**
+ * Shape consumed by buildSummaries: session columns plus an aggregate question
+ * count (no per-question rows — keeps the list queries O(sessions)).
+ */
 type SessionWithQuestionStats = {
   id: string;
   role: string;
@@ -12,7 +15,7 @@ type SessionWithQuestionStats = {
   status: string;
   createdAt: Date;
   updatedAt: Date;
-  questions: Array<{ id: string; sessionId: string; status: string }>;
+  _count: { questions: number };
 };
 
 /**
@@ -29,6 +32,9 @@ export async function getOwnedWorkspaceSession(userId: string, sessionId: string
   const lastAttempts = await prisma.questionAttempt.findMany({
     where: { userId, questionId: { in: session.questions.map((q) => q.id) } },
     orderBy: { createdAt: "desc" },
+    // One row per question (the latest, thanks to the desc ordering) instead
+    // of the user's entire attempt history for these questions.
+    distinct: ["questionId"],
     select: { questionId: true, score: true },
   });
   const lastScoreByQuestion = new Map<string, number>();
@@ -65,32 +71,48 @@ const summarySelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
-  questions: { select: { id: true, sessionId: true, status: true } },
+  _count: { select: { questions: true } },
 } as const;
 
 /**
  * Assemble InterviewSummaries from already-fetched sessions.
  *
- * Last activity comes from ONE grouped query (latest attempt per question)
- * instead of loading every attempt row — the old implementation fetched the
- * user's entire attempt history just to read timestamps.
+ * Two grouped queries replace per-question row loads regardless of how many
+ * questions the sessions hold: one for practiced counts, one for the latest
+ * attempt timestamp (last activity) per session.
  */
 async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<InterviewSummary[]> {
   if (sessions.length === 0) return [];
+  const sessionIds = sessions.map((s) => s.id);
 
-  const latestByQuestion = await prisma.questionAttempt.groupBy({
-    by: ["questionId"],
-    where: {
-      question: { sessionId: { in: sessions.map((s) => s.id) } },
-    },
-    _max: { createdAt: true },
-  });
+  const [practicedBySession, latestByQuestion] = await Promise.all([
+    prisma.interviewQuestion.groupBy({
+      by: ["sessionId"],
+      where: { sessionId: { in: sessionIds }, status: "PRACTICED" },
+      _count: { _all: true },
+    }),
+    prisma.questionAttempt.groupBy({
+      by: ["questionId"],
+      where: {
+        question: { sessionId: { in: sessionIds } },
+      },
+      _max: { createdAt: true },
+    }),
+  ]);
 
-  // Map questionId -> sessionId via the questions we already have in memory.
-  const sessionOfQuestion = new Map<string, string>();
-  for (const session of sessions) {
-    for (const q of session.questions) sessionOfQuestion.set(q.id, session.id);
+  const practicedMap = new Map<string, number>();
+  for (const row of practicedBySession) {
+    practicedMap.set(row.sessionId, row._count._all);
   }
+
+  // Map questionId -> sessionId from the sessions' question counts is not
+  // possible without rows, so resolve ownership with one more grouped read.
+  const questionOwners = await prisma.interviewQuestion.findMany({
+    where: { sessionId: { in: sessionIds }, attempts: { some: {} } },
+    select: { id: true, sessionId: true },
+  });
+  const sessionOfQuestion = new Map<string, string>();
+  for (const q of questionOwners) sessionOfQuestion.set(q.id, q.sessionId);
 
   const lastActivityBySession = new Map<string, Date>();
   for (const row of latestByQuestion) {
@@ -111,8 +133,8 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
     interviewType: session.interviewType,
     seniority: session.seniority,
     status: session.status,
-    questionCount: session.questions.length,
-    practicedCount: session.questions.filter((q) => q.status === "PRACTICED").length,
+    questionCount: session._count.questions,
+    practicedCount: practicedMap.get(session.id) ?? 0,
     createdAt: session.createdAt,
     lastActivityAt: lastActivityBySession.get(session.id) ?? null,
   }));
