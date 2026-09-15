@@ -154,6 +154,20 @@ instructed to probe the candidate's real claims ("You built HireAI with
 FastAPI — why FastAPI?") and never invent experience. Legacy rows keep their
 older category labels and render fine through display helpers.
 
+**Accuracy hardening.** The generation prompt carries a quality contract
+(distinct topics only, one idea per question, aloud-answerable, 3
+non-overlapping follow-ups), and `parseQuestions` enforces it server-side:
+near-duplicate rephrases are dropped via token-overlap fingerprints and
+`source_context` tags are normalized onto the documented vocabulary. The
+evaluation prompt anchors scores to a 5-band rubric and runs at low
+temperature (0.2) so the same answer scores consistently; debriefs run at
+0.3. The live interviewer prompt bounds follow-up pacing (one probe per
+question) and forbids repeating bank questions. The deterministic fallback
+mirrors all of this: its bank covers every category (including coding,
+system_design, data_ml, job_description), selection honors the seniority
+difficulty mix via quotas and the interview type via category emphasis, and
+its driver asks at most one stored follow-up per question.
+
 ## Mock interview (Phase 3)
 
 A mock session rehearses an existing generated interview. The screen is a
