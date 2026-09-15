@@ -39,6 +39,36 @@ describe("FallbackProvider.generateQuestions", () => {
     });
     assert.ok(questions.length <= 100);
   });
+
+  it("favors easy questions for a Fresher and hard questions for 5+ years", async () => {
+    const fresher = await provider.generateQuestions({ role: "Backend Engineer", seniority: "Fresher", count: 8 });
+    const senior = await provider.generateQuestions({ role: "Backend Engineer", seniority: "5+ years", count: 8 });
+    const easyFresher = fresher.filter((q) => q.difficulty === "easy").length;
+    const hardSenior = senior.filter((q) => q.difficulty === "hard").length;
+    assert.ok(easyFresher >= 4, `expected mostly easy for Fresher, got ${easyFresher}/8 easy`);
+    assert.ok(hardSenior >= 3, `expected substantial hard for 5+ years, got ${hardSenior}/8 hard`);
+  });
+
+  it("emphasizes system_design questions for a System Design interview", async () => {
+    const questions = await provider.generateQuestions({
+      role: "Backend Engineer",
+      seniority: "3–5 years",
+      interviewType: "System Design",
+      count: 8,
+    });
+    const sd = questions.filter((q) => q.category === "system_design").length;
+    assert.ok(sd >= 2, `expected system_design emphasis, got ${sd}/8`);
+  });
+
+  it("includes coding and data_ml coverage now that templates exist", async () => {
+    const coding = await provider.generateQuestions({
+      role: "Software Engineer",
+      seniority: "1–3 years",
+      interviewType: "Coding",
+      count: 6,
+    });
+    assert.ok(coding.some((q) => q.category === "coding"), "expected coding questions for a Coding interview");
+  });
 });
 
 describe("FallbackProvider.extractResume", () => {

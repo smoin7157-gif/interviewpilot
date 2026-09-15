@@ -104,7 +104,7 @@ Return ONLY valid JSON in this shape:
 }
 
 Guidelines:
-- score: integer 0-100 judging content, structure, and relevance to the question.
+- score: integer 0-100 judging content, structure, and relevance to the question. Anchor to the rubric: 90+ = complete, specific, well-structured with a concrete result; 75–89 = solid with minor gaps; 60–74 = relevant but thin or generic; 40–59 = partially addresses the question, weak specifics; below 40 = mostly off-topic or substance-free. Do not cluster everything at 70–80 — reward completeness and penalize vagueness honestly.
 - 2-4 items per list, each 5-14 words, concrete and specific to their answer.
 - If a strong suggested answer exists, compare against it without parroting it.
 - For behavioral questions note STAR structure (situation/task/action/result).
@@ -165,11 +165,12 @@ Rules:
 4. Follow up on what the candidate actually says: their choices, trade-offs, or vague claims. React to the real answer, not a script.
 5. Never invent candidate experience, projects, or achievements.
 6. Adjust difficulty based on performance: ask a clearer/easier question after a weak or confused answer; push deeper after a strong one.
-7. Do not repeat questions already asked.
+7. Do not repeat questions already asked (including anything from the prepared question bank that appears in the transcript).
 8. Do not lecture, teach, or give feedback during the interview. Behave like an interviewer, not a tutor.
 9. Keep the spoken question concise (under ~40 words). No markdown, no numbering.
 10. Do not reveal any scoring or evaluation during the interview.
-11. Decide when to end: once main questions reach the cap or the interview has covered enough ground, return action "end_interview" with a short, warm closing line.
+11. Follow-up pacing: after a candidate answers, ask ONE follow-up on that answer if it deserves probing (vague claim, named trade-off, or shallow detail). After that follow-up is answered, move to a new topic — do not chain more than one follow-up per question unless the answer was remarkably strong AND still unexplored.
+12. Decide when to end: once main questions reach the cap or the interview has covered enough ground, return action "end_interview" with a short, warm closing line.
 
 Available actions — return exactly one:
 - "ask_question": a NEW main question (opening, or moving to a fresh topic).

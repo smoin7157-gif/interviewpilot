@@ -59,7 +59,8 @@ export class OpenRouterProvider implements AIProvider {
     system: string,
     user: string,
     maxTokens: number,
-    model: string = this.model
+    model: string = this.model,
+    temperature = 0.7
   ): Promise<string> {
     const res = await fetch(`${BASE_URL}/chat/completions`, {
       method: "POST",
@@ -75,7 +76,7 @@ export class OpenRouterProvider implements AIProvider {
           { role: "system", content: system },
           { role: "user", content: user },
         ],
-        temperature: 0.7,
+        temperature,
         max_tokens: maxTokens,
       }),
       signal: timeoutSignal(120_000),
@@ -119,7 +120,8 @@ export class OpenRouterProvider implements AIProvider {
       EVALUATION_SYSTEM_PROMPT,
       buildEvaluationUserPrompt(ctx),
       2_000,
-      CHEAP_MODEL
+      CHEAP_MODEL,
+      0.2 // scoring must be consistent, not creative
     );
     return parseEvaluation(raw);
   }
@@ -147,7 +149,9 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       DEBRIEF_SYSTEM_PROMPT,
       buildDebriefUserPrompt(ctx),
-      2_500
+      2_500,
+      this.model,
+      0.3 // session scores must be stable across regenerations
     );
     const parsed = parseDebrief(raw);
     return {

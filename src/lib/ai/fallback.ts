@@ -202,6 +202,70 @@ const TEMPLATES: Template[] = [
       `"I learn best by building, so I keep a rotation of small experiments in areas the industry is moving toward — I pick one thing a quarter, build something real with it, and write down what I learned. I follow a small set of high-signal sources rather than trying to track everything, and I bring what I learn back to work when it is relevant. The goal is not to know every new tool; it is to be able to evaluate them quickly when they matter."`,
     followUps: () => ["What trend are you most skeptical about right now?", "How do you filter signal from noise in this space?", "What have you changed your mind about recently?"],
   },
+  {
+    category: "coding",
+    difficulty: "medium",
+    question: () => `Walk me through how you would find whether a large list of numbers contains a duplicate, and what you would optimize for.`,
+    reason: () => `A spoken algorithm question: tests method (brute force → better) rather than memorized solutions.`,
+    answer: () =>
+      `"The straightforward approach is comparing every pair, but that is quadratic. If memory is fine, I would use a hash set — insert as I scan and the first hit is a duplicate, which is linear time. If memory is tight and the list is sorted or sortable, sorting first and checking neighbors avoids extra memory. The optimization target decides: for speed I take the set, for memory I sort, and if the list is huge and unsorted I might accept a probabilistic check."`,
+    followUps: () => ["What changes if the list cannot fit in memory?", "When would you trade memory for time in general?", "How would you test that solution?"],
+  },
+  {
+    category: "coding",
+    difficulty: "easy",
+    question: () => `How would you explain the difference between an array and a linked list, and when would you pick each?`,
+    reason: () => `Core data-structure judgment: the trade-off between indexing and insertion cost.`,
+    answer: () =>
+      `"An array stores elements contiguously, so reading by index is instant, but inserting in the middle means shifting elements. A linked list stores nodes with pointers, so insertion and removal are cheap once you are there, but reaching a position means walking the list. I pick arrays by default — cache-friendly and simple — and reach for linked lists when I constantly insert or remove in the middle and rarely index."`,
+    followUps: () => ["Why are arrays usually faster in practice beyond big-O?", "Where does a hash map beat both?", "Have you actually needed a linked list in real code?"],
+  },
+  {
+    category: "system_design",
+    difficulty: "medium",
+    question: () => `Design the high-level flow for a URL shortener like bit.ly — what are the main pieces and the tricky parts?`,
+    reason: () => `A classic entry-level design question: tests decomposition, storage thinking, and read/write trade-offs.`,
+    answer: () =>
+      `"Core pieces: an API that accepts a long URL and returns a short code, a database mapping codes to URLs, and a redirect service that handles the bulk of traffic. The tricky parts are generating collision-free short codes at scale (counter-based or base62-encoded IDs work), making redirects extremely fast via caching since reads dwarf writes, and handling analytics without slowing the redirect path — that can be logged asynchronously."`,
+    followUps: () => ["How would you handle two users shortening the same URL?", "What if a shortened link must expire?", "How would you estimate storage needs for a year?"],
+  },
+  {
+    category: "system_design",
+    difficulty: "hard",
+    question: () => `How would you design a notification system that reliably delivers email, push, and SMS without duplicates or losses?`,
+    reason: () => `Tests reliability thinking: queues, idempotency, retries, and at-least-once vs at-most-once delivery.`,
+    answer: () =>
+      `"I would put a durable queue between event producers and per-channel workers, so a failed send retries without blocking others. Every notification gets an idempotency key so retries never double-send, and delivery state lives in a table the workers update. Templates and user channel preferences are resolved before enqueueing. The honest trade-off is at-least-once delivery: with retries, the design guarantees no loss and makes duplicates visible and preventable via the key, rather than pretending either is impossible."`,
+    followUps: () => ["What happens when a provider is down for an hour?", "How do you keep the queue from becoming a silent bottleneck?", "Where does user preference fit in the flow?"],
+  },
+  {
+    category: "data_ml",
+    difficulty: "medium",
+    question: () => `How would you evaluate whether a machine-learning model is actually good enough to ship, beyond accuracy?`,
+    reason: () => `Distinguishes candidates who understand metrics from those who quote a single number.`,
+    answer: () =>
+      `"Accuracy alone misleads when classes are imbalanced, so I start from the business cost of errors: precision matters when false positives are expensive, recall when misses are. I look at precision-recall trade-offs at the operating threshold, check performance across data slices for bias, and validate on data the model never saw — ideally a time-based split if the data drifts. Before shipping I would also measure latency and monitor for drift, because a good model that is slow or stale is not good."`,
+    followUps: () => ["How would you detect data drift in production?", "When is a simpler model the right choice?", "How do you set the classification threshold?"],
+  },
+  {
+    category: "data_ml",
+    difficulty: "easy",
+    question: () => `What is the difference between supervised and unsupervised learning, and when would you use each?`,
+    reason: () => `A foundational ML check appropriate for fresher-level data roles.`,
+    answer: () =>
+      `"Supervised learning trains on labeled examples — inputs with known answers — for tasks like prediction or classification. Unsupervised learning finds structure in unlabeled data, like clustering customers by behavior. I use supervised when I have reliable labels and a concrete target, and unsupervised for exploration or when labels are too expensive to collect. Most real projects mix both, for example clustering first to discover segments, then predicting within them."`,
+    followUps: () => ["Where does semi-supervised learning fit?", "How do you know your labels are reliable?", "Give an example of unsupervised learning in a product you use."],
+  },
+  {
+    category: "job_description",
+    difficulty: "medium",
+    question: (c) =>
+      `Reading between the lines of this ${role(c)} job description, which responsibility would be the biggest stretch for you today, and how would you close that gap?`,
+    reason: () => `JD-grounded self-assessment: tests honesty and a concrete growth plan against the actual role.`,
+    answer: (c) =>
+      `"The stretch for me would be the areas of the role I have touched less — based on the description, that is the depth of experience expected with ${c.jobDescription ? "the core systems this team runs" : "large-scale production ownership"}. My plan is concrete rather than aspirational: I have closed gaps like this before by pairing with people strong in that area, taking the smallest real ticket in that space first, and reading the team's past decisions. Within a quarter I would expect to be contributing independently there."`,
+    followUps: () => ["Which part of the role would you ramp up fastest, and why?", "What have you done in the last year that maps to this JD?", "How do you want to grow beyond this role?"],
+  },
 ];
 
 /** Honest source tags per template category (fallback bank is generic, so tags stay conservative). */
@@ -307,22 +371,120 @@ function extractResumeHeuristic(text: string): ResumeData {
   return result;
 }
 
-function pick(count: number): Template[] {
-  // Rotate through categories so the set has variety regardless of count.
-  const ordered = [...TEMPLATES].sort((a, b) => {
-    const order: QuestionCategory[] = ["general", "technical", "behavioral", "project", "company"];
-    return order.indexOf(a.category) - order.indexOf(b.category) || a.difficulty.localeCompare(b.difficulty);
-  });
-  const result: Template[] = [];
-  for (let i = 0; result.length < count && i < Math.max(count, ordered.length) * 3; i++) {
-    const t = ordered[i % ordered.length];
-    if (result.some((existing) => existing.category === t.category && existing.difficulty === t.difficulty)) continue;
-    result.push(t);
+type DifficultyWeight = Record<"easy" | "medium" | "hard", number>;
+
+/** Difficulty mix per experience level — mirrors the AI prompt's mapping. */
+const SENIORITY_DIFFICULTY: Record<string, DifficultyWeight> = {
+  fresher: { easy: 0.7, medium: 0.3, hard: 0 },
+  "0–1 years": { easy: 0.6, medium: 0.35, hard: 0.05 },
+  "1–3 years": { easy: 0.35, medium: 0.5, hard: 0.15 },
+  "3–5 years": { easy: 0.15, medium: 0.55, hard: 0.3 },
+  "5+ years": { easy: 0.05, medium: 0.45, hard: 0.5 },
+};
+
+const DEFAULT_DIFFICULTY: DifficultyWeight = { easy: 0.35, medium: 0.5, hard: 0.15 };
+
+/** Which categories each interview type emphasizes (mirrors the AI prompt mix). */
+const TYPE_CATEGORY_PRIORITY: Record<string, QuestionCategory[]> = {
+  technical: ["technical", "coding", "project", "system_design", "behavioral"],
+  coding: ["coding", "technical", "system_design", "project"],
+  "system design": ["system_design", "technical", "project", "company"],
+  "data / ml": ["data_ml", "technical", "project", "behavioral"],
+  behavioral: ["behavioral", "general", "project", "company"],
+  "hr / recruiter": ["behavioral", "general", "company", "project"],
+  product: ["job_description", "behavioral", "company", "project"],
+};
+
+function difficultyFor(seniority: string): DifficultyWeight {
+  const key = seniority.trim().toLowerCase();
+  return SENIORITY_DIFFICULTY[key] ?? DEFAULT_DIFFICULTY;
+}
+
+const FALLBACK_CATEGORY_ORDER: QuestionCategory[] = [
+  "general",
+  "technical",
+  "behavioral",
+  "project",
+  "company",
+];
+
+/**
+ * Deterministic selection honoring seniority difficulty mix and (when known)
+ * interview-type category emphasis. Difficulty quotas come from the seniority
+ * weight (largest-remainder rounding); categories rotate with emphasis.
+ */
+function pick(ctx: GenerationContext): Template[] {
+  const count = ctx.count;
+  const weight = difficultyFor(ctx.seniority);
+  const typeKey = ctx.interviewType?.trim().toLowerCase() ?? "";
+  const typePriority = TYPE_CATEGORY_PRIORITY[typeKey];
+
+  const order: QuestionCategory[] = typePriority
+    ? [...typePriority, ...FALLBACK_CATEGORY_ORDER]
+    : FALLBACK_CATEGORY_ORDER;
+  const categoryRank = (c: QuestionCategory): number => {
+    const idx = order.indexOf(c);
+    return idx === -1 ? order.length : idx;
+  };
+
+  const byCategory = [...TEMPLATES].sort(
+    (a, b) => categoryRank(a.category) - categoryRank(b.category)
+  );
+
+  // Difficulty quotas from the seniority mix (largest-remainder rounding).
+  const difficulties = ["easy", "medium", "hard"] as const;
+  const quotas: Record<(typeof difficulties)[number], number> = { easy: 0, medium: 0, hard: 0 };
+  let assigned = 0;
+  for (const d of difficulties) {
+    quotas[d] = Math.floor(weight[d] * count);
+    assigned += quotas[d];
   }
-  // Top up with distinct templates if the pool is smaller than count.
-  for (const t of ordered) {
+  const leftovers = [...difficulties]
+    .map((d) => ({ d, frac: weight[d] * count - Math.floor(weight[d] * count) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (const { d } of leftovers) {
+    if (assigned >= count) break;
+    quotas[d]++;
+    assigned++;
+  }
+
+  const result: Template[] = [];
+  const used = new Set<Template>();
+  const perCategoryCap = Math.max(2, Math.ceil(count / 3));
+  const categoryCount = new Map<QuestionCategory, number>();
+
+  const takeFrom = (difficulty: (typeof difficulties)[number] | "any", want: number): number => {
+    let taken = 0;
+    for (const t of byCategory) {
+      if (taken >= want || result.length >= count) break;
+      if (used.has(t)) continue;
+      if (difficulty !== "any" && t.difficulty !== difficulty) continue;
+      const usedCat = categoryCount.get(t.category) ?? 0;
+      if (usedCat >= perCategoryCap) continue;
+      if (result.some((existing) => existing.question(ctx) === t.question(ctx))) continue;
+      result.push(t);
+      used.add(t);
+      categoryCount.set(t.category, usedCat + 1);
+      taken++;
+    }
+    return taken;
+  };
+
+  // Fill difficulty buckets largest-first so the emphasized difficulties claim
+  // their share before rarer ones pick from what remains.
+  for (const d of [...difficulties].sort((a, b) => quotas[b] - quotas[a])) {
+    if (quotas[d] > 0) takeFrom(d, quotas[d]);
+  }
+  // Top up category-balanced with anything unused.
+  takeFrom("any", count - result.length);
+  // Final relaxation if the pool is smaller than count.
+  for (const t of byCategory) {
     if (result.length >= count) break;
-    if (!result.includes(t)) result.push(t);
+    if (!used.has(t)) {
+      result.push(t);
+      used.add(t);
+      categoryCount.set(t.category, (categoryCount.get(t.category) ?? 0) + 1);
+    }
   }
   return result.slice(0, count);
 }
@@ -331,7 +493,7 @@ export class FallbackProvider implements AIProvider {
   readonly name = "fallback";
 
   async generateQuestions(ctx: GenerationContext): Promise<GeneratedQuestion[]> {
-    return pick(ctx.count).map((t) => ({
+    return pick(ctx).map((t) => ({
       question: t.question(ctx),
       category: t.category,
       difficulty: t.difficulty,
@@ -404,15 +566,20 @@ export class FallbackProvider implements AIProvider {
       };
     }
 
-    // After an answer: use stored follow-ups of the most recent main question
-    // before moving on, then ask the next main question from the bank.
+    // After an answer: probe with at most ONE follow-up on the most recent
+    // main question (matches the AI interviewer's pacing rule), then move on.
     let trailingFollowUps = 0;
     for (let i = aiTurns.length - 1; i >= 0; i--) {
       if (aiTurns[i].action === "ask_followup") trailingFollowUps++;
       else break;
     }
     const current = mainAsked >= 1 ? bank[Math.min(mainAsked - 1, bank.length - 1)] : undefined;
-    if (current && trailingFollowUps < current.followUps.length && mainAsked <= ctx.maxQuestions) {
+    const MAX_FOLLOWUPS_PER_QUESTION = 1;
+    if (
+      current &&
+      trailingFollowUps < Math.min(MAX_FOLLOWUPS_PER_QUESTION, current.followUps.length) &&
+      mainAsked <= ctx.maxQuestions
+    ) {
       return {
         action: "ask_followup",
         text: current.followUps[trailingFollowUps],
