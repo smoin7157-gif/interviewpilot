@@ -48,9 +48,22 @@ function ScoreRing({ score, tone }: { score: number; tone: "dark" | "light" }) {
           ? "text-red-400"
           : "text-red-600";
   const track = tone === "dark" ? "text-zinc-800" : "text-zinc-200";
+  const gradientId = `score-grad-${tone}-${color}`;
+  const gradientStops: Record<string, [string, string]> = {
+    emerald: ["#45bba9", "#0e9e8f"],
+    amber: ["#e4bf6b", "#c9821a"],
+    red: ["#f87171", "#dc2626"],
+  };
+  const [from, to] = gradientStops[color];
   return (
     <div className="relative flex size-24 shrink-0 items-center justify-center sm:size-28" aria-hidden>
       <svg viewBox="0 0 120 120" className="size-full -rotate-90">
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={from} />
+            <stop offset="100%" stopColor={to} />
+          </linearGradient>
+        </defs>
         <circle cx="60" cy="60" r="52" fill="none" strokeWidth="12" className={track} />
         <circle
           cx="60"
@@ -59,8 +72,9 @@ function ScoreRing({ score, tone }: { score: number; tone: "dark" | "light" }) {
           fill="none"
           strokeWidth="12"
           strokeLinecap="round"
+          stroke={`url(#${gradientId})`}
           strokeDasharray={`${(score / 100) * 326.7} 326.7`}
-          className={cn("transition-all duration-700", ring)}
+          className="transition-all duration-700"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

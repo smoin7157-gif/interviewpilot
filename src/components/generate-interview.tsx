@@ -137,15 +137,20 @@ export function GeneratePanel({
 
   if (phase === "error") {
     return (
-      <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+      <div className="relative overflow-hidden rounded-2xl border border-red-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(199,66,99,.35)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full opacity-60 blur-3xl"
+          style={{ background: "radial-gradient(closest-side, rgba(199,66,99,.12), transparent)" }}
+        />
+        <div className="relative mx-auto flex size-12 items-center justify-center rounded-full bg-red-50 text-red-600">
           <CircleAlert className="size-6" aria-hidden />
         </div>
-        <h3 className="mt-4 text-base font-semibold text-zinc-950">We couldn&rsquo;t generate your interview.</h3>
-        <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-zinc-500">
+        <h3 className="relative mt-4 text-base font-semibold text-zinc-950">We couldn&rsquo;t generate your interview.</h3>
+        <p className="relative mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-zinc-500">
           {error ?? "Something went wrong on our side. Please try again."}
         </p>
-        <Button className="mt-6" onClick={retry}>
+        <Button className="relative mt-6" onClick={retry}>
           Retry
         </Button>
       </div>
@@ -154,23 +159,28 @@ export function GeneratePanel({
 
   if (phase === "done" && doneInfo) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(23,163,154,.35)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full opacity-70 blur-3xl"
+          style={{ background: "radial-gradient(closest-side, rgba(23,163,154,.14), transparent)" }}
+        />
+        <div className="relative mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <PartyPopper className="size-6" aria-hidden />
         </div>
-        <h3 className="mt-4 text-lg font-semibold text-zinc-950">Interview ready</h3>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h3 className="relative mt-4 text-lg font-semibold text-zinc-950">Interview ready</h3>
+        <p className="relative mt-1 text-sm text-zinc-500">
           {doneInfo.questionCount} questions generated for {context.role}.
         </p>
         {doneInfo.source === "fallback" && (
-          <p className="mx-auto mt-3 max-w-sm rounded-lg bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-800">
+          <p className="relative mx-auto mt-3 max-w-sm rounded-lg bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-800">
             Live AI was unavailable, so we used InterviewOS&rsquo;s built-in question bank. Everything works
             the same — configure OPENROUTER_API_KEY to get fully tailored questions.
           </p>
         )}
         <button
           type="button"
-          className={buttonClasses({ size: "lg", className: "mt-6" })}
+          className={buttonClasses({ size: "lg", className: "relative mt-6" })}
           onClick={() => onDone({ questionCount: doneInfo.questionCount, source: doneInfo.source })}
         >
           Start Interview
@@ -179,9 +189,27 @@ export function GeneratePanel({
     );
   }
 
+  const progressPct = Math.round(((stageIndex + 0.5) / STAGES.length) * 100);
+
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-8 shadow-sm">
-      <div className="flex items-center gap-3">
+    <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(61,78,224,.3)]">
+      {/* Ambient brand glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[28rem] -translate-x-1/2 rounded-full opacity-70 blur-3xl"
+        style={{
+          background: "radial-gradient(closest-side, rgba(61,78,224,.12), rgba(110,92,245,.08), transparent)",
+        }}
+      />
+      {/* Top progress bar */}
+      <div className="absolute inset-x-0 top-0 h-1 bg-zinc-100" role="presentation">
+        <div
+          className="h-full rounded-r-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all duration-700 ease-out"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
+      <div className="relative flex items-center gap-3">
         <Loader2 className="size-5 animate-spin text-indigo-600" aria-hidden />
         <div>
           <h3 className="text-base font-semibold text-zinc-950">{title}</h3>
@@ -193,18 +221,23 @@ export function GeneratePanel({
         </div>
       </div>
 
-      <ul className="mt-6 space-y-4">
+      <ol className="relative mt-6 space-y-4">
+        {/* Connecting line between stage markers */}
+        <span
+          aria-hidden
+          className="absolute bottom-3 left-[9px] top-3 w-px bg-gradient-to-b from-indigo-200 via-zinc-200 to-transparent"
+        />
         {STAGES.map((stage, idx) => {
           const isDone = idx < stageIndex;
           const isCurrent = idx === stageIndex;
           const isPending = idx > stageIndex;
           return (
-            <li key={stage.key} className="flex items-start gap-3">
+            <li key={stage.key} className="relative flex items-start gap-3">
               <span
                 className={cn(
-                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border",
+                  "z-10 mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border bg-white",
                   isDone && "border-emerald-200 bg-emerald-50 text-emerald-600",
-                  isCurrent && "border-indigo-200 bg-indigo-50 text-indigo-600",
+                  isCurrent && "border-indigo-300 bg-indigo-50 text-indigo-600 shadow-[0_0_0_4px_rgba(61,78,224,.08)]",
                   isPending && "border-zinc-200 bg-zinc-50 text-zinc-300"
                 )}
                 aria-hidden
@@ -234,8 +267,8 @@ export function GeneratePanel({
             </li>
           );
         })}
-      </ul>
-      <p className="mt-6 text-xs text-zinc-400">
+      </ol>
+      <p className="relative mt-6 text-xs text-zinc-400">
         Generation takes 20–40 seconds. You can leave this page — your session is saved automatically.
       </p>
       <span className="sr-only" aria-live="polite">

@@ -15,7 +15,10 @@ function ProgressBar({ practiced, total }: { practiced: number; total: number })
   return (
     <div className="flex items-center gap-3">
       <div className="h-1.5 w-full max-w-40 overflow-hidden rounded-full bg-zinc-100" role="presentation">
-        <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <span className="text-xs tabular-nums text-zinc-500">
         {practiced}/{total} practiced
@@ -78,7 +81,7 @@ export default async function DashboardPage() {
             {recentMocks.map((mock) => (
               <li key={mock.id}>
                 <Link href={`/history/${mock.id}`} className="group block h-full">
-                  <Card className="flex h-full flex-col gap-2.5 p-4 transition-colors group-hover:border-zinc-300">
+                  <Card className="flex h-full flex-col gap-2.5 p-4 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-indigo-200 group-hover:shadow-[0_12px_32px_-16px_rgba(61,78,224,.3)]">
                     <div className="flex items-center gap-2">
                       <Sparkles className="size-3.5 shrink-0 text-indigo-500" aria-hidden />
                       <span className="truncate text-sm font-semibold text-zinc-950">{mock.role}</span>
@@ -132,7 +135,7 @@ export default async function DashboardPage() {
             {recent.map((session) => (
               <li key={session.id}>
                 <Link href={`/interviews/${session.id}`} className="group block">
-                  <Card className="flex flex-col gap-4 p-5 transition-colors group-hover:border-zinc-300 sm:flex-row sm:items-center sm:justify-between">
+                  <Card className="flex flex-col gap-4 p-5 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-indigo-200 group-hover:shadow-[0_12px_32px_-16px_rgba(61,78,224,.3)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <h3 className="text-[15px] font-semibold text-zinc-950">{session.role}</h3>
