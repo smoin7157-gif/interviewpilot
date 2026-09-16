@@ -45,6 +45,11 @@ function timeoutSignal(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
 }
 
+// Hard ceiling for completion output. Must stay within every model's output
+// cap (gpt-4o-mini: 16,384) — a larger request makes OpenRouter reject the
+// whole call, which silently degrades every live AI feature to fallback.
+const MAX_COMPLETION_TOKENS = 16_000;
+
 export class OpenRouterProvider implements AIProvider {
   readonly name = "openrouter";
   readonly model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
@@ -105,7 +110,7 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       GENERATION_SYSTEM_PROMPT,
       buildGenerationUserPrompt(ctx),
-      24_000
+      MAX_COMPLETION_TOKENS
     );
     return parseQuestions(raw);
   }

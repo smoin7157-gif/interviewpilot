@@ -47,25 +47,33 @@ function isRetryable(message: string): boolean {
   return RETRYABLE_MESSAGES.some((token) => message.includes(token));
 }
 
-export async function generateQuestions(ctx: GenerationContext): Promise<GenerationResult> {
-  const primary = createBestProvider();
-  const attempts: Array<() => Promise<unknown>> = [];
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  if (primary instanceof OpenRouterProvider) {
-    attempts.push(() => primary.generateQuestions(ctx));
-  }
-
-  // A corrective second pass if the model output was malformed.
-  for (const attempt of attempts) {
+/**
+ * Run `task` once; on a transient failure (rate limit, 5xx, network) wait and
+ * try once more before giving up. Returns null when every attempt fails so
+ * the caller can degrade to the fallback provider.
+ */
+async function withRetry<T>(task: () => Promise<T>, label: string): Promise<T | null> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const questions = await attempt();
-      if (Array.isArray(questions) && questions.length > 0) {
-        return { questions, provider: primary.name, model: primary.model };
-      }
+      return await task();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] question generation attempt failed: ${message}`);
-      if (!isRetryable(message)) break;
+      console.error(`[ai] ${label} attempt ${attempt} failed: ${message}`);
+      if (attempt === 2 || !isRetryable(message)) return null;
+      await sleep(1_500 * attempt); // backoff before the retry
+    }
+  }
+  return null; // unreachable
+}
+
+export async function generateQuestions(ctx: GenerationContext): Promise<GenerationResult> {
+  const primary = createBestProvider();
+  if (primary instanceof OpenRouterProvider) {
+    const questions = await withRetry(() => primary.generateQuestions(ctx), "question generation");
+    if (questions && questions.length > 0) {
+      return { questions, provider: primary.name, model: primary.model };
     }
   }
 
@@ -78,15 +86,9 @@ export async function generateQuestions(ctx: GenerationContext): Promise<Generat
 export async function generateFollowUps(ctx: FollowUpContext): Promise<{ followUps: string[]; provider: string; model?: string }> {
   const primary = createBestProvider();
   if (primary instanceof OpenRouterProvider) {
-    try {
-      const followUps = await primary.generateFollowUps(ctx);
+    const followUps = await withRetry(() => primary.generateFollowUps(ctx), "follow-up generation");
+    if (followUps) {
       return { followUps, provider: primary.name, model: primary.model };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] follow-up generation failed: ${message}`);
-      if (!isRetryable(message)) {
-        // fall through to fallback
-      }
     }
   }
   const fallback = new FallbackProvider();
@@ -97,15 +99,9 @@ export async function generateFollowUps(ctx: FollowUpContext): Promise<{ followU
 export async function evaluateAnswer(ctx: EvaluationContext): Promise<{ result: EvaluationResult; provider: string; model?: string }> {
   const primary = createBestProvider();
   if (primary instanceof OpenRouterProvider) {
-    try {
-      const result = await primary.evaluateAnswer(ctx);
+    const result = await withRetry(() => primary.evaluateAnswer(ctx), "answer evaluation");
+    if (result) {
       return { result, provider: primary.name, model: primary.model };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] answer evaluation failed: ${message}`);
-      if (!isRetryable(message)) {
-        // fall through to fallback
-      }
     }
   }
   const fallback = new FallbackProvider();
@@ -135,15 +131,9 @@ export async function extractResumeData(
 export async function driveInterview(ctx: InterviewerContext): Promise<InterviewerResult> {
   const primary = createBestProvider();
   if (primary instanceof OpenRouterProvider) {
-    try {
-      const decision = await primary.driveInterview(ctx);
+    const decision = await withRetry(() => primary.driveInterview(ctx), "interviewer decision");
+    if (decision) {
       return { decision, provider: primary.name, model: primary.model };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] interviewer decision failed: ${message}`);
-      if (!isRetryable(message)) {
-        // fall through to the deterministic interviewer
-      }
     }
   }
   const fallback = new FallbackProvider();
@@ -154,15 +144,9 @@ export async function driveInterview(ctx: InterviewerContext): Promise<Interview
 export async function generateDebrief(ctx: DebriefContext): Promise<{ result: DebriefResult; provider: string; model?: string }> {
   const primary = createBestProvider();
   if (primary instanceof OpenRouterProvider) {
-    try {
-      const result = await primary.generateDebrief(ctx);
+    const result = await withRetry(() => primary.generateDebrief(ctx), "debrief generation");
+    if (result) {
       return { result, provider: primary.name, model: primary.model };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] debrief generation failed: ${message}`);
-      if (!isRetryable(message)) {
-        // fall through to the deterministic debrief
-      }
     }
   }
   const fallback = new FallbackProvider();
