@@ -165,3 +165,18 @@ export async function getRecentSessions(userId: string, limit = 3): Promise<Inte
 export async function getRecentMocks(userId: string, limit = 3) {
   return listRecentMocks(userId, limit);
 }
+
+/**
+ * Questions this user has already had generated across all their sessions,
+ * newest first. Passed to generation as an avoid-list so repeat sessions
+ * surface fresh questions instead of near-identical rephrases.
+ */
+export async function listGeneratedQuestions(userId: string, limit = 200): Promise<string[]> {
+  const rows = await prisma.interviewQuestion.findMany({
+    where: { session: { userId } },
+    orderBy: { createdAt: "desc" },
+    select: { question: true },
+    take: limit,
+  });
+  return rows.map((r) => r.question);
+}

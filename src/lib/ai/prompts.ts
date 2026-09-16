@@ -26,6 +26,7 @@ Rules:
 - Every question must carry a short "reason" (why it matters for this role/level) and a source_context array drawn from: experience, company, interview_type, job_description, resume, github, project, general.
 Quality contract (hard requirements):
 - No duplicates: every question must test a distinct skill, topic, or experience. Never emit two questions that are rephrases of the same thing (e.g. "explain event loop" and "what is the event loop").
+- Fresh set: if an "Already asked before" list is provided, do NOT repeat, rephrase, or mildly re-angle any question on it. Treat it as covered ground and produce new questions.
 - One idea per question. No stacked multi-part questions ("... and also describe ..."). Ask the sharpest single question.
 - Questions must be answerable aloud in 1–2 minutes (no code execution, no whiteboarding). Keep question text under 320 characters.
 - follow_up_questions: exactly 3 per main question. Each must probe something the main question did NOT already ask, and each must be distinct from the other follow-ups (no rephrases).
@@ -44,6 +45,11 @@ export function buildGenerationUserPrompt(ctx: GenerationContext): string {
   if (ctx.jobDescription) lines.push(`\nJob description:\n${ctx.jobDescription}`);
   if (ctx.candidateContext) {
     lines.push(`\nCandidate context (facts only — reference it when relevant, never invent more):\n${ctx.candidateContext}`);
+  }
+  if (ctx.avoidQuestions && ctx.avoidQuestions.length > 0) {
+    lines.push(
+      `\nAlready asked before (do NOT repeat, rephrase, or re-angle these — produce fresh questions):\n${ctx.avoidQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
+    );
   }
   lines.push(
     `\nGenerate exactly ${ctx.count} questions covering as many DISTINCT topics/skills as possible (never two questions about the same thing) as a JSON object in this shape:\n` +

@@ -413,7 +413,7 @@ const FALLBACK_CATEGORY_ORDER: QuestionCategory[] = [
  * interview-type category emphasis. Difficulty quotas come from the seniority
  * weight (largest-remainder rounding); categories rotate with emphasis.
  */
-function pick(ctx: GenerationContext): Template[] {
+function pick(ctx: GenerationContext, isEligible: (t: Template) => boolean = () => true): Template[] {
   const count = ctx.count;
   const weight = difficultyFor(ctx.seniority);
   const typeKey = ctx.interviewType?.trim().toLowerCase() ?? "";
@@ -458,6 +458,7 @@ function pick(ctx: GenerationContext): Template[] {
     for (const t of byCategory) {
       if (taken >= want || result.length >= count) break;
       if (used.has(t)) continue;
+      if (!isEligible(t)) continue;
       if (difficulty !== "any" && t.difficulty !== difficulty) continue;
       const usedCat = categoryCount.get(t.category) ?? 0;
       if (usedCat >= perCategoryCap) continue;
@@ -477,7 +478,9 @@ function pick(ctx: GenerationContext): Template[] {
   }
   // Top up category-balanced with anything unused.
   takeFrom("any", count - result.length);
-  // Final relaxation if the pool is smaller than count.
+  // Final relaxation if the pool is smaller than count. The avoid-filter is
+  // deliberately dropped here: an exhausted bank falls back to reusing
+  // practiced templates rather than under-delivering a paid-for session.
   for (const t of byCategory) {
     if (result.length >= count) break;
     if (!used.has(t)) {
@@ -493,7 +496,12 @@ export class FallbackProvider implements AIProvider {
   readonly name = "fallback";
 
   async generateQuestions(ctx: GenerationContext): Promise<GeneratedQuestion[]> {
-    return pick(ctx).map((t) => ({
+    // Skip templates whose rendered question is on the avoid-list (already
+    // practiced) so repeat offline sessions surface fresh templates. Fill the
+    // remaining slots with unused templates via the normal quotas.
+    const avoid = new Set((ctx.avoidQuestions ?? []).map((q) => q.trim().toLowerCase()));
+    const selected = pick(ctx, (t) => !avoid.has(t.question(ctx).trim().toLowerCase()));
+    return selected.map((t) => ({
       question: t.question(ctx),
       category: t.category,
       difficulty: t.difficulty,

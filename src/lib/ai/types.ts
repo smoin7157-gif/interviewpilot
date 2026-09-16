@@ -35,6 +35,9 @@ export interface GenerationContext {
   jobDescription?: string;
   /** Compact, normalized candidate context summary (see buildCandidateContextSummary). */
   candidateContext?: string;
+  /** Questions the candidate has already practiced — generation avoids
+   *  repeating or rephrasing these so repeat sessions stay fresh. */
+  avoidQuestions?: string[];
   count: number;
 }
 

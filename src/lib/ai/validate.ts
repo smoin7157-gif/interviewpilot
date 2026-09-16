@@ -124,7 +124,24 @@ function isNearDuplicate(a: string[], b: string[]): boolean {
   return shared / smaller >= 0.6;
 }
 
-export function parseQuestions(raw: string): GeneratedQuestion[] {
+/**
+ * Filter out questions that repeat (near-rephrase) something the candidate
+ * has already practiced. Same fingerprint logic as in-session dedupe, applied
+ * across sessions so repeat generations stay fresh.
+ */
+export function filterAvoidList<T extends { question: string }>(
+  questions: T[],
+  avoidQuestions: string[]
+): T[] {
+  if (avoidQuestions.length === 0) return questions;
+  const seen = avoidQuestions.map(questionFingerprint);
+  return questions.filter((q) => {
+    const fp = questionFingerprint(q.question);
+    return !seen.some((prev) => isNearDuplicate(fp, prev));
+  });
+}
+
+export function parseQuestions(raw: string, avoidQuestions: string[] = []): GeneratedQuestion[] {
   const parsed = extractJsonObject(raw);
   const result = outputShape.safeParse(parsed);
   if (!result.success) {
@@ -158,7 +175,7 @@ export function parseQuestions(raw: string): GeneratedQuestion[] {
     cleaned.push(q);
   }
   if (cleaned.length === 0) throw new Error("Model returned no usable questions.");
-  return cleaned.slice(0, 24);
+  return filterAvoidList(cleaned, avoidQuestions).slice(0, 24);
 }
 
 export function parseFollowUps(raw: string): string[] {

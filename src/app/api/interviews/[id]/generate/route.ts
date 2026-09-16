@@ -8,6 +8,7 @@ import {
   type GithubProfileData,
   type ResumeData,
 } from "@/lib/candidate-context";
+import { listGeneratedQuestions } from "@/lib/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       try {
         send({ type: "stage", key: "analyzing" });
 
+        // Repeat sessions must feel fresh: pass everything this user has
+        // already had generated as an avoid-list for the question engine.
+        const avoidQuestions = await listGeneratedQuestions(user.id);
         const result = await generateQuestions({
           role: session.role,
           seniority: session.seniority,
@@ -70,6 +74,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
             githubContext: session.githubContext as GithubProfileData | null,
             projects: session.projects as CandidateProjectData[],
           }),
+          avoidQuestions,
           count: session.questionCountTarget,
         });
 

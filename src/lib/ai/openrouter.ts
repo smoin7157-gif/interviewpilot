@@ -26,6 +26,7 @@ import type {
   InterviewerDecision,
 } from "./types";
 import {
+  filterAvoidList,
   parseDebrief,
   parseEvaluation,
   parseFollowUps,
@@ -112,7 +113,9 @@ export class OpenRouterProvider implements AIProvider {
       buildGenerationUserPrompt(ctx),
       MAX_COMPLETION_TOKENS
     );
-    return parseQuestions(raw);
+    // Model drift or a saturated bank can still repeat a practiced question —
+    // enforce the avoid-list server-side so repeat sessions stay fresh.
+    return filterAvoidList(parseQuestions(raw), ctx.avoidQuestions ?? []);
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {
