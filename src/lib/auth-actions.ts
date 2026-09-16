@@ -13,10 +13,18 @@ import {
 } from "@/lib/auth";
 import { changePasswordSchema, loginSchema, signupSchema, updateProfileSchema } from "@/lib/validation";
 import { safeRedirectPath } from "@/lib/utils";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
 
 export async function signupAction(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  // Brute-force / abuse guard on the auth entry points (same in-memory
+  // limiter used by the API routes — per-instance, best-effort).
+  const rl = checkRateLimit("auth:signup", { limit: 10, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) {
+    return { error: "Too many signup attempts. Please try again later." };
+  }
+
   // `next` arrives as a hidden form field (seeded from the query param).
   const nextPath = safeRedirectPath(formData.get("next"));
 
@@ -49,6 +57,11 @@ export async function signupAction(_prev: AuthActionState, formData: FormData): 
 }
 
 export async function loginAction(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const rl = checkRateLimit("auth:login", { limit: 10, windowMs: 15 * 60 * 1000 });
+  if (!rl.ok) {
+    return { error: "Too many login attempts. Please wait and try again." };
+  }
+
   // `next` arrives as a hidden form field (seeded from the query param).
   const nextPath = safeRedirectPath(formData.get("next"));
 
@@ -64,14 +77,13 @@ export async function loginAction(_prev: AuthActionState, formData: FormData): P
   const { email, password } = parsed.data;
 
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-  if (!user) {
-    return { error: "No account found with that email." };
-  }
+  // One generic message for both cases so errors don't reveal which emails
+  // have accounts (account-enumeration resistance).
+  const invalid = { error: "Incorrect email or password. Please try again." };
+  if (!user) return invalid;
 
   const ok = await verifyPassword(password, user.passwordHash);
-  if (!ok) {
-    return { error: "Incorrect password. Please try again." };
-  }
+  if (!ok) return invalid;
 
   const token = await createSessionToken(user.id);
   await setSessionCookie(token);

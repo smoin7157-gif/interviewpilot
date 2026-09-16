@@ -335,7 +335,19 @@ function PracticeSection({
         body: JSON.stringify({ answer: text.trim(), prompt }),
       });
       const data = (await res.json()) as EvaluationFeedback & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Evaluation failed.");
+      if (!res.ok) {
+        if (res.status === 429) {
+          // Honor the server's Retry-After like the debrief panel does.
+          const retryAfter = Number(res.headers.get("Retry-After"));
+          const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : null;
+          throw new Error(
+            wait
+              ? `You're evaluating quickly — try again in about ${wait < 90 ? `${wait}s` : `${Math.ceil(wait / 60)} min`}.`
+              : "You're evaluating quickly — please wait a minute and try again."
+          );
+        }
+        throw new Error(data.error ?? "Evaluation failed.");
+      }
       const fb: EvaluationFeedback = {
         score: data.score,
         strengths: data.strengths ?? [],
