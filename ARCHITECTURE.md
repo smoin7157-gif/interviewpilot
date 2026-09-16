@@ -168,6 +168,20 @@ system_design, data_ml, job_description), selection honors the seniority
 difficulty mix via quotas and the interview type via category emphasis, and
 its driver asks at most one stored follow-up per question.
 
+**Cross-session variation.** Every generation request carries an avoid-list
+of the user's most recent 200 generated questions (`listGeneratedQuestions`).
+The prompt treats them as covered ground; `filterAvoidList` enforces it
+server-side on the OpenRouter path; the fallback's template selector skips
+avoided templates while keeping its seniority quotas, relaxing only when the
+bank is exhausted. Repeat sessions for the same role surface fresh questions
+instead of rephrases.
+
+**Reliability of the live path.** `chatCompletion` caps `max_tokens` at 16k
+(within every supported model's output limit — a larger request makes
+OpenRouter reject the call and silently degrade to fallback), and the service
+layer retries transient failures (429/5xx/timeout/network) once with backoff
+via `withRetry` before degrading to the deterministic provider.
+
 ## Mock interview (Phase 3)
 
 A mock session rehearses an existing generated interview. The screen is a
