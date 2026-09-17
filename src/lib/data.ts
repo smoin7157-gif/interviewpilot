@@ -23,20 +23,24 @@ type SessionWithQuestionStats = {
  * and the latest scored attempt per question (for the "last score" chip).
  */
 export async function getOwnedWorkspaceSession(userId: string, sessionId: string) {
-  const session = await prisma.interviewSession.findFirst({
-    where: { id: sessionId, userId },
-    include: { questions: { orderBy: { orderIndex: "asc" as const } } },
-  });
+  // Both reads key on (userId, sessionId), so they run as one parallel round
+  // trip instead of fetching the session first and then its attempts.
+  const [session, lastAttempts] = await Promise.all([
+    prisma.interviewSession.findFirst({
+      where: { id: sessionId, userId },
+      include: { questions: { orderBy: { orderIndex: "asc" as const } } },
+    }),
+    prisma.questionAttempt.findMany({
+      where: { userId, question: { sessionId } },
+      orderBy: { createdAt: "desc" },
+      // One row per question (the latest, thanks to the desc ordering) instead
+      // of the user's entire attempt history for these questions.
+      distinct: ["questionId"],
+      select: { questionId: true, score: true },
+    }),
+  ]);
   if (!session) return null;
 
-  const lastAttempts = await prisma.questionAttempt.findMany({
-    where: { userId, questionId: { in: session.questions.map((q) => q.id) } },
-    orderBy: { createdAt: "desc" },
-    // One row per question (the latest, thanks to the desc ordering) instead
-    // of the user's entire attempt history for these questions.
-    distinct: ["questionId"],
-    select: { questionId: true, score: true },
-  });
   const lastScoreByQuestion = new Map<string, number>();
   for (const attempt of lastAttempts) {
     if (!lastScoreByQuestion.has(attempt.questionId) && attempt.score != null) {
@@ -85,7 +89,8 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
   if (sessions.length === 0) return [];
   const sessionIds = sessions.map((s) => s.id);
 
-  const [practicedBySession, latestByQuestion] = await Promise.all([
+  // All three aggregates are independent — one parallel round trip.
+  const [practicedBySession, latestByQuestion, questionOwners] = await Promise.all([
     prisma.interviewQuestion.groupBy({
       by: ["sessionId"],
       where: { sessionId: { in: sessionIds }, status: "PRACTICED" },
@@ -98,6 +103,10 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
       },
       _max: { createdAt: true },
     }),
+    prisma.interviewQuestion.findMany({
+      where: { sessionId: { in: sessionIds }, attempts: { some: {} } },
+      select: { id: true, sessionId: true },
+    }),
   ]);
 
   const practicedMap = new Map<string, number>();
@@ -105,12 +114,7 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
     practicedMap.set(row.sessionId, row._count._all);
   }
 
-  // Map questionId -> sessionId from the sessions' question counts is not
-  // possible without rows, so resolve ownership with one more grouped read.
-  const questionOwners = await prisma.interviewQuestion.findMany({
-    where: { sessionId: { in: sessionIds }, attempts: { some: {} } },
-    select: { id: true, sessionId: true },
-  });
+  // Resolve questionId -> sessionId for the last-activity mapping.
   const sessionOfQuestion = new Map<string, string>();
   for (const q of questionOwners) sessionOfQuestion.set(q.id, q.sessionId);
 

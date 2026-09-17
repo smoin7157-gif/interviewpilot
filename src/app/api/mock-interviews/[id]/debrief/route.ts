@@ -5,7 +5,7 @@ import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateDebrief } from "@/lib/ai/service";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
-import { getOwnedInterviewSession, getOwnedMockSession, TERMINAL_STATUSES } from "@/lib/mock";
+import { getOwnedMockSession, TERMINAL_STATUSES } from "@/lib/mock";
 import {
   buildDebriefContext,
   countCandidateAnswers,
@@ -43,8 +43,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   const { force } = parsed.data;
 
-  const mock = await getOwnedMockSession(user.id, id);
+  // Both ownership reads are independent — the interview is reachable
+  // through its mock relation, so this is one round trip instead of two.
+  const [mock, interview] = await Promise.all([
+    getOwnedMockSession(user.id, id),
+    prisma.interviewSession.findFirst({
+      where: {
+        userId: user.id,
+        mocks: { some: { id } },
+      },
+      include: { projects: true },
+    }),
+  ]);
   if (!mock) return NextResponse.json({ error: "Mock interview not found." }, { status: 404 });
+  if (!interview) return NextResponse.json({ error: "Interview not found." }, { status: 404 });
 
   // Return the stored debrief when one exists and a refresh wasn't requested.
   if (!force && mock.debrief && mock.overallScore != null) {
@@ -65,9 +77,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       { status: 422 }
     );
   }
-
-  const interview = await getOwnedInterviewSession(user.id, mock.interviewSessionId);
-  if (!interview) return NextResponse.json({ error: "Interview not found." }, { status: 404 });
 
   const { result, provider, model } = await generateDebrief(
     buildDebriefContext({

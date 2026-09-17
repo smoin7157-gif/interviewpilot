@@ -34,8 +34,11 @@ function MockScoreChip({ score }: { score: number }) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const recent = await getRecentSessions(user.id, 3);
-  const recentMocks = await getRecentMocks(user.id, 3);
+  // Both panels fetch independently — one round trip instead of two.
+  const [recent, recentMocks] = await Promise.all([
+    getRecentSessions(user.id, 3),
+    getRecentMocks(user.id, 3),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">

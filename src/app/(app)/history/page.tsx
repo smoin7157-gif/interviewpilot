@@ -68,7 +68,7 @@ export default async function HistoryPage() {
             const status = statusInfo(mock.status);
             return (
               <li key={mock.id}>
-                <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <Card className="flex flex-col gap-4 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_12px_32px_-16px_rgba(61,78,224,.3)] sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <h3 className="text-[15px] font-semibold text-zinc-950">{mock.role}</h3>

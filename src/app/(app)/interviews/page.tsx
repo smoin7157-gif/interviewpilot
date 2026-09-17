@@ -47,7 +47,10 @@ export default async function InterviewsPage() {
             const progress = session.questionCount === 0 ? 0 : Math.round((session.practicedCount / session.questionCount) * 100);
             const actionLabel = session.questionCount === 0 ? "Generate" : session.practicedCount > 0 ? "Continue" : "Start";
             return (
-              <Card key={session.id} className="flex flex-col p-5">
+              <Card
+                key={session.id}
+                className="flex flex-col p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_12px_32px_-16px_rgba(61,78,224,.3)]"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-wrap gap-1.5">
                     <Badge tone="zinc">{session.seniority}</Badge>
@@ -77,7 +80,10 @@ export default async function InterviewsPage() {
 
                 <div className="mt-5 flex items-center gap-3">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100" role="presentation">
-                    <div className="h-full rounded-full bg-indigo-500" style={{ width: `${progress}%` }} />
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
                   <span className="shrink-0 text-xs tabular-nums text-zinc-500">
                     {session.practicedCount}/{session.questionCount} practiced

@@ -6,7 +6,6 @@ import { driveInterview } from "@/lib/ai/service";
 import {
   buildInterviewerContext,
   countMainQuestions,
-  getOwnedInterviewSession,
   getOwnedMockSession,
   turnsToHistory,
 } from "@/lib/mock";
@@ -37,13 +36,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: first }, { status: 422 });
   }
 
-  const mock = await getOwnedMockSession(user.id, id);
+  // Both ownership reads are independent — the interview is reachable
+  // through its mock relation, so this is one round trip instead of two.
+  const [mock, interview] = await Promise.all([
+    getOwnedMockSession(user.id, id),
+    prisma.interviewSession.findFirst({
+      where: {
+        userId: user.id,
+        mocks: { some: { id } },
+      },
+      include: {
+        questions: { orderBy: { orderIndex: "asc" as const } },
+        projects: true,
+      },
+    }),
+  ]);
   if (!mock) return NextResponse.json({ error: "Mock interview not found." }, { status: 404 });
   if (mock.status === "SESSION_COMPLETE" || mock.status === "ERROR") {
     return NextResponse.json({ error: "This mock interview is already finished." }, { status: 409 });
   }
-
-  const interview = await getOwnedInterviewSession(user.id, mock.interviewSessionId);
   if (!interview) return NextResponse.json({ error: "Interview not found." }, { status: 404 });
 
   const transcript = parsed.data.transcript.trim();
