@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createInterviewSchema } from "@/lib/validation";
+import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +10,12 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Session creation inserts unbounded rows (session + nested projects) —
+  // gate it like the other state-creating endpoints. Actual generation is
+  // limited separately and more strictly.
+  const rl = checkRateLimit(`interview-create:${user.id}`, { limit: 30, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   let body: unknown;
   try {
