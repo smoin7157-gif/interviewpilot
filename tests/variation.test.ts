@@ -81,3 +81,38 @@ describe("fallback provider variation", () => {
     assert.equal(result.length, 5);
   });
 });
+
+describe("two back-to-back sessions for the same profile", () => {
+  /**
+   * Simulates what the generate route does across repeat sessions: session 1
+   * generates normally; session 2 for the SAME role/seniority/company receives
+   * session 1's questions as the avoid-list (the route passes the user's last
+   * 200 generated questions). The assertion uses the production dedupe oracle
+   * (filterAvoidList — token-overlap fingerprints) over session 2's output, so
+   * "drops near-duplicates" is proven, not merely that exact strings differ.
+   */
+  it("session 2 contains zero near-duplicates of session 1", async () => {
+    const provider = new FallbackProvider();
+    const profile = {
+      role: "Full-Stack Developer",
+      seniority: "3–5 years",
+      company: "Acme",
+      count: 10,
+    };
+
+    const session1 = await provider.generateQuestions(profile);
+    assert.equal(session1.length, 10);
+
+    const session2 = await provider.generateQuestions({
+      ...profile,
+      avoidQuestions: session1.map((q) => q.question),
+    });
+    // Full delivery — avoiding practiced questions must not shrink the set.
+    assert.equal(session2.length, 10);
+
+    // Run the production dedupe over session 2 against session 1: if any
+    // near-duplicate rephrase survived, survivors.length would be < 10.
+    const survivors = filterAvoidList(session2, session1.map((q) => q.question));
+    assert.equal(survivors.length, session2.length);
+  });
+});
