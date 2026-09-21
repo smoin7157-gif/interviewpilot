@@ -1,0 +1,110 @@
+# InterviewOS
+
+**Practice your interview before the real one.**
+
+InterviewOS is an AI-powered interview practice platform. Describe the job you're targeting — role, experience level, company, company type, interview type, and job description — and optionally attach your resume, GitHub profile, or manual project entries. InterviewOS generates a personalized question set and lets you practice two ways: written practice with AI-scored answers, or a live AI spoken mock interview with real-time follow-up questions. Every session ends in a scored, 6-dimension debrief saved to your history.
+
+## Features
+
+- **Personalized question generation** — questions are tailored to your target role, seniority, company type, and interview type, using your resume, GitHub profile, and manual project entries as context.
+- **Written practice mode** — answer at your own pace; every answer is scored with structured feedback (strengths, gaps, improvements).
+- **AI spoken mock interview** — a browser-based mic + text-to-speech interviewer conducts a live interview with real-time follow-up questions based on your answers.
+- **6-dimension scored debrief** — after every mock session, get a structured breakdown of performance, saved to history for tracking progress over time.
+- **Cross-session question variation** — an avoid-list of your last 200 generated questions is enforced server-side so repeat practice sessions don't repeat themselves.
+- **Graceful AI fallback** — if the AI provider is unavailable, the app degrades to a deterministic question bank, interviewer, and scorer rather than failing outright.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, React 19, TypeScript) |
+| Styling | Tailwind CSS v4, hand-rolled UI primitives, Lucide icons |
+| Database | PostgreSQL on Neon (serverless), Prisma ORM 6 |
+| Auth | Email + password (bcrypt), httpOnly JWT session cookie (`jose`, HS256) |
+| AI | OpenRouter, behind a provider abstraction with deterministic fallback |
+| Voice | Browser-native Web Speech API (STT + TTS) — no third-party voice API, audio never stored |
+| Resume parsing | `pdfjs-dist` (server-side, magic-byte validated) |
+| Testing | `node:test` via `tsx --test` — 52 tests |
+
+## Architecture Highlights
+
+- **One app, no CORS.** All AI and DB access happens server-side only, via server actions and route handlers — API keys never reach the client.
+- **Provider abstraction.** A single facade (`generateQuestions`, `generateFollowUps`, `evaluateAnswer`, `extractResume`, `driveInterview`, `generateDebrief`) handles retries with backoff and falls back to deterministic logic on failure.
+- **Streaming generation.** Question generation streams progress via NDJSON stage events so the UI never sits on a blank loading screen.
+- **Ownership scoping everywhere.** Every database query is filtered by the authenticated user, enforced consistently across data-access helpers.
+- **Accuracy layer.** A 5-band scoring rubric, low-temperature scoring, one-probe-per-question interviewer pacing, and seniority-based difficulty quotas keep feedback consistent and fair.
+- **Practice, not employability claims.** Debriefs are generated only from real transcripts (minimum 2 spoken answers) and are explicitly framed as practice feedback — never a hiring signal.
+
+## Getting Started
+
+```bash
+npm install
+npm run dev        # http://localhost:3000
+```
+
+### Environment variables
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | Neon PostgreSQL connection string |
+| `AUTH_SECRET` | Yes | Used to sign session JWTs |
+| `OPENROUTER_API_KEY` | Yes | Powers question generation, scoring, and the mock interviewer |
+| `OPENROUTER_MODEL` | No | Override the default model |
+| `OPENROUTER_CHEAP_MODEL` | No | Cheaper model used for extraction tasks |
+
+See `.env.example` for the full template.
+
+### Useful commands
+
+```bash
+npm run build         # production build
+npm run lint           # lint
+npm test               # run the test suite
+npx prisma migrate dev # run DB migrations
+npm run db:seed        # seed the database
+```
+
+## Project Structure
+
+```
+src/
+  app/            # Next.js App Router pages + API routes
+  components/ui/  # Hand-rolled UI primitives
+  lib/
+    ai/service.ts # AI provider abstraction + fallback
+    data.ts       # Ownership-scoped data access
+    mock.ts       # Mock interview session logic
+    speech.ts     # Swappable browser speech layer
+  proxy.ts        # Edge auth gate (Next.js 16's middleware equivalent)
+prisma/
+  migrations/     # Database migrations
+```
+
+## Routes
+
+| Route | Purpose |
+|---|---|
+| `/` | Landing page |
+| `/signup`, `/login` | Auth |
+| `/dashboard` | Overview |
+| `/interviews` | Session list — progress, delete |
+| `/interviews/new` | Setup + streaming question generation |
+| `/interviews/[id]` | Written practice workspace |
+| `/mock/[id]` | Live spoken mock interview |
+| `/history`, `/history/[id]` | Past debriefs |
+| `/settings` | Account settings |
+
+## Documentation
+
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — system design in depth
+- [`DATABASE.md`](./DATABASE.md) — schema and data model
+- [`API.md`](./API.md) — API route reference
+- [`ROADMAP.md`](./ROADMAP.md) — shipped phases and what's next
+
+## Status
+
+All five roadmap phases are shipped: foundation, candidate context + written practice, mock interview, debrief/history, and UI polish.
+
+---
+
+*InterviewOS is a practice tool. Scores and feedback are meant to help you prepare — they are not an assessment of employability.*
