@@ -28,16 +28,35 @@ interface GithubRepo {
   fork: boolean;
 }
 
+/**
+ * GitHub token for authenticated API requests, when configured.
+ *
+ * Unauthenticated requests share a 60 req/hr limit **per IP address** — on
+ * any hosted platform (where egress IPs are shared across tenants) that
+ * budget can be exhausted by other apps, so GitHub-attach would break for
+ * everyone at once. A fine-grained PAT with "Public repositories (read-only)"
+ * access raises the limit to 6,000 req/hr per account and needs no extra
+ * permissions: this code path only ever reads public data.
+ */
+function githubToken(): string | null {
+  const token = process.env.GITHUB_TOKEN?.trim();
+  return token ? token : null;
+}
+
 /** Public profile analysis — never touches private repositories. */
 export async function analyzeGithubProfile(input: string): Promise<GithubProfileData> {
   const username = parseGithubUsername(input);
 
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "InterviewOS",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  const token = githubToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(`${API_ROOT}/users/${encodeURIComponent(username)}/repos?per_page=100&sort=pushed&type=public`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      "User-Agent": "InterviewOS",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+    headers,
     signal: AbortSignal.timeout(15_000),
   });
 
@@ -45,8 +64,11 @@ export async function analyzeGithubProfile(input: string): Promise<GithubProfile
     throw new Error(`We couldn't find a public GitHub profile for "${username}".`);
   }
   if (res.status === 403) {
+    // 403 with the rate-limit header set means the request budget is gone;
+    // 403 without it is a private/forbidden resource, which reads the same
+    // to the user — either way, continue without GitHub.
     throw new Error(
-      "GitHub's rate limit was reached for anonymous requests. Try again in a few minutes or continue without GitHub."
+      "GitHub's request limit was reached. Try again in a few minutes or continue without GitHub."
     );
   }
   if (!res.ok) {
