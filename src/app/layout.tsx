@@ -12,13 +12,30 @@ const grotesk = Space_Grotesk({
   subsets: ["latin"],
 });
 
+const DESCRIPTION =
+  "InterviewOS generates realistic, role-specific interview questions and gives you written practice with AI feedback on every answer — before the real interview.";
+
 export const metadata: Metadata = {
+  // Anchor for resolving relative OG/social URLs (from APP_URL when set, so
+  // deployed environments share correct absolute links).
+  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
   title: {
     default: "InterviewOS — Practice your interview before the real one.",
     template: "%s · InterviewOS",
   },
-  description:
-    "InterviewOS generates realistic, role-specific interview questions and gives you written practice with AI feedback on every answer — before the real interview.",
+  description: DESCRIPTION,
+  applicationName: "InterviewOS",
+  openGraph: {
+    type: "website",
+    siteName: "InterviewOS",
+    title: "InterviewOS — Practice your interview before the real one.",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "InterviewOS — Practice your interview before the real one.",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

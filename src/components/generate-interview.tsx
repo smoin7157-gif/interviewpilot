@@ -148,7 +148,7 @@ export function GeneratePanel({
         </div>
         <h3 className="relative mt-4 text-base font-semibold text-zinc-950">We couldn&rsquo;t generate your interview.</h3>
         <p className="relative mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-zinc-500">
-          {error ?? "Something went wrong on our side. Please try again."}
+          {error ?? "We couldn't reach the AI service to build your interview. Check your connection and try again — your session is safe."}
         </p>
         <Button className="relative mt-6" onClick={retry}>
           Retry

@@ -241,7 +241,10 @@ export function NewInterviewFlow() {
         }),
       });
       const data = (await res.json()) as { id?: string; error?: string };
-      if (!res.ok || !data.id) throw new Error(data.error ?? "Couldn't create the interview.");
+      if (!res.ok || !data.id)
+        throw new Error(
+          data.error ?? "We couldn't create your interview session. Check your connection and try again."
+        );
       setSessionId(data.id);
       setStep("session", { state: "ok", detail: "Interview created" });
 
@@ -298,7 +301,7 @@ export function NewInterviewFlow() {
     } catch (err) {
       setStep("session", {
         state: "error",
-        detail: err instanceof Error ? err.message : "Couldn't create the interview.",
+        detail: err instanceof Error ? err.message : "We couldn't create your interview session. Check your connection and try again.",
       });
     } finally {
       syncingRef.current = false;

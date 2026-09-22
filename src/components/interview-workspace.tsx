@@ -346,7 +346,7 @@ function PracticeSection({
               : "You're evaluating quickly — please wait a minute and try again."
           );
         }
-        throw new Error(data.error ?? "Evaluation failed.");
+        throw new Error(data.error ?? "We couldn't get feedback on that answer. Please try again in a moment.");
       }
       const fb: EvaluationFeedback = {
         score: data.score,
@@ -358,7 +358,7 @@ function PracticeSection({
       onEvaluated(fb);
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't evaluate your answer. Please try again.");
+      setError(err instanceof Error ? err.message : "We couldn't get feedback on that answer. Please try again in a moment.");
     } finally {
       setEvaluating(false);
     }

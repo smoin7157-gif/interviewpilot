@@ -29,7 +29,7 @@ export default function GlobalError({
           <TriangleAlert className="size-7" aria-hidden />
         </div>
         <h1 className="mt-6 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-          Something went wrong.
+          This page hit an unexpected error.
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">
           An unexpected error interrupted this page. Your interviews and practice history are
