@@ -55,10 +55,6 @@ export function browserSttSupported(): boolean {
   return recognitionCtor() !== null;
 }
 
-export function browserTtsSupported(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
-}
-
 function normalizeEvent(
   event: unknown
 ): { interim: string; final: string } {
@@ -169,13 +165,6 @@ export function pickEnglishVoice(): SpeechSynthesisVoice | null {
 }
 
 /* --------------------------------- Media --------------------------------- */
-
-export interface MediaCheckResult {
-  audioGranted: boolean;
-  videoGranted: boolean;
-  audioError: string | null;
-  videoError: string | null;
-}
 
 export async function requestMicrophone(): Promise<MediaStream> {
   return navigator.mediaDevices.getUserMedia({ audio: true, video: false });

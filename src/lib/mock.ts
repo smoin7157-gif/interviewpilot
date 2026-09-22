@@ -134,20 +134,6 @@ export function buildInterviewerContext(input: {
   };
 }
 
-export interface MockTurnOutcome {
-  action: string;
-  text: string;
-  category?: string;
-  difficulty?: string;
-  reason?: string;
-  /** 1-based main-question number after this turn (for "Question 2 of N"). */
-  questionNumber: number;
-  maxQuestions: number;
-  completed: boolean;
-  provider: string;
-  model?: string;
-}
-
 /* ----------------------- Mock history (Phase 4) ----------------------- */
 
 export interface MockHistoryRow {

@@ -22,18 +22,6 @@ function ErrorBanner({ error }: { error?: string }) {
   );
 }
 
-function SuccessBanner({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <div
-      role="status"
-      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm leading-snug text-emerald-700"
-    >
-      {message}
-    </div>
-  );
-}
-
 const initialState: AuthActionState = {};
 
 export function LoginForm({ nextPath }: { nextPath?: string }) {
@@ -105,5 +93,3 @@ export function SignupForm({ nextPath }: { nextPath?: string }) {
     </form>
   );
 }
-
-export { SuccessBanner };

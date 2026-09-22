@@ -44,7 +44,7 @@ export default async function HistoryPage() {
           </p>
         </div>
         <Link href="/interviews" className={buttonClasses({ size: "lg" })}>
-          <Plus className="size-4" aria-hidden /> Practice another
+          <Plus className="size-4" aria-hidden /> Create Interview
         </Link>
       </div>
 

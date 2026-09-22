@@ -46,10 +46,6 @@ export const QUESTION_CATEGORIES = [
 ] as const;
 
 // Legacy capitalized set (kept for display/back-compat of older rows).
-export const CATEGORIES = ["Technical", "Behavioral", "Project", "Role-specific", "General"] as const;
-export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
-
-export const QUESTION_STATUSES = ["NOT_STARTED", "PRACTICED", "SKIPPED"] as const;
 
 /** Optional chip-style field: empty string means "not selected". */
 const optionalChoice = <T extends readonly string[]>(options: T) =>
@@ -110,23 +106,9 @@ export const practiceStatusSchema = z.object({
   status: z.enum(["PRACTICED", "SKIPPED", "NOT_STARTED"]),
 });
 
-export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;
+export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;/* ----------------------- AI mock interview (Phase 3) ----------------------- */
 
-/* ----------------------- AI mock interview (Phase 3) ----------------------- */
 
-export const MOCK_SESSION_STATUSES = [
-  "SESSION_STARTED",
-  "QUESTION_COMPLETE",
-  "SESSION_COMPLETE",
-  "ERROR",
-] as const;
-
-export const INTERVIEWER_ACTIONS = [
-  "ask_question",
-  "ask_followup",
-  "move_topic",
-  "end_interview",
-] as const;
 
 export const mockCreateSchema = z.object({
   interviewSessionId: z.string().trim().min(1, "Interview session is required.").max(64),

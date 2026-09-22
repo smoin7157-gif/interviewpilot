@@ -55,19 +55,3 @@ export interface DebriefData {
   provider?: string;
   model?: string;
 }
-
-export interface MockHistoryItem {
-  id: string;
-  interviewSessionId: string;
-  role: string;
-  company: string | null;
-  seniority: string;
-  interviewType: string | null;
-  status: string;
-  overallScore: number | null;
-  hasDebrief: boolean;
-  questionsAsked: number;
-  startedAt: string;
-  endedAt: string | null;
-  createdAt: string;
-}

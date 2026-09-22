@@ -151,7 +151,7 @@ export function GeneratePanel({
           {error ?? "We couldn't reach the AI service to build your interview. Check your connection and try again — your session is safe."}
         </p>
         <Button className="relative mt-6" onClick={retry}>
-          Retry
+          Try again
         </Button>
       </div>
     );
