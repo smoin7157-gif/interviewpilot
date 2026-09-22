@@ -475,6 +475,7 @@ export function InterviewWorkspace({
   const [tab, setTab] = useState<Tab>("interview");
   const [fupIdx, setFupIdx] = useState(0);
   const [mobileListOpen, setMobileListOpen] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   const main = mainIdx >= 0 ? questions[mainIdx] : undefined;
   const followUps = main?.followUps ?? [];
@@ -533,7 +534,8 @@ export function InterviewWorkspace({
   }, [questions.length, tab, followUps.length]);
 
   function handlePracticeStatus(status: WorkspaceQuestion["status"]) {
-    if (!main) return;
+    if (!main || skipping) return;
+    setSkipping(true);
     fetch(`/api/questions/${main.id}/practice`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -545,7 +547,8 @@ export function InterviewWorkspace({
       })
       .catch(() => {
         // Non-critical — keep UI as-is and ignore.
-      });
+      })
+      .finally(() => setSkipping(false));
   }
 
   function handleEvaluated(questionId: string) {
@@ -746,10 +749,11 @@ export function InterviewWorkspace({
                       onClick={() =>
                         handlePracticeStatus(main.status === "SKIPPED" ? "NOT_STARTED" : "SKIPPED")
                       }
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      disabled={skipping}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50"
                     >
                       <CircleSlash2 className="size-3.5" aria-hidden />
-                      {main.status === "SKIPPED" ? "Undo skip" : "Skip"}
+                      {skipping ? "Skipping…" : main.status === "SKIPPED" ? "Undo skip" : "Skip"}
                     </button>
                   )}
                   <span className="text-xs font-medium tabular-nums text-zinc-400">

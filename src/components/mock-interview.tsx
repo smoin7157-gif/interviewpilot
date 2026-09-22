@@ -151,6 +151,7 @@ export function MockInterview({
   const camStreamRef = useRef<MediaStream | null>(null);
   const camVideoRef = useRef<HTMLVideoElement | null>(null);
   const busyRef = useRef(false);
+  const finishingRef = useRef(false);
   const aliveRef = useRef(true);
   const listenCycleRef = useRef(0);
   const answeredRef = useRef(false);
@@ -494,7 +495,8 @@ export function MockInterview({
   /* ------------------------------ finishing ------------------------------ */
 
   async function finishInterview(reason: "ai" | "user") {
-    if (!aliveRef.current) return;
+    if (!aliveRef.current || finishingRef.current) return;
+    finishingRef.current = true;
     stopEverything();
     cancelSpeech();
     if (mockIdRef.current && reason === "user") {
@@ -651,7 +653,7 @@ export function MockInterview({
                       href="/history"
                       className={cn(buttonClasses({ variant: "outline", className: "flex-1 justify-center" }))}
                     >
-                      All mock sessions
+                      Mock History
                     </Link>
                   </div>
                 </>
@@ -881,7 +883,7 @@ export function MockInterview({
                   onClick={retryTurn}
                   className={cn(buttonClasses({ size: "sm" }))}
                 >
-                  <RotateCcw className="size-4" aria-hidden /> Retry
+                  <RotateCcw className="size-4" aria-hidden /> Try again
                 </button>
                     <button
                       type="button"

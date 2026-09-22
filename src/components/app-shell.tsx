@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleHelp, ClipboardList, History, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from "lucide-react";
+import { CircleHelp, ClipboardList, History, LayoutDashboard, Loader2, LogOut, Menu, Plus, Settings, X } from "lucide-react";
 import { logoutAction } from "@/lib/auth-actions";
 import { cn, initials } from "@/lib/utils";
 import { LogoMark } from "@/components/logo";
@@ -14,6 +15,21 @@ const NAV_ITEMS = [
   { href: "/history", label: "Mock History", icon: History },
   { href: "/faq", label: "FAQ", icon: CircleHelp },
 ];
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      title="Sign out"
+      aria-label="Sign out"
+      disabled={pending}
+      className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50"
+    >
+      {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <LogOut className="size-4" aria-hidden />}
+    </button>
+  );
+}
 
 function SidebarContent({
   user,
@@ -109,14 +125,7 @@ function SidebarContent({
             <p className="truncate text-xs text-zinc-400">{user.email}</p>
           </div>
           <form action={logoutAction}>
-            <button
-              type="submit"
-              title="Sign out"
-              aria-label="Sign out"
-              className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              <LogOut className="size-4" aria-hidden />
-            </button>
+            <SignOutButton />
           </form>
         </div>
       </div>

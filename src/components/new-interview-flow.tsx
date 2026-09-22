@@ -50,6 +50,10 @@ const INITIAL_STEPS: Record<StepKey, StepState> = {
   resume: { state: "pending" },
 };
 
+// Mirrors src/lib/github.ts so inline errors match what the server rejects.
+const GITHUB_USERNAME_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
+const RESUME_MAX_BYTES = 3 * 1024 * 1024;
+
 function SectionTitle({ step, title, subtitle }: { step: string; title: string; subtitle: string }) {
   return (
     <div className="flex items-start gap-3">
@@ -182,6 +186,54 @@ export function NewInterviewFlow() {
   const [settled, setSettled] = useState(false);
   const syncingRef = useRef(false);
 
+  function setFieldError(key: string, message: string) {
+    setFieldErrors((prev) => {
+      if (message) return prev[key] === message ? prev : { ...prev, [key]: message };
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  // Inline validation mirrors createInterviewSchema (src/lib/validation.ts),
+  // the GitHub username rules (src/lib/github.ts), and the resume upload
+  // limits so users see problems as they type, not just on submit.
+  function validateField(key: "role" | "seniority" | "github" | "resume"): string {
+    switch (key) {
+      case "role": {
+        const trimmed = role.trim();
+        if (trimmed.length < 2) return "Enter the job role you're preparing for.";
+        if (trimmed.length > 120) return "Role is too long (120 characters max).";
+        return "";
+      }
+      case "seniority":
+        return seniority ? "" : "Pick your experience level.";
+      case "github": {
+        const url = githubUrl.trim();
+        if (!url) return "";
+        const stripped = url.startsWith("@") ? url.slice(1) : url;
+        const username = (stripped.match(/github\.com\/([^/?#]+)/i) ?? stripped.match(/^([^/?#]+)$/))?.[1]
+          ?.replace(/\/+$/, "");
+        if (!username || !GITHUB_USERNAME_RE.test(username))
+          return "Enter a GitHub profile URL like https://github.com/username.";
+        return "";
+      }
+      case "resume": {
+        if (!resumeFile) return "";
+        const isPdf = resumeFile.type === "application/pdf" || resumeFile.name.toLowerCase().endsWith(".pdf");
+        if (!isPdf) return "That file isn't a PDF. Choose a PDF resume.";
+        if (resumeFile.size > RESUME_MAX_BYTES)
+          return "That resume is larger than 3 MB. Choose a smaller file.";
+        return "";
+      }
+    }
+  }
+
+  function revalidate(key: "role" | "seniority" | "github" | "resume") {
+    setFieldError(key, validateField(key));
+  }
+
   const payload: GenerationContextPayload = useMemo(
     () => ({
       role: role.trim(),
@@ -310,17 +362,14 @@ export function NewInterviewFlow() {
   }, [sessionId, payload, projects, githubUrl, resumeFile, setStep]);
 
   function handleStartSync() {
+    const keys = ["role", "seniority", "github", "resume"] as const;
     const errors: Record<string, string> = {};
-    if (role.trim().length < 2) errors.role = "Enter the job role you're preparing for.";
-    if (!seniority) errors.seniority = "Pick your experience level.";
-    if (resumeFile && resumeFile.size > 3 * 1024 * 1024) {
-      errors.resume = "That resume is larger than 3 MB. Choose a smaller file.";
+    for (const key of keys) {
+      const message = validateField(key);
+      if (message) errors[key] = message;
     }
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-    setFieldErrors({});
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     setFormError(null);
     setPhase("syncing");
     void runSync();
@@ -449,8 +498,14 @@ export function NewInterviewFlow() {
                 <Input
                   id="role"
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    if (fieldErrors.role) revalidate("role");
+                  }}
+                  onBlur={() => revalidate("role")}
                   placeholder="Software Development Engineer"
+                  aria-invalid={Boolean(fieldErrors.role)}
+                  className={fieldErrors.role ? "border-red-400 focus:border-red-500 focus:ring-red-500/15" : undefined}
                   autoFocus
                 />
               </Field>
@@ -461,7 +516,15 @@ export function NewInterviewFlow() {
                     <span className="ml-0.5 text-zinc-400" aria-hidden>*</span>
                   </span>
                 </div>
-                <ChipGroup options={EXPERIENCE_OPTIONS} value={seniority} onChange={setSeniority} ariaLabel="Experience level" />
+                <ChipGroup
+                  options={EXPERIENCE_OPTIONS}
+                  value={seniority}
+                  onChange={(v) => {
+                    setSeniority(v);
+                    if (fieldErrors.seniority) revalidate("seniority");
+                  }}
+                  ariaLabel="Experience level"
+                />
                 {fieldErrors.seniority && (
                   <p role="alert" className="text-[13px] leading-snug text-red-600">
                     {fieldErrors.seniority}
@@ -515,9 +578,21 @@ export function NewInterviewFlow() {
                 <Input
                   id="githubUrl"
                   value={githubUrl}
-                  onChange={(e) => setGithubUrl(e.target.value)}
+                  onChange={(e) => {
+                    setGithubUrl(e.target.value);
+                    if (fieldErrors.github) revalidate("github");
+                  }}
+                  onBlur={() => revalidate("github")}
                   placeholder="https://github.com/username"
+                  aria-invalid={Boolean(fieldErrors.github)}
+                  aria-describedby={fieldErrors.github ? "githubUrl-error" : undefined}
+                  className={fieldErrors.github ? "border-red-400 focus:border-red-500 focus:ring-red-500/15" : undefined}
                 />
+                {fieldErrors.github && (
+                  <p id="githubUrl-error" role="alert" className="text-[13px] leading-snug text-red-600">
+                    {fieldErrors.github}
+                  </p>
+                )}
                 <p className="text-[13px] text-zinc-500">
                   We read your <span className="font-medium">public</span> repositories — never private ones — to ground
                   questions in your real work.
@@ -543,7 +618,7 @@ export function NewInterviewFlow() {
                     onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
                       setResumeFile(file);
-                      if (file) setFieldErrors((prev) => ({ ...prev, resume: "" }));
+                      revalidate("resume");
                     }}
                   />
                   {resumeFile ? (
