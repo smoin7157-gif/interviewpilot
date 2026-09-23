@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import {
   clearSessionCookie,
@@ -13,14 +14,23 @@ import {
 } from "@/lib/auth";
 import { changePasswordSchema, loginSchema, signupSchema, updateProfileSchema } from "@/lib/validation";
 import { safeRedirectPath } from "@/lib/utils";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
 
-export async function signupAction(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
+export async function signupAction(
+  _prev: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const reqHeaders = await headers();
   // Brute-force / abuse guard on the auth entry points (same in-memory
-  // limiter used by the API routes — per-instance, best-effort).
-  const rl = checkRateLimit("auth:signup", { limit: 10, windowMs: 60 * 60 * 1000 });
+  // limiter used by the API routes — per-instance, best-effort). Keyed per
+  // client IP so one busy NAT (e.g. a campus demo) can't exhaust a shared
+  // global bucket for everyone else.
+  const rl = checkRateLimit(getClientKey(reqHeaders, "auth:signup"), {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
   if (!rl.ok) {
     return { error: "Too many signup attempts. Please try again later." };
   }
@@ -56,8 +66,15 @@ export async function signupAction(_prev: AuthActionState, formData: FormData): 
   redirect(nextPath);
 }
 
-export async function loginAction(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
-  const rl = checkRateLimit("auth:login", { limit: 10, windowMs: 15 * 60 * 1000 });
+export async function loginAction(
+  _prev: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const reqHeaders = await headers();
+  const rl = checkRateLimit(getClientKey(reqHeaders, "auth:login"), {
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
   if (!rl.ok) {
     return { error: "Too many login attempts. Please wait and try again." };
   }

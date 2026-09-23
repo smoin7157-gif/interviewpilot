@@ -7,6 +7,7 @@ import {
   loginSchema,
   mockCreateSchema,
   mockTurnSchema,
+  passwordComplexityError,
   signupSchema,
 } from "../src/lib/validation";
 
@@ -36,6 +37,30 @@ describe("signupSchema", () => {
       password: "supersecret123",
     });
     assert.equal(parsed.success, false);
+  });
+
+  it("rejects a password without any digit (complexity rule)", () => {
+    const parsed = signupSchema.safeParse({
+      name: "Ada",
+      email: "ada@example.com",
+      password: "supersecretletters",
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it("rejects a password without any letter (complexity rule)", () => {
+    const parsed = signupSchema.safeParse({
+      name: "Ada",
+      email: "ada@example.com",
+      password: "12345678",
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it("passwordComplexityError reports the rule, not length", () => {
+    assert.equal(passwordComplexityError("nodigits"), "Password must include at least one letter and one number.");
+    assert.equal(passwordComplexityError("12345678"), "Password must include at least one letter and one number.");
+    assert.equal(passwordComplexityError("goodpass1"), undefined);
   });
 
   it("trims the name", () => {
@@ -132,6 +157,14 @@ describe("changePasswordSchema", () => {
   it("rejects a weak new password", () => {
     assert.equal(
       changePasswordSchema.safeParse({ currentPassword: "oldpass", newPassword: "short" })
+        .success,
+      false
+    );
+  });
+
+  it("rejects a new password missing a number", () => {
+    assert.equal(
+      changePasswordSchema.safeParse({ currentPassword: "oldpass1", newPassword: "allletters" })
         .success,
       false
     );

@@ -77,10 +77,28 @@ export const createInterviewSchema = z.object({
     .default(10),
 });
 
+/**
+ * Password policy: length is checked by `.min()`, this adds a mild complexity
+ * floor — letters plus a digit — without forcing symbol soup that students
+ * write down on sticky notes. Returns a readable message for form display.
+ */
+export function passwordComplexityError(password: string): string | undefined {
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Password must include at least one letter and one number.";
+  }
+  return undefined;
+}
+
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Enter your name.").max(80, "Name is too long."),
   email: z.string().trim().email("Enter a valid email address.").max(200),
-  password: z.string().min(8, "Password must be at least 8 characters.").max(200),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters.")
+    .max(200)
+    .refine((p) => passwordComplexityError(p) === undefined, {
+      message: "Password must include at least one letter and one number.",
+    }),
 });
 
 export const loginSchema = z.object({
@@ -94,7 +112,13 @@ export const updateProfileSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Enter your current password."),
-  newPassword: z.string().min(8, "New password must be at least 8 characters.").max(200),
+  newPassword: z
+    .string()
+    .min(8, "New password must be at least 8 characters.")
+    .max(200)
+    .refine((p) => passwordComplexityError(p) === undefined, {
+      message: "Password must include at least one letter and one number.",
+    }),
 });
 
 export const evaluateSchema = z.object({

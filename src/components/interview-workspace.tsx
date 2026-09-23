@@ -303,19 +303,93 @@ function SuggestedAnswer({ answer }: { answer: string }) {
 
 /* ---------------------------------- Practice + evaluation ---------------------------------- */
 
+const DRAFT_SAVE_DELAY_MS = 600;
+
+/** Read a saved draft; safe during SSR and when storage is unavailable. */
+function readDraft(storageKey: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const saved = window.localStorage.getItem(storageKey);
+    return saved && saved.trim().length > 0 ? saved : "";
+  } catch {
+    // Storage unavailable (private mode, quota) — skip restore.
+    return "";
+  }
+}
+
+/**
+ * Draft autosave for written practice: the typed answer is debounced into
+ * localStorage (keyed per question/prompt) so a refresh, crash, or accidental
+ * navigation doesn't lose work. The draft is read once in the lazy state
+ * initializer (nothing text-dependent renders until the panel is opened, so
+ * hydration is unaffected) and cleared once the answer is evaluated; save
+ * failures are swallowed — autosave is strictly best-effort.
+ */
+function useAnswerDraft(storageKey: string) {
+  const [initialDraft] = useState(() => readDraft(storageKey));
+  const [text, setText] = useState(initialDraft);
+  const [restored, setRestored] = useState(initialDraft !== "");
+
+  // Debounced save while typing. Empty text is ignored so we never clobber a
+  // saved draft with a transient empty render.
+  useEffect(() => {
+    if (text.trim().length === 0) return;
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(storageKey, text);
+      } catch {
+        // Storage unavailable — autosave is best-effort.
+      }
+    }, DRAFT_SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [text, storageKey]);
+  // Flush immediately when the tab is hidden or the page is being unloaded —
+  // the debounce timer alone can miss a fast refresh/close.
+  useEffect(() => {
+    function flush() {
+      if (text.trim().length === 0) return;
+      try {
+        window.localStorage.setItem(storageKey, text);
+      } catch {
+        // Ignore.
+      }
+    }
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", flush);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", flush);
+    };
+  }, [text, storageKey]);
+
+  function discardDraft() {
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {
+      // Ignore.
+    }
+    setText("");
+    setRestored(false);
+  }
+
+  return { text, setText, restored, discardDraft };
+}
+
 function PracticeSection({
   prompt,
   questionId,
+  storageKey,
   onEvaluated,
   className,
 }: {
   prompt: string;
   questionId: string;
+  storageKey: string;
   onEvaluated: (feedback: EvaluationFeedback) => void;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
+  const { text, setText, restored, discardDraft } = useAnswerDraft(storageKey);
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<EvaluationFeedback | null>(null);
@@ -356,6 +430,8 @@ function PracticeSection({
       };
       setFeedback(fb);
       onEvaluated(fb);
+      // The answer is now persisted server-side as an attempt — drop the draft.
+      discardDraft();
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't get feedback on that answer. Please try again in a moment.");
@@ -382,6 +458,18 @@ function PracticeSection({
         </p>
       ) : (
         <div className="mt-3 space-y-3">
+          {restored && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-700">
+              <span>Restored your unsent draft from this device.</span>
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="shrink-0 font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                Discard
+              </button>
+            </div>
+          )}
           <Textarea
             rows={6}
             value={text}
@@ -390,7 +478,11 @@ function PracticeSection({
             aria-label="Your practice answer"
           />
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-zinc-400">Be specific — the feedback is based on your actual answer.</p>
+            <p className="text-xs text-zinc-400">
+              {text.trim().length > 0
+                ? "Draft saves automatically as you type."
+                : "Be specific — the feedback is based on your actual answer."}
+            </p>
             <Button onClick={handleEvaluate} loading={evaluating} disabled={text.trim().length < PRACTICE_MIN_LENGTH}>
               {evaluating ? "Evaluating…" : "Evaluate My Answer"}
             </Button>
@@ -810,6 +902,7 @@ export function InterviewWorkspace({
                   key={practiceKey}
                   prompt={practicePrompt}
                   questionId={practiceQuestionId}
+                  storageKey={`draft:answer:${practiceKey}`}
                   onEvaluated={() => handleEvaluated(activeQuestion.id)}
                 />
               </section>

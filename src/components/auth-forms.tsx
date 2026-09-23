@@ -71,7 +71,7 @@ export function SignupForm({ nextPath }: { nextPath?: string }) {
         label="Password"
         htmlFor="password"
         required
-        hint="At least 8 characters"
+        hint="At least 8 characters, with a letter and a number"
         error={state.fieldErrors?.password?.[0]}
       >
         <Input

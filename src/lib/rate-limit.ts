@@ -69,6 +69,20 @@ export function checkRateLimit(
   return limiter.check(key);
 }
 
+/**
+ * Best-effort client identity for rate-limit keys. Server actions read the
+ * forwarded headers Vercel/the proxy sets via next/headers. The value is only
+ * used as a bucket key (never trusted for auth), and unknown clients share one
+ * fallback bucket — better than a fully global bucket, without pretending
+ * spoofed headers are real identity.
+ */
+export function getClientKey(headers: Headers, scope: string): string {
+  const forwarded = headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim();
+  const realIp = ip || headers.get("x-real-ip") || undefined;
+  return `${scope}:${realIp ?? "unknown"}`;
+}
+
 /** Build the standard 429 response (with Retry-After) for API routes. */
 export function rateLimitError(retryAfterSeconds: number): NextResponse {
   return NextResponse.json(
