@@ -305,6 +305,8 @@ function SuggestedAnswer({ answer }: { answer: string }) {
 
 const DRAFT_SAVE_DELAY_MS = 600;
 
+type DraftSaveState = "idle" | "saving" | "saved";
+
 /** Read a saved draft; safe during SSR and when storage is unavailable. */
 function readDraft(storageKey: string): string {
   if (typeof window === "undefined") return "";
@@ -317,62 +319,98 @@ function readDraft(storageKey: string): string {
   }
 }
 
+/** Best-effort draft write — storage can be unavailable (private mode, quota). */
+function writeDraft(storageKey: string, text: string) {
+  try {
+    window.localStorage.setItem(storageKey, text);
+  } catch {
+    // Autosave is strictly best-effort.
+  }
+}
+
+/** Best-effort draft removal. */
+function removeDraft(storageKey: string) {
+  try {
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    // Ignore.
+  }
+}
+
 /**
  * Draft autosave for written practice: the typed answer is debounced into
- * localStorage (keyed per question/prompt) so a refresh, crash, or accidental
- * navigation doesn't lose work. The draft is read once in the lazy state
- * initializer (nothing text-dependent renders until the panel is opened, so
- * hydration is unaffected) and cleared once the answer is evaluated; save
- * failures are swallowed — autosave is strictly best-effort.
+ * localStorage (keyed per question/prompt) and flushed whenever the answer
+ * leaves the screen — tab hidden, page unloading, or the component unmounting.
+ * The unmount flush is what protects in-app navigation (a Next.js link or
+ * switching questions): that path never fires `beforeunload`, so a pending
+ * debounce would otherwise be dropped on its own. The draft is read once in
+ * the lazy state initializer (nothing text-dependent renders until the panel
+ * is opened, so hydration is unaffected), cleared once the answer is evaluated,
+ * and discarded when the user empties the field; save failures are swallowed —
+ * autosave is strictly best-effort.
  */
 function useAnswerDraft(storageKey: string) {
   const [initialDraft] = useState(() => readDraft(storageKey));
   const [text, setText] = useState(initialDraft);
   const [restored, setRestored] = useState(initialDraft !== "");
+  // The text most recently written to storage — the save indicator is derived
+  // from it, so no state has to be pushed from inside the debounce effect.
+  const [savedText, setSavedText] = useState(initialDraft);
 
-  // Debounced save while typing. Empty text is ignored so we never clobber a
-  // saved draft with a transient empty render.
+  // Latest text, so the flush listeners read the current value without being
+  // torn down and re-registered on every keystroke.
+  const latestText = useRef(text);
   useEffect(() => {
-    if (text.trim().length === 0) return;
+    latestText.current = text;
+  }, [text]);
+
+  // Debounced save while typing. An emptied field removes the draft instead of
+  // leaving stale text to resurface on the next visit.
+  useEffect(() => {
     const timer = window.setTimeout(() => {
-      try {
-        window.localStorage.setItem(storageKey, text);
-      } catch {
-        // Storage unavailable — autosave is best-effort.
+      if (text.trim().length === 0) {
+        removeDraft(storageKey);
+        setSavedText("");
+        return;
       }
+      writeDraft(storageKey, text);
+      setSavedText(text);
     }, DRAFT_SAVE_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [text, storageKey]);
-  // Flush immediately when the tab is hidden or the page is being unloaded —
-  // the debounce timer alone can miss a fast refresh/close.
+
+  // Flush on tab hide / page unload / unmount so a pending debounce is never
+  // lost. `pagehide` covers Safari, where `beforeunload` is unreliable.
   useEffect(() => {
     function flush() {
-      if (text.trim().length === 0) return;
-      try {
-        window.localStorage.setItem(storageKey, text);
-      } catch {
-        // Ignore.
+      if (latestText.current.trim().length === 0) {
+        removeDraft(storageKey);
+        return;
       }
+      writeDraft(storageKey, latestText.current);
     }
     window.addEventListener("beforeunload", flush);
+    window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", flush);
     return () => {
       window.removeEventListener("beforeunload", flush);
+      window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flush);
+      flush();
     };
-  }, [text, storageKey]);
+  }, [storageKey]);
 
   function discardDraft() {
-    try {
-      window.localStorage.removeItem(storageKey);
-    } catch {
-      // Ignore.
-    }
+    removeDraft(storageKey);
     setText("");
+    setSavedText("");
     setRestored(false);
   }
 
-  return { text, setText, restored, discardDraft };
+  const saveState: DraftSaveState =
+    text.trim().length === 0 ? "idle" : text === savedText ? "saved" : "saving";
+
+  return { text, setText, restored, saveState, discardDraft };
 }
 
 function PracticeSection({
@@ -389,7 +427,7 @@ function PracticeSection({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { text, setText, restored, discardDraft } = useAnswerDraft(storageKey);
+  const { text, setText, restored, saveState, discardDraft } = useAnswerDraft(storageKey);
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<EvaluationFeedback | null>(null);
@@ -478,10 +516,17 @@ function PracticeSection({
             aria-label="Your practice answer"
           />
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-zinc-400">
-              {text.trim().length > 0
-                ? "Draft saves automatically as you type."
-                : "Be specific — the feedback is based on your actual answer."}
+            <p className="flex items-center gap-1.5 text-xs text-zinc-400" aria-live="polite">
+              {text.trim().length === 0 ? (
+                "Be specific — the feedback is based on your actual answer."
+              ) : saveState === "saving" ? (
+                "Saving draft…"
+              ) : (
+                <>
+                  <Check className="size-3.5 text-emerald-500" strokeWidth={3} aria-hidden />
+                  Draft saved on this device
+                </>
+              )}
             </p>
             <Button onClick={handleEvaluate} loading={evaluating} disabled={text.trim().length < PRACTICE_MIN_LENGTH}>
               {evaluating ? "Evaluating…" : "Evaluate My Answer"}
