@@ -171,6 +171,32 @@ export async function getRecentMocks(userId: string, limit = 3) {
 }
 
 /**
+ * Persist (or clear, with an empty answer) the written-practice draft for one
+ * of the user's questions.
+ *
+ * Ownership lives in the WHERE clause — `session: { userId }` — so a foreign
+ * question id updates zero rows instead of needing a read-then-write. Resolves
+ * to the stored timestamp (`null` when the draft was cleared), or to `null`
+ * when nothing matched (not owned / missing) — which callers surface as a
+ * 404-style failure. Deliberately does not touch `InterviewSession.updatedAt`:
+ * autosave isn't practice activity, and bumping it would re-key the workspace
+ * page on every keystroke pause.
+ */
+export async function saveQuestionDraft(
+  userId: string,
+  questionId: string,
+  draftAnswer: string
+): Promise<{ draftSavedAt: Date | null } | null> {
+  const isEmpty = draftAnswer.trim().length === 0;
+  const draftSavedAt = isEmpty ? null : new Date();
+  const result = await prisma.interviewQuestion.updateMany({
+    where: { id: questionId, session: { userId } },
+    data: { draftAnswer: isEmpty ? null : draftAnswer, draftSavedAt },
+  });
+  return result.count > 0 ? { draftSavedAt } : null;
+}
+
+/**
  * Questions this user has already had generated across all their sessions,
  * newest first. Passed to generation as an avoid-list so repeat sessions
  * surface fresh questions instead of near-identical rephrases.

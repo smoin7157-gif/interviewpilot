@@ -8,6 +8,7 @@ import {
   mockCreateSchema,
   mockTurnSchema,
   passwordComplexityError,
+  questionDraftSchema,
   signupSchema,
 } from "../src/lib/validation";
 
@@ -122,6 +123,28 @@ describe("evaluateSchema", () => {
     assert.equal(
       evaluateSchema.safeParse({ answer: "a real, thoughtful answer here" }).success,
       true
+    );
+  });
+});
+
+describe("questionDraftSchema", () => {
+  it("accepts a partial answer — drafts are work in progress", () => {
+    const parsed = questionDraftSchema.safeParse({ questionId: "q1", draftAnswer: "I led" });
+    assert.equal(parsed.success, true);
+  });
+
+  it("accepts an empty answer (clears the stored draft)", () => {
+    assert.equal(questionDraftSchema.safeParse({ questionId: "q1", draftAnswer: "" }).success, true);
+  });
+
+  it("rejects a missing question id", () => {
+    assert.equal(questionDraftSchema.safeParse({ questionId: "", draftAnswer: "hi" }).success, false);
+  });
+
+  it("caps the draft at the evaluation answer limit", () => {
+    assert.equal(
+      questionDraftSchema.safeParse({ questionId: "q1", draftAnswer: "x".repeat(10_001) }).success,
+      false
     );
   });
 });

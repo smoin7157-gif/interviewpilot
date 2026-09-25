@@ -130,6 +130,17 @@ export const practiceStatusSchema = z.object({
   status: z.enum(["PRACTICED", "SKIPPED", "NOT_STARTED"]),
 });
 
+/**
+ * Autosaved written-practice draft. Deliberately permissive — a draft is a
+ * work-in-progress, so short/partial answers are valid; only the same 10k cap
+ * as `evaluateSchema` applies, so anything that can be saved can be evaluated.
+ * An empty `draftAnswer` clears the stored draft.
+ */
+export const questionDraftSchema = z.object({
+  questionId: z.string().trim().min(1, "Question is required.").max(64),
+  draftAnswer: z.string().max(10_000, "Draft is too long."),
+});
+
 export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;/* ----------------------- AI mock interview (Phase 3) ----------------------- */
 
 

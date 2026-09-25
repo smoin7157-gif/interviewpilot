@@ -45,6 +45,7 @@ export default async function InterviewWorkspacePage({
     orderIndex: q.orderIndex,
     status: q.status as WorkspaceQuestion["status"],
     lastScore: lastScoreByQuestion.get(q.id) ?? null,
+    draftAnswer: q.draftAnswer,
   }));
 
   return (

@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { EvaluationFeedback, WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
+import { saveAnswerDraftAction } from "@/lib/draft-actions";
 import { cn, formatQuestionCategory, formatQuestionDifficulty, pluralize } from "@/lib/utils";
 import { Badge, categoryTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -232,6 +233,7 @@ function QuestionList({
                 orderIndex: idx,
                 status: "NOT_STARTED",
                 lastScore: null,
+                draftAnswer: null,
               };
               return (
                 <QuestionRow
@@ -303,33 +305,37 @@ function SuggestedAnswer({ answer }: { answer: string }) {
 
 /* ---------------------------------- Practice + evaluation ---------------------------------- */
 
-const DRAFT_SAVE_DELAY_MS = 600;
+const DRAFT_SAVE_DELAY_MS = 2500;
 
-type DraftSaveState = "idle" | "saving" | "saved";
+type DraftSaveState = "idle" | "saving" | "saved" | "error";
 
-/** Read a saved draft; safe during SSR and when storage is unavailable. */
-function readDraft(storageKey: string): string {
-  if (typeof window === "undefined") return "";
+/**
+ * Read the unconfirmed draft buffer; safe during SSR and when storage is
+ * unavailable. A buffer only exists when a typed answer has not been confirmed
+ * by a save yet, so when present it is newer than the server copy.
+ */
+function readDraftBuffer(storageKey: string): string | null {
+  if (typeof window === "undefined") return null;
   try {
     const saved = window.localStorage.getItem(storageKey);
-    return saved && saved.trim().length > 0 ? saved : "";
+    return saved !== null && saved.trim().length > 0 ? saved : null;
   } catch {
     // Storage unavailable (private mode, quota) — skip restore.
-    return "";
+    return null;
   }
 }
 
-/** Best-effort draft write — storage can be unavailable (private mode, quota). */
-function writeDraft(storageKey: string, text: string) {
+/** Best-effort buffer write — storage can be unavailable (private mode, quota). */
+function writeDraftBuffer(storageKey: string, text: string) {
   try {
     window.localStorage.setItem(storageKey, text);
   } catch {
-    // Autosave is strictly best-effort.
+    // The server copy is still the source of truth.
   }
 }
 
-/** Best-effort draft removal. */
-function removeDraft(storageKey: string) {
+/** Best-effort buffer removal. */
+function removeDraftBuffer(storageKey: string) {
   try {
     window.localStorage.removeItem(storageKey);
   } catch {
@@ -338,77 +344,150 @@ function removeDraft(storageKey: string) {
 }
 
 /**
- * Draft autosave for written practice: the typed answer is debounced into
- * localStorage (keyed per question/prompt) and flushed whenever the answer
- * leaves the screen — tab hidden, page unloading, or the component unmounting.
- * The unmount flush is what protects in-app navigation (a Next.js link or
- * switching questions): that path never fires `beforeunload`, so a pending
- * debounce would otherwise be dropped on its own. The draft is read once in
- * the lazy state initializer (nothing text-dependent renders until the panel
- * is opened, so hydration is unaffected), cleared once the answer is evaluated,
- * and discarded when the user empties the field; save failures are swallowed —
- * autosave is strictly best-effort.
+ * Draft autosave for written practice.
+ *
+ * The answer is persisted on the server (`InterviewQuestion.draftAnswer`) so a
+ * refresh, crash, or closed tab can't lose it — device-local storage alone
+ * couldn't follow the user to another browser. Saves are debounced ~2.5s behind
+ * the last keystroke and flushed immediately when the tab hides, the page
+ * unloads, or the panel leaves the screen (switching questions is an in-app
+ * navigation, so it never fires `beforeunload`). `pagehide` covers Safari,
+ * where `beforeunload` is unreliable.
+ *
+ * The local buffer is the crash net: it holds the text typed since the last
+ * *confirmed* save and is written synchronously before every save attempt, so a
+ * request that never lands (killed tab, offline) is replayed on the next visit
+ * and re-saved. It's read once in the lazy state initializer — nothing
+ * text-dependent renders until the panel is opened, so hydration is unaffected.
+ *
+ * Follow-up answers share their question's row, so only the main answer is
+ * persisted server-side; follow-ups keep the device-local draft they had.
  */
-function useAnswerDraft(storageKey: string) {
-  const [initialDraft] = useState(() => readDraft(storageKey));
-  const [text, setText] = useState(initialDraft);
-  const [restored, setRestored] = useState(initialDraft !== "");
-  // The text most recently written to storage — the save indicator is derived
-  // from it, so no state has to be pushed from inside the debounce effect.
-  const [savedText, setSavedText] = useState(initialDraft);
+function useAnswerDraft({
+  questionId,
+  storageKey,
+  initialDraft,
+  persistToServer,
+  onDraftChange,
+}: {
+  questionId: string;
+  storageKey: string;
+  initialDraft: string;
+  persistToServer: boolean;
+  onDraftChange?: (storageKey: string, text: string) => void;
+}) {
+  // An unconfirmed buffer wins over the server copy — by definition it is newer.
+  const [initial] = useState(() => {
+    const buffered = readDraftBuffer(storageKey);
+    return { text: buffered ?? initialDraft, unconfirmed: buffered !== null };
+  });
+  const [text, setText] = useState(initial.text);
+  const [restored, setRestored] = useState(initial.text.trim().length > 0);
+  // The text most recently confirmed by the store — the save indicator is
+  // derived from it, so no state has to be pushed from inside the debounce
+  // effect. A restored buffer starts unconfirmed ("saving") on purpose: the
+  // debounce below then pushes it to the server.
+  const [savedText, setSavedText] = useState(initial.unconfirmed ? "" : initialDraft);
+  const [failed, setFailed] = useState(false);
 
-  // Latest text, so the flush listeners read the current value without being
-  // torn down and re-registered on every keystroke.
+  // Latest text / confirmed text, so the flush listeners read current values
+  // without being torn down and re-registered on every keystroke.
   const latestText = useRef(text);
+  const confirmedText = useRef(initial.unconfirmed ? "" : initialDraft);
   useEffect(() => {
     latestText.current = text;
   }, [text]);
 
-  // Debounced save while typing. An emptied field removes the draft instead of
-  // leaving stale text to resurface on the next visit.
+  // Publish each edit to the caller (keyed by storage key) so returning to this
+  // question before a page reload shows the draft the user just typed.
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (text.trim().length === 0) {
-        removeDraft(storageKey);
-        setSavedText("");
-        return;
-      }
-      writeDraft(storageKey, text);
-      setSavedText(text);
-    }, DRAFT_SAVE_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [text, storageKey]);
+    onDraftChange?.(storageKey, text);
+  }, [text, storageKey, onDraftChange]);
 
-  // Flush on tab hide / page unload / unmount so a pending debounce is never
-  // lost. `pagehide` covers Safari, where `beforeunload` is unreliable.
-  useEffect(() => {
-    function flush() {
-      if (latestText.current.trim().length === 0) {
-        removeDraft(storageKey);
+  const persist = useCallback(
+    async (value: string) => {
+      const isEmpty = value.trim().length === 0;
+      if (!persistToServer) {
+        // Buffer-only fallback (follow-up prompts).
+        if (isEmpty) removeDraftBuffer(storageKey);
+        else writeDraftBuffer(storageKey, value);
+        confirmedText.current = value;
+        setSavedText(value);
+        setFailed(false);
         return;
       }
-      writeDraft(storageKey, latestText.current);
+
+      // Buffer first: if the request never completes, the text is still here.
+      if (isEmpty) removeDraftBuffer(storageKey);
+      else writeDraftBuffer(storageKey, value);
+
+      try {
+        const result = await saveAnswerDraftAction(questionId, value);
+        if (!result.ok) {
+          setFailed(true);
+          return;
+        }
+        confirmedText.current = value;
+        setSavedText(value);
+        setFailed(false);
+        // Confirmed server-side — the crash net is no longer needed. An emptied
+        // field clears the stored draft so stale text can't resurface later.
+        removeDraftBuffer(storageKey);
+      } catch {
+        // Offline / server error — keep the buffer and retry on the next edit.
+        setFailed(true);
+      }
+    },
+    [persistToServer, questionId, storageKey]
+  );
+
+  // Debounced save once typing pauses.
+  useEffect(() => {
+    if (text === savedText) return;
+    const timer = window.setTimeout(() => void persist(latestText.current), DRAFT_SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [text, savedText, persist]);
+
+  // Flush the last few seconds on tab hide / page unload / unmount.
+  const flush = useCallback(() => {
+    if (latestText.current === confirmedText.current) return;
+    void persist(latestText.current);
+  }, [persist]);
+
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flush();
     }
     window.addEventListener("beforeunload", flush);
     window.addEventListener("pagehide", flush);
-    document.addEventListener("visibilitychange", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       window.removeEventListener("beforeunload", flush);
       window.removeEventListener("pagehide", flush);
-      document.removeEventListener("visibilitychange", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       flush();
     };
-  }, [storageKey]);
+  }, [flush]);
 
   function discardDraft() {
-    removeDraft(storageKey);
+    removeDraftBuffer(storageKey);
+    confirmedText.current = "";
     setText("");
     setSavedText("");
     setRestored(false);
+    setFailed(false);
+    // Drop the stored draft too, so it can't come back on the next visit.
+    if (persistToServer) void saveAnswerDraftAction(questionId, "").catch(() => {});
   }
 
   const saveState: DraftSaveState =
-    text.trim().length === 0 ? "idle" : text === savedText ? "saved" : "saving";
+    text.trim().length === 0
+      ? "idle"
+      : failed
+        ? "error"
+        : text === savedText
+          ? "saved"
+          : "saving";
 
   return { text, setText, restored, saveState, discardDraft };
 }
@@ -417,17 +496,29 @@ function PracticeSection({
   prompt,
   questionId,
   storageKey,
+  initialDraft,
+  persistToServer,
+  onDraftChange,
   onEvaluated,
   className,
 }: {
   prompt: string;
   questionId: string;
   storageKey: string;
+  initialDraft: string;
+  persistToServer: boolean;
+  onDraftChange?: (storageKey: string, text: string) => void;
   onEvaluated: (feedback: EvaluationFeedback) => void;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { text, setText, restored, saveState, discardDraft } = useAnswerDraft(storageKey);
+  const { text, setText, restored, saveState, discardDraft } = useAnswerDraft({
+    questionId,
+    storageKey,
+    initialDraft,
+    persistToServer,
+    onDraftChange,
+  });
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<EvaluationFeedback | null>(null);
@@ -498,7 +589,11 @@ function PracticeSection({
         <div className="mt-3 space-y-3">
           {restored && (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-700">
-              <span>Restored your unsent draft from this device.</span>
+              <span>
+                {persistToServer
+                  ? "We saved your draft — pick up where you left off."
+                  : "Restored your unsent draft from this device."}
+              </span>
               <button
                 type="button"
                 onClick={discardDraft}
@@ -520,11 +615,13 @@ function PracticeSection({
               {text.trim().length === 0 ? (
                 "Be specific — the feedback is based on your actual answer."
               ) : saveState === "saving" ? (
-                "Saving draft…"
+                "Saving…"
+              ) : saveState === "error" ? (
+                <span className="text-amber-600">Couldn&rsquo;t save — your text is still safe here.</span>
               ) : (
                 <>
                   <Check className="size-3.5 text-emerald-500" strokeWidth={3} aria-hidden />
-                  Draft saved on this device
+                  Saved
                 </>
               )}
             </p>
@@ -613,6 +710,15 @@ export function InterviewWorkspace({
   const [fupIdx, setFupIdx] = useState(0);
   const [mobileListOpen, setMobileListOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  // Drafts typed in this page session, keyed by practice key. A PracticeSection
+  // unmounts when its question is left behind, and a confirmed save clears the
+  // local crash buffer — without this, coming back to that question before a
+  // page reload would show an empty box over a draft that does exist on the
+  // server. One shallow record updated per keystroke.
+  const [pageDrafts, setPageDrafts] = useState<Record<string, string>>({});
+  const rememberDraft = useCallback((key: string, value: string) => {
+    setPageDrafts((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
+  }, []);
 
   const main = mainIdx >= 0 ? questions[mainIdx] : undefined;
   const followUps = main?.followUps ?? [];
@@ -737,6 +843,8 @@ export function InterviewWorkspace({
     : activeQuestion.question;
   const practiceQuestionId = activeQuestion.id;
   const practiceKey = `${activeQuestion.id}::${viewingFollowUp ? `f::${fupIdx}` : "m"}`;
+  const draftStorageKey = `draft:answer:${practiceKey}`;
+  const currentDraft = pageDrafts[draftStorageKey];
 
   const totalInTab = viewingFollowUp ? followUps.length : questions.length;
   const positionInTab = viewingFollowUp ? (fupIdx >= followUps.length ? 1 : fupIdx + 1) : mainIdx + 1;
@@ -947,7 +1055,12 @@ export function InterviewWorkspace({
                   key={practiceKey}
                   prompt={practicePrompt}
                   questionId={practiceQuestionId}
-                  storageKey={`draft:answer:${practiceKey}`}
+                  storageKey={draftStorageKey}
+                  // Only the question's own answer has a row to live on; a
+                  // follow-up draft would otherwise overwrite it.
+                  initialDraft={currentDraft ?? (viewingFollowUp ? "" : (activeQuestion.draftAnswer ?? ""))}
+                  persistToServer={!viewingFollowUp}
+                  onDraftChange={rememberDraft}
                   onEvaluated={() => handleEvaluated(activeQuestion.id)}
                 />
               </section>

@@ -217,6 +217,16 @@ All of the caller's mock sessions, newest first, with interview context
 
 ## Questions
 
+### Written-practice autosave (server action, not a route)
+The workspace autosaves the answer being typed through the
+`saveAnswerDraftAction` Server Action (`src/lib/draft-actions.ts`), debounced
+~2.5s after the last keystroke and flushed when the tab hides or unloads. It
+authenticates per call and is ownership-scoped (`session.userId` in the WHERE
+clause), accepts `{ questionId, draftAnswer }` (empty clears the draft), and
+returns `{ ok: true, draftSavedAt }` or `{ ok: false, error }`. Drafts live on
+`interview_questions.draftAnswer` — a submitted answer still becomes a
+`question_attempt` via the evaluate route below.
+
 ### `POST /api/questions/{id}/practice` → `{ "ok": true, "status": … }`
 ```json
 { "status": "PRACTICED" | "SKIPPED" | "NOT_STARTED" }

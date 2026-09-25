@@ -64,7 +64,11 @@ Next.js App Router
    session cascades to questions and attempts.
 6. **Cache-free workspace.** Question data is persisted at generation time and
    reused; selecting questions never triggers AI calls. Follow-ups are
-   generated up-front with each question and served from the DB.
+   generated up-front with each question and served from the DB. Written
+   answers are autosaved into `interview_questions.draftAnswer` ~2.5s behind the
+   last keystroke (server action) and flushed on tab-hide/unload/unmount; a
+   `localStorage` buffer holds only text no save has confirmed yet, so it can't
+   shadow newer server state.
 7. **Voice runs in the browser; the interviewer runs on the server.** The mock
    interview screen (`/mock/[id]`) requests mic (required) and camera
    (optional self-view) only after the user presses Start, and uses the
@@ -207,7 +211,10 @@ distracts during practice.
   generation panel, interview workspace (tabs, reveal/hide, practice,
   evaluation, keyboard nav), mock interview screen, session delete menu.
 - **Server actions**: `signupAction`, `loginAction`, `logoutAction`,
-  `updateProfileAction`, `changePasswordAction`.
+  `updateProfileAction`, `changePasswordAction` (`src/lib/auth-actions.ts`),
+  plus `saveAnswerDraftAction` (`src/lib/draft-actions.ts`) for written-practice
+  autosave — ownership-scoped in `data.ts`, no `revalidatePath` (an autosave
+  must not re-render the workspace mid-typing).
 - **Route handlers**: data API + AI endpoints (see API.md).
 
 ## Environment

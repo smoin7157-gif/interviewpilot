@@ -65,7 +65,14 @@ Senior, Lead) onto the InterviewOS experience-level vocabulary.*
 | `sourceContext` | nullable JSON `string[]` — which candidate/job source the question draws from |
 | `orderIndex` | display order |
 | `status` | `NOT_STARTED` / `PRACTICED` / `SKIPPED` |
+| `draftAnswer` | nullable — autosaved written-practice answer in progress (`null` = no draft) |
+| `draftSavedAt` | nullable — when `draftAnswer` was last autosaved |
 | `createdAt` | |
+
+A draft is the answer a user is still typing; `question_attempts` remains the
+submitted, scored answer. Drafts never bump `interview_sessions.updatedAt`
+(autosave is not practice activity), and an emptied field clears both columns.
+Written by the `saveAnswerDraftAction` server action (see API.md).
 
 ### question_attempts
 | Column | Notes |
@@ -126,6 +133,8 @@ One row per spoken exchange in a mock session — the transcript. Raw audio/vide
 | `createdAt` | |
 
 *Migration `interviewos_mock_interview` added the two mock entities above.*
+*Migration `add_question_draft` added `draftAnswer`/`draftSavedAt` to
+`interview_questions`.*
 
 ## Planned entities (not yet in schema)
 

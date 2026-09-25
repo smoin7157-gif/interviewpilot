@@ -82,6 +82,11 @@ model InterviewQuestion {
   sourceContext   Json? // string[]: interview_type | job_description | resume | github | project | experience | company | general
   orderIndex      Int
   status          String   @default("NOT_STARTED") // NOT_STARTED | PRACTICED | SKIPPED
+  // Written-practice autosave: the answer the user is still typing. Kept
+  // separate from QuestionAttempt (which is a submitted, scored answer) so an
+  // in-progress draft survives a refresh, crash, or closed tab.
+  draftAnswer     String? // null/empty = no draft
+  draftSavedAt    DateTime? // last autosave of draftAnswer
   createdAt       DateTime @default(now())
 
   session  InterviewSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)

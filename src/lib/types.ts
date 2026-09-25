@@ -12,6 +12,8 @@ export interface WorkspaceQuestion {
   orderIndex: number;
   status: QuestionStatus;
   lastScore: number | null;
+  /** Autosaved written-practice draft, or null when there is none. */
+  draftAnswer: string | null;
 }
 
 export interface WorkspaceSession {
