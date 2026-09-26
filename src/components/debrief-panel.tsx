@@ -25,18 +25,13 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
   // burn two rate-limit slots).
   const loadingRef = useRef(false);
 
-  // Count the cooldown down each second. Hooks stay above the early returns
-  // so they run unconditionally on every render. When the final second is
-  // consumed, clear the rate-limit error so the button returns to its normal
-  // "Generate debrief" state.
+  // Count the cooldown down each second. The updater stays pure (no nested
+  // setState) and `cooldownActive` is derived on render, so the message and the
+  // disabled button clear themselves once the window elapses.
   useEffect(() => {
     if (cooldownSeconds == null || cooldownSeconds <= 0) return;
     const timer = setInterval(() => {
-      setCooldownSeconds((s) => {
-        if (s != null && s > 1) return s - 1;
-        setError(null);
-        return null;
-      });
+      setCooldownSeconds((s) => (s != null && s > 0 ? s - 1 : s));
     }, 1000);
     return () => clearInterval(timer);
   }, [cooldownSeconds]);
@@ -58,12 +53,13 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
           // Honor the server's Retry-After and surface it as real feedback.
           const retryAfter = Number(res.headers.get("Retry-After"));
           const seconds = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : null;
-          setCooldownSeconds(seconds);
-          setError(
-            seconds
-              ? `You're generating debriefs quickly — try again in about ${formatWait(seconds)}.`
-              : "You're generating debriefs quickly — please wait a minute and try again."
-          );
+          if (seconds) {
+            // Stored as a countdown rather than an error string, so the note
+            // and the disabled button lift on their own when time is up.
+            setCooldownSeconds(seconds);
+          } else {
+            setError("You're generating debriefs quickly — please wait a minute and try again.");
+          }
           return;
         }
         setError(data.error ?? "We couldn't prepare your debrief.");
@@ -129,8 +125,8 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
         </button>
       )}
       {cooldownActive && (
-        <p className="mt-2 text-xs text-zinc-400">
-          Retry available in {formatWait(cooldownSeconds)}.
+        <p role="status" className="mt-2 text-xs text-zinc-400">
+          You&rsquo;re generating debriefs quickly — retry available in {formatWait(cooldownSeconds)}.
         </p>
       )}
     </div>
