@@ -11,6 +11,11 @@ Auth is handled by server actions (HTML forms): `/signup`, `/login`, logout and
 settings updates in `src/lib/auth-actions.ts`. No token is ever exposed to the
 browser — an httpOnly, SameSite session cookie is used.
 
+Both entry points are rate limited **per client IP** by a dedicated auth
+limiter (`src/lib/auth-rate-limit.ts`), separate from the AI-endpoint buckets:
+10 login attempts / 15 min and 10 signups / hour. Exceeding either returns a
+form error (the server action renders it in place, no `429` page).
+
 ## Interviews
 
 ### `POST /api/interviews` → 201
@@ -266,6 +271,7 @@ marks the question `PRACTICED`.
 | 404 | resource not found **or not owned by caller** |
 | 409 | generation already done for this session |
 | 422 | validation failure (Zod) |
+| 429 | rate limit exceeded (AI/expensive endpoints; `Retry-After` header) |
 
 ## Planned endpoints (not implemented — see ROADMAP.md)
 

@@ -106,7 +106,8 @@ Remaining in Phase 3 (roadmap notes):
 - **Rate limiting:** per-user sliding-window limits on all AI/expensive
   endpoints (generation 10/h, resume 10/h, github 20/h, evaluation 60/h,
   practice 60/h, mock create 20/h, mock turns 200/h, debrief 15/h) → 429 +
-  Retry-After
+  Retry-After; plus a **separate per-IP auth limiter** for `/login` (10/15 min)
+  and `/signup` (10/h) so brute-force attempts can't burn the AI budget
 - **Performance/cost:** cheap model routing for extraction tasks
   (`OPENROUTER_CHEAP_MODEL`), debrief transcript budget-capped at 30k
   chars, interviewer context already summarized to the last 10 turns

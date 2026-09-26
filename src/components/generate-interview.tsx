@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, CircleAlert, Loader2, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -92,8 +92,12 @@ export function GeneratePanel({
   const [doneInfo, setDoneInfo] = useState<{ questionCount: number; source: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Synchronous guard: two rapid clicks on “Try again” must not start two
+  // generation streams (the second would burn tokens and race the first).
+  const retryRef = useRef(false);
 
   useEffect(() => {
+    retryRef.current = false;
     const controller = new AbortController();
     let disposed = false;
     async function run() {
@@ -128,6 +132,8 @@ export function GeneratePanel({
   }, [sessionId, attempt]);
 
   function retry() {
+    if (retryRef.current) return;
+    retryRef.current = true;
     setPhase("generating");
     setStageIndex(0);
     setError(null);

@@ -523,12 +523,16 @@ function PracticeSection({
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<EvaluationFeedback | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  // Synchronous guard so a double-click can't submit the same answer twice.
+  const evaluatingRef = useRef(false);
 
   async function handleEvaluate() {
+    if (evaluatingRef.current) return;
     if (text.trim().length < PRACTICE_MIN_LENGTH) {
       setError("Write at least a few sentences before evaluating.");
       return;
     }
+    evaluatingRef.current = true;
     setEvaluating(true);
     setError(null);
     try {
@@ -565,6 +569,7 @@ function PracticeSection({
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't get feedback on that answer. Please try again in a moment.");
     } finally {
+      evaluatingRef.current = false;
       setEvaluating(false);
     }
   }
@@ -710,6 +715,7 @@ export function InterviewWorkspace({
   const [fupIdx, setFupIdx] = useState(0);
   const [mobileListOpen, setMobileListOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  const skippingRef = useRef(false);
   // Drafts typed in this page session, keyed by practice key. A PracticeSection
   // unmounts when its question is left behind, and a confirmed save clears the
   // local crash buffer — without this, coming back to that question before a
@@ -777,7 +783,8 @@ export function InterviewWorkspace({
   }, [questions.length, tab, followUps.length]);
 
   function handlePracticeStatus(status: WorkspaceQuestion["status"]) {
-    if (!main || skipping) return;
+    if (!main || skippingRef.current) return;
+    skippingRef.current = true;
     setSkipping(true);
     fetch(`/api/questions/${main.id}/practice`, {
       method: "POST",
@@ -791,7 +798,10 @@ export function InterviewWorkspace({
       .catch(() => {
         // Non-critical — keep UI as-is and ignore.
       })
-      .finally(() => setSkipping(false));
+      .finally(() => {
+        skippingRef.current = false;
+        setSkipping(false);
+      });
   }
 
   function handleEvaluated(questionId: string) {

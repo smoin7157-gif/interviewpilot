@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
 import type { DebriefData } from "@/lib/types";
 import { DebriefView } from "@/components/debrief-view";
@@ -21,6 +21,9 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
   const [debrief, setDebrief] = useState<DebriefData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
+  // Synchronous guard so a double-click can't fire two debrief requests (and
+  // burn two rate-limit slots).
+  const loadingRef = useRef(false);
 
   // Count the cooldown down each second. Hooks stay above the early returns
   // so they run unconditionally on every render. When the final second is
@@ -39,6 +42,8 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
   }, [cooldownSeconds]);
 
   async function generate() {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -68,6 +73,7 @@ export function DebriefPanel({ mockId }: { mockId: string }) {
     } catch {
       setError("We couldn't prepare your debrief.");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }

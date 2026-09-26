@@ -193,8 +193,10 @@ focused, shell-less route (`(focus)` group — still auth-guarded) so nothing
 distracts during practice.
 
 - **Preflight** explains permissions and only calls `getUserMedia` after the
-  user clicks Start. Mic denial blocks voice mode with a real error + retry;
-  camera denial continues voice-only. Media tracks stop on end/unmount.
+  user clicks Start. Mic denial blocks voice mode with a real error plus both
+  a retry and a "practice by typing" path; a browser without the Web Speech
+  API is detected up front (no mic required) and drops straight into typed
+  mode. Camera denial continues voice-only. Media tracks stop on end/unmount.
 - **Live loop**: interviewer text → TTS → STT listening (live interim) → the
   candidate's transcript is posted to the turn API → the server returns the
   next structured move → repeat. No speech is heard → try-again or type-answer
@@ -230,7 +232,15 @@ cheaper model. All keys are server-side only.
 
 - **Rate limiting** (`src/lib/rate-limit.ts`): in-memory sliding-window
   limiter keyed per user on every AI/expensive endpoint; `429` +
-  `Retry-After` on exceed. Best-effort per serverless instance by design.
+  `Retry-After` on exceed. Auth entry points (`/login`, `/signup`) use a
+  **dedicated** limiter (`src/lib/auth-rate-limit.ts`) with its own buckets, so
+  brute-force traffic can never consume the AI budget and a hot AI session can
+  never lock a user out. Best-effort per serverless instance by design.
+- **Destructive-action safety**: deletes (interview, mock session) and ending a
+  live mock go through the shared `Dialog`/`ConfirmDialog` primitive
+  (`src/components/ui/dialog.tsx`) instead of `window.confirm`, and every async
+  action button carries a synchronous in-flight ref guard plus a loading
+  spinner, so a double-click can't fire duplicate requests.
 - **Upload validation** (`src/lib/file-check.ts`): PDF magic-byte check
   (`%PDF-`), size cap, filename sanitization — extension/MIME alone are
   never trusted.

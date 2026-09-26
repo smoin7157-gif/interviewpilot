@@ -14,7 +14,8 @@ import {
 } from "@/lib/auth";
 import { changePasswordSchema, loginSchema, signupSchema, updateProfileSchema } from "@/lib/validation";
 import { safeRedirectPath } from "@/lib/utils";
-import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
+import { getClientKey } from "@/lib/rate-limit";
+import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
 
@@ -23,14 +24,11 @@ export async function signupAction(
   formData: FormData
 ): Promise<AuthActionState> {
   const reqHeaders = await headers();
-  // Brute-force / abuse guard on the auth entry points (same in-memory
-  // limiter used by the API routes — per-instance, best-effort). Keyed per
-  // client IP so one busy NAT (e.g. a campus demo) can't exhaust a shared
-  // global bucket for everyone else.
-  const rl = checkRateLimit(getClientKey(reqHeaders, "auth:signup"), {
-    limit: 10,
-    windowMs: 60 * 60 * 1000,
-  });
+  // Brute-force / abuse guard on the auth entry points — a dedicated limiter
+  // (`src/lib/auth-rate-limit.ts`) with its own buckets, separate from the AI
+  // endpoints. Keyed per client IP so one busy NAT (e.g. a campus demo) can't
+  // exhaust a shared global bucket for everyone else.
+  const rl = checkAuthRateLimit("signup", getClientKey(reqHeaders, "auth:signup"));
   if (!rl.ok) {
     return { error: "Too many signup attempts. Please try again later." };
   }
@@ -71,10 +69,7 @@ export async function loginAction(
   formData: FormData
 ): Promise<AuthActionState> {
   const reqHeaders = await headers();
-  const rl = checkRateLimit(getClientKey(reqHeaders, "auth:login"), {
-    limit: 10,
-    windowMs: 15 * 60 * 1000,
-  });
+  const rl = checkAuthRateLimit("login", getClientKey(reqHeaders, "auth:login"));
   if (!rl.ok) {
     return { error: "Too many login attempts. Please wait and try again." };
   }

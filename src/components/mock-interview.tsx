@@ -10,7 +10,7 @@
  * move at a time via /api/mock-interviews/:id/turn.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -49,6 +49,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { DebriefView } from "@/components/debrief-view";
 import type { DebriefData } from "@/lib/types";
 
@@ -88,6 +89,9 @@ interface MockDetail {
 }
 
 const STT_LANG = "en-US";
+
+/** Stable no-op subscription for the browser-capability snapshot. */
+const subscribeToNothing = () => () => {};
 
 function formatCategory(value?: string | null): string {
   if (!value) return "Question";
@@ -140,6 +144,11 @@ export function MockInterview({
   const [debrief, setDebrief] = useState<DebriefData | null>(null);
   const [debriefLoading, setDebriefLoading] = useState(false);
   const [debriefError, setDebriefError] = useState<string | null>(null);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [ending, setEnding] = useState(false);
+  // Server/hydration snapshot is `false`; the client snapshot reflects the
+  // real browser, so the preflight UI adapts without a hydration mismatch.
+  const sttSupported = useSyncExternalStore(subscribeToNothing, browserSttSupported, () => false);
 
   /* ------------------------------ refs ------------------------------ */
   const mockIdRef = useRef<string | null>(null);
@@ -152,6 +161,8 @@ export function MockInterview({
   const camVideoRef = useRef<HTMLVideoElement | null>(null);
   const busyRef = useRef(false);
   const finishingRef = useRef(false);
+  const startingRef = useRef(false);
+  const debriefRef = useRef(false);
   const aliveRef = useRef(true);
   const listenCycleRef = useRef(0);
   const answeredRef = useRef(false);
@@ -389,7 +400,9 @@ export function MockInterview({
 
   /* --------------------------- start (preflight) --------------------------- */
 
-  async function handleStart() {
+  async function handleStart(typingOnly = false) {
+    if (startingRef.current) return;
+    startingRef.current = true;
     setMicError(null);
     setCamNote(null);
     setDebrief(null);
@@ -397,21 +410,27 @@ export function MockInterview({
     setDebriefLoading(false);
     setStage("starting");
 
-    const sttOk = browserSttSupported();
+    // Voice mode needs the Web Speech API. When it's missing — or the user
+    // explicitly chose to type after a mic failure — skip the microphone
+    // entirely instead of blocking on a permission the browser can't use.
+    const sttOk = !typingOnly && browserSttSupported();
 
-    // 1) Microphone is required for a voice interview.
-    try {
-      micStreamRef.current = await requestMicrophone();
-      setTrackEnabled(micStreamRef.current, "audio", true);
-    } catch (err) {
-      const message = describeMediaError(err);
-      setMicError(message);
-      setStage("preflight");
-      return;
+    // 1) Microphone is required only for a voice interview.
+    if (sttOk) {
+      try {
+        micStreamRef.current = await requestMicrophone();
+        setTrackEnabled(micStreamRef.current, "audio", true);
+      } catch (err) {
+        const message = describeMediaError(err);
+        setMicError(message);
+        setStage("preflight");
+        startingRef.current = false;
+        return;
+      }
     }
 
     // 2) Camera is optional — continue voice-only when unavailable.
-    if (wantCamera) {
+    if (wantCamera && !typingOnly) {
       try {
         camStreamRef.current = await requestCamera();
         setCameraOn(true);
@@ -428,7 +447,11 @@ export function MockInterview({
 
     voiceRef.current = sttOk;
     if (!sttOk) {
-      setInputMessage("Voice recognition needs Chrome or Edge — you can still practice by typing answers.");
+      setInputMessage(
+        typingOnly
+          ? "Continuing without voice — type your answers below."
+          : "Voice recognition isn't supported in this browser. Type your answers below — everything else works the same."
+      );
       setPhase("typing");
     }
 
@@ -471,6 +494,8 @@ export function MockInterview({
 
   async function fetchDebrief(force = false) {
     if (!mockIdRef.current || !aliveRef.current) return;
+    if (debriefRef.current) return;
+    debriefRef.current = true;
     setDebriefLoading(true);
     setDebriefError(null);
     try {
@@ -488,6 +513,7 @@ export function MockInterview({
     } catch {
       setDebriefError("We couldn't prepare your debrief.");
     } finally {
+      debriefRef.current = false;
       setDebriefLoading(false);
     }
   }
@@ -529,9 +555,19 @@ export function MockInterview({
     void fetchDebrief();
   }
 
-  async function handleEnd() {
-    if (!window.confirm("End this mock interview? Your session will be saved.")) return;
-    await finishInterview("user");
+  function handleEnd() {
+    if (finishingRef.current) return;
+    setEndConfirmOpen(true);
+  }
+
+  async function confirmEnd() {
+    if (ending) return;
+    setEnding(true);
+    try {
+      await finishInterview("user");
+    } finally {
+      setEnding(false);
+    }
   }
 
   /* --------------------------- live controls --------------------------- */
@@ -961,6 +997,20 @@ export function MockInterview({
             </div>
           </div>
         </main>
+
+        <ConfirmDialog
+          open={endConfirmOpen}
+          onClose={() => {
+            if (ending) return;
+            setEndConfirmOpen(false);
+          }}
+          onConfirm={confirmEnd}
+          tone="dark"
+          title="End this mock interview?"
+          description="Your transcript and progress are saved, and you'll get a debrief."
+          confirmLabel="End interview"
+          loading={ending}
+        />
       </div>
     );
   }
@@ -1015,13 +1065,22 @@ export function MockInterview({
           <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3">
               <div className="flex items-center gap-3">
-                <Mic className="size-5 text-emerald-400" aria-hidden />
+                <Mic
+                  className={cn("size-5", sttSupported === false ? "text-amber-400" : "text-emerald-400")}
+                  aria-hidden
+                />
                 <div>
                   <p className="text-sm font-medium text-zinc-100">Microphone</p>
-                  <p className="text-xs text-zinc-500">Required — hears your spoken answers</p>
+                  <p className="text-xs text-zinc-500">
+                    {sttSupported === false
+                      ? "Not needed — you'll type your answers"
+                      : "Required — hears your spoken answers"}
+                  </p>
                 </div>
               </div>
-              <Badge tone="green">Needed</Badge>
+              <Badge tone={sttSupported === false ? "amber" : "green"}>
+                {sttSupported === false ? "Typing mode" : "Needed"}
+              </Badge>
             </div>
 
             <button
@@ -1073,16 +1132,22 @@ export function MockInterview({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-red-200">We couldn&rsquo;t reach your microphone.</p>
                 <p className="mt-1 text-sm leading-relaxed text-red-300/80">{micError}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMicError(null);
-                    setStage("preflight");
-                  }}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-red-900/50 px-3 py-1.5 text-xs font-semibold text-red-100 hover:bg-red-900/60"
-                >
-                  <RotateCcw className="size-3.5" aria-hidden /> Retry microphone
-                </button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleStart()}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-red-900/50 px-3 py-1.5 text-xs font-semibold text-red-100 transition-colors hover:bg-red-900/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  >
+                    <RotateCcw className="size-3.5" aria-hidden /> Retry microphone
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleStart(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-100 transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    <Keyboard className="size-3.5" aria-hidden /> Practice by typing instead
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1090,6 +1155,16 @@ export function MockInterview({
           {camNote && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-400">
               <CameraOff className="mt-0.5 size-4 shrink-0 text-zinc-500" aria-hidden /> {camNote}
+            </div>
+          )}
+
+          {sttSupported === false && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>
+                Voice recognition isn&rsquo;t supported in this browser (Chrome or Edge work best). You can
+                still run the mock interview and type your answers — nothing else changes.
+              </span>
             </div>
           )}
 
