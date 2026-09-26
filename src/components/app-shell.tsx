@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +8,15 @@ import { CircleHelp, ClipboardList, History, LayoutDashboard, Loader2, LogOut, M
 import { logoutAction } from "@/lib/auth-actions";
 import { cn, initials } from "@/lib/utils";
 import { LogoMark } from "@/components/logo";
+
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -141,19 +150,53 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Close the mobile drawer on Escape, and restore focus to the open button.
+  // Mobile drawer: lock background scroll, move focus in, trap Tab, close on
+  // Escape, and return focus to the trigger when it closes. Event-driven
+  // setState is fine here — the effect body only touches the DOM.
   useEffect(() => {
     if (!drawerOpen) return;
+    const trigger = openButtonRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false);
+      if (event.key === "Escape") {
+        setDrawerOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const container = drawerRef.current;
+      if (!container) return;
+      const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      trigger?.focus();
+    };
   }, [drawerOpen]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-zinc-50">
+    // Column on mobile (top bar above content), row from md up (sidebar beside
+    // content) — otherwise the mobile top bar renders beside the page as a
+    // stray left column.
+    <div className="flex h-dvh flex-col overflow-hidden bg-zinc-50 md:flex-row">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-zinc-200/80 bg-white md:block">
         <SidebarContent user={user} />
@@ -168,12 +211,19 @@ export function AppShell({
             className="absolute inset-0 bg-zinc-950/40"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl">
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl"
+          >
             <button
+              ref={closeButtonRef}
               type="button"
               onClick={() => setDrawerOpen(false)}
               aria-label="Close navigation"
-              className="absolute right-2 top-4 rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+              className="absolute right-2 top-4 rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <X className="size-5" aria-hidden />
             </button>
@@ -191,9 +241,12 @@ export function AppShell({
           </span>
         </Link>
         <button
+          ref={openButtonRef}
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label="Open navigation"
+          aria-expanded={drawerOpen}
+          aria-haspopup="dialog"
           className="rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <Menu className="size-5" aria-hidden />
@@ -201,8 +254,8 @@ export function AppShell({
       </div>
 
       {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-hidden outline-none">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <main id="main-content" tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-hidden outline-none">
           <div className="h-full overflow-y-auto">{children}</div>
         </main>
       </div>
