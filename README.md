@@ -10,12 +10,12 @@ offers two practice modes: **written practice** with specific AI feedback on
 every answer, and an **AI mock interview** where you practice aloud with an AI
 interviewer that asks live follow-ups (mic + optional private camera view).
 
-This build covers **Phases 1–4** of the V1 roadmap: the InterviewOS setup
+This build covers **Phases 1–5** of the V1 roadmap: the InterviewOS setup
 model, candidate context (resume/GitHub/projects), the question engine,
 written practice, the AI mock interview, and the mock **debrief + history**
 (scored 6-dimension feedback from your spoken answers, saved sessions,
-re-practice, delete). Remaining: Phase 5 polish — accessibility, rate
-limiting, security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
+re-practice, delete) — plus the Phase 5 polish: accessibility, rate limiting,
+security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
 
 ## Stack
 
@@ -99,7 +99,7 @@ Practice aloud → preflight (mic + optional camera self-view, permission copy)
 npm run dev       # dev server on :3000
 npm run build     # production build
 npm run lint      # eslint
-npm test          # unit tests (node:test + tsx, 39 tests)
+npm test          # unit tests (node:test + tsx)
 npm run db:seed   # idempotent demo account + sample interview
 npx tsc --noEmit  # typecheck
 npx prisma studio # inspect the local database
@@ -109,7 +109,9 @@ Optional AI cost control: set `OPENROUTER_CHEAP_MODEL` to route resume
 parsing / answer evaluation / follow-up generation through a cheaper model
 than `OPENROUTER_MODEL`. AI/expensive endpoints are rate-limited per user
 (see `src/lib/rate-limit.ts`); exceeding a limit returns `429` with
-`Retry-After` — the debrief UI counts the cooldown down for you.
+`Retry-After` — the debrief UI counts the cooldown down for you. Login and
+signup use a separate per-IP limiter (`src/lib/auth-rate-limit.ts`) so
+brute-force attempts can't consume the AI budget.
 
 ## Docs
 

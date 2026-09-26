@@ -1,4 +1,11 @@
+import type { Viewport } from "next";
 import { requireUser } from "@/lib/auth";
+
+// The focus-mode mock screen is dark; match the mobile browser chrome to it.
+export const viewport: Viewport = {
+  themeColor: "#101528",
+  colorScheme: "dark",
+};
 
 /**
  * Focused (distraction-free) routes: protected like the app, but rendered

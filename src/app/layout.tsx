@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,12 @@ const grotesk = Space_Grotesk({
 
 const DESCRIPTION =
   "InterviewOS generates realistic, role-specific interview questions and gives you written practice with AI feedback on every answer — before the real interview.";
+
+export const viewport: Viewport = {
+  // Matches the light app background so mobile browser chrome blends in.
+  themeColor: "#fbfcfe",
+  colorScheme: "light",
+};
 
 export const metadata: Metadata = {
   // Anchor for resolving relative OG/social URLs (from APP_URL when set, so
