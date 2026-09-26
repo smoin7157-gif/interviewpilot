@@ -97,7 +97,7 @@ export default async function Home() {
       <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-[#fbfcfe]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Logo href="/" />
-          <nav className="flex items-center gap-1.5">
+          <nav aria-label="Primary" className="flex items-center gap-1.5">
             <Link
               href="#features"
               className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
@@ -131,7 +131,7 @@ export default async function Home() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content" tabIndex={-1} className="outline-none">
         {/* Hero */}
         <section className="relative overflow-hidden">
           {/* Ambient glow */}
@@ -202,7 +202,7 @@ export default async function Home() {
         </section>
 
         {/* Features */}
-        <section id="features" className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
+        <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-24 sm:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
               Why InterviewOS
@@ -238,7 +238,7 @@ export default async function Home() {
         </section>
 
         {/* How it works — dark panel */}
-        <section id="how-it-works" className="bg-[#0b1020]">
+        <section id="how-it-works" className="scroll-mt-20 bg-[#0b1020]">
           <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
             <div className="mx-auto max-w-2xl text-center">
               <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-[#9c8bff]">
