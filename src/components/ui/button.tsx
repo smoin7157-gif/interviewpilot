@@ -59,15 +59,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type ?? "button"}
       disabled={disabled || loading}
-      className={cn(
-        "inline-flex select-none items-center justify-center font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,box-shadow] duration-200",
-        "hover:-translate-y-px active:translate-y-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
-        variantClasses[variant],
-        sizeClasses[size],
-        className
-      )}
+      className={buttonClasses({ variant, size, className })}
       {...props}
     >
       {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
