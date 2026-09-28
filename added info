@@ -1,0 +1,60 @@
+# Contributing to InterviewOS
+
+Thanks for taking a look at InterviewOS. This doc covers how to get set up and how changes get made.
+
+
+## Setup
+
+```bash
+git clone https://github.com/smoin7157-gif/interviewpilot.git
+cd interviewpilot
+npm install
+cp .env.example .env   # fill in DATABASE_URL, AUTH_SECRET, OPENROUTER_API_KEY
+npx prisma migrate dev
+npm run dev            # http://localhost:3000
+```
+
+## Before you start
+
+- Read `ARCHITECTURE.md` for how the app is structured — especially the AI provider abstraction and ownership-scoping pattern. Any new DB query must filter by the authenticated user, matching `src/lib/data.ts`.
+- Check `ROADMAP.md` to see what's already planned so you're not duplicating work.
+
+## Making a change
+
+1. Create a branch off `main`: `git checkout -b fix/short-description`
+2. Make the change, keeping it scoped to one concern per branch/commit.
+3. Run before committing:
+   ```bash
+   npm run lint
+   npm test
+   ```
+4. Commit with a clear message describing *what* changed and *why*:
+   ```bash
+   git add -A
+   git commit -m "Fix draft answers not saving on tab close"
+   ```
+5. Push and open a pull request into `main`.
+
+## Code conventions
+
+- TypeScript, strict where possible — avoid `any`, especially in `src/lib/ai/service.ts` and `src/lib/data.ts`.
+- UI: use the existing primitives in `src/components/ui/` rather than one-off styled elements. Keep to the indigo/zinc theme.
+- All AI and DB calls stay server-side (server actions or route handlers) — never call OpenRouter or Prisma from a client component.
+- Every new AI-facing or DB-heavy route should sit behind the existing rate limiter.
+
+## Testing
+
+Tests live alongside the code and run via `node:test`:
+
+```bash
+npm test
+```
+
+Add a test for any new server action or scoring/generation logic — these are the highest-risk areas for silent regressions.
+
+## Reporting issues
+
+Open a GitHub issue with:
+- What you expected to happen
+- What actually happened
+- Steps to reproduce (and whether it happens with the deterministic AI fallback too, or only with a live OpenRouter key)
