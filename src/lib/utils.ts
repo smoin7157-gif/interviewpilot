@@ -59,6 +59,34 @@ export function pluralize(count: number, singular: string, plural?: string): str
   return count === 1 ? singular : (plural ?? `${singular}s`);
 }
 
+/** Words in a written answer — whitespace-delimited, 0 for empty/blank text. */
+export function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+/** A natural interview speaking pace, used to turn a word count into seconds. */
+const SPEAKING_WORDS_PER_MINUTE = 130;
+
+/**
+ * Rough spoken length of a written answer. Deliberately an estimate: it exists
+ * so a writer can tell whether the answer they just typed is a 40-second
+ * answer or a four-minute one.
+ */
+export function estimateSpeakingSeconds(text: string): number {
+  const words = countWords(text);
+  if (words === 0) return 0;
+  return Math.max(5, Math.round((words / SPEAKING_WORDS_PER_MINUTE) * 60));
+}
+
+/** `m:ss` clock for a duration in seconds (negatives clamp to 0). */
+export function formatClock(totalSeconds: number): string {
+  const safe = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   technical: "Technical",
   behavioral: "Behavioral",

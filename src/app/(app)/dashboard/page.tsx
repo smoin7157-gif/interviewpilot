@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Mic, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, Mic, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getRecentMocks, getRecentSessions } from "@/lib/data";
+import { getRecentMocks, getRecentSessions, getScoreTrend } from "@/lib/data";
 import { greeting, formatRelativeTime, pluralize } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScoreTrendChart } from "@/components/score-trend-chart";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -34,10 +35,11 @@ function MockScoreChip({ score }: { score: number }) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  // Both panels fetch independently — one round trip instead of two.
-  const [recent, recentMocks] = await Promise.all([
+  // The panels fetch independently — one round trip instead of three.
+  const [recent, recentMocks, scoreTrend] = await Promise.all([
     getRecentSessions(user.id, 3),
     getRecentMocks(user.id, 3),
+    getScoreTrend(user.id),
   ]);
 
   return (
@@ -56,6 +58,56 @@ export default async function DashboardPage() {
           <Plus className="size-4" aria-hidden /> New Interview
         </Link>
       </div>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-zinc-900">Progress over time</h2>
+            <p className="mt-0.5 text-[13px] text-zinc-500">
+              Your overall mock interview scores, oldest to newest.
+            </p>
+          </div>
+          {scoreTrend.length > 0 && (
+            <Link
+              href="/history"
+              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              View all <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          )}
+        </div>
+
+        {scoreTrend.length >= 2 ? (
+          <Card className="mt-4 p-5 sm:p-6">
+            <ScoreTrendChart
+              points={scoreTrend.map((point) => ({
+                id: point.id,
+                score: point.score,
+                label: formatRelativeTime(point.createdAt),
+              }))}
+            />
+          </Card>
+        ) : (
+          <Card className="mt-4 flex flex-col items-center px-6 py-10 text-center">
+            <div className="flex size-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+              <TrendingUp className="size-5" aria-hidden />
+            </div>
+            <h3 className="mt-3 text-base font-semibold text-zinc-900">
+              {scoreTrend.length === 1
+                ? "One scored mock so far."
+                : "Your score trend starts after your first mock."}
+            </h3>
+            <p className="mt-1 max-w-sm text-sm leading-relaxed text-zinc-500">
+              {scoreTrend.length === 1
+                ? "Finish one more spoken mock interview and your progress will chart here."
+                : "Complete a spoken mock interview and its overall score will chart here, so you can see whether you're improving."}
+            </p>
+            <Link href="/interviews" className={buttonClasses({ variant: "outline", size: "sm", className: "mt-5" })}>
+              View my interviews
+            </Link>
+          </Card>
+        )}
+      </section>
 
       <section className="mt-10">
         <div className="flex items-center justify-between">

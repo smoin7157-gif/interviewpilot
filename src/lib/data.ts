@@ -1,5 +1,14 @@
 import { prisma } from "@/lib/db";
-import { listRecentMocks } from "@/lib/mock";
+import { listRecentMocks, listScoreTrend, type MockScorePoint } from "@/lib/mock";
+import type { InterviewSetupDefaults } from "@/lib/types";
+import {
+  buildCursorPage,
+  HISTORY_PAGE_SIZE,
+  type CursorPage,
+  type PageParams,
+} from "@/lib/pagination";
+
+export type { InterviewSetupDefaults };
 
 /**
  * Shape consumed by buildSummaries: session columns plus an aggregate question
@@ -144,14 +153,68 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
   }));
 }
 
-/** List a user's interview sessions with question/practice stats, newest first. */
-export async function listSessionsForUser(userId: string): Promise<InterviewSummary[]> {
-  const sessions = await prisma.interviewSession.findMany({
+/**
+ * One page of a user's interview sessions with question/practice stats,
+ * newest activity first. Keyset-paginated (`?cursor=`), so the list stays a
+ * flat 10-row query however many sessions the user accumulates.
+ */
+export async function listSessionsPage(
+  userId: string,
+  params: PageParams
+): Promise<CursorPage<InterviewSummary>> {
+  const { cursor, direction } = params;
+  const rows = await prisma.interviewSession.findMany({
     where: { userId },
-    orderBy: { updatedAt: "desc" },
+    // `id` breaks ties so the cursor stays deterministic when two sessions
+    // share an `updatedAt` (bulk generation, seeded data).
+    orderBy:
+      direction === "newer"
+        ? [{ updatedAt: "asc" as const }, { id: "asc" as const }]
+        : [{ updatedAt: "desc" as const }, { id: "desc" as const }],
+    take: HISTORY_PAGE_SIZE + 1,
+    // The cursor row is the boundary itself and lives on the neighbouring
+    // page, so it is skipped in both directions; the over-fetched row is what
+    // proves that neighbour exists.
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: summarySelect,
   });
-  return buildSummaries(sessions);
+
+  const page = buildCursorPage(rows, HISTORY_PAGE_SIZE, direction, Boolean(cursor));
+  return { ...page, items: await buildSummaries(page.items) };
+}
+
+/**
+ * Prefill values for "practice again with the same setup", read from an owned
+ * session. Returns null when the session isn't the caller's (or is gone), so
+ * the form simply opens blank instead of leaking another user's setup.
+ */
+export async function getInterviewSetupDefaults(
+  userId: string,
+  sessionId: string
+): Promise<InterviewSetupDefaults | null> {
+  const session = await prisma.interviewSession.findFirst({
+    where: { id: sessionId, userId },
+    select: {
+      role: true,
+      seniority: true,
+      company: true,
+      companyType: true,
+      interviewType: true,
+      jobDescription: true,
+      questionCountTarget: true,
+    },
+  });
+  if (!session) return null;
+
+  return {
+    role: session.role,
+    seniority: session.seniority,
+    company: session.company ?? "",
+    companyType: session.companyType ?? "",
+    interviewType: session.interviewType ?? "",
+    jobDescription: session.jobDescription ?? "",
+    questionCount: session.questionCountTarget,
+  };
 }
 
 /** Dashboard greeting data: recent sessions (latest first) capped at `limit`. */
@@ -168,6 +231,14 @@ export async function getRecentSessions(userId: string, limit = 3): Promise<Inte
 /** Recent mock sessions for the dashboard strip (Phase 4), newest first. */
 export async function getRecentMocks(userId: string, limit = 3) {
   return listRecentMocks(userId, limit);
+}
+
+/**
+ * Scored mock sessions in chronological order, for the dashboard progress
+ * chart. Oldest-first so the caller can plot it straight down the x-axis.
+ */
+export async function getScoreTrend(userId: string, limit = 20): Promise<MockScorePoint[]> {
+  return listScoreTrend(userId, limit);
 }
 
 /**

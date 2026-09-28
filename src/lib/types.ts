@@ -37,6 +37,21 @@ export interface EvaluationFeedback {
   improvements: string[];
 }
 
+/**
+ * Setup-form values needed to repeat an interview without retyping it
+ * ("practice again with this setup"). Shared by the data layer and the client
+ * setup form, so it lives here rather than in either one.
+ */
+export interface InterviewSetupDefaults {
+  role: string;
+  seniority: string;
+  company: string;
+  companyType: string;
+  interviewType: string;
+  jobDescription: string;
+  questionCount: number;
+}
+
 /* ----------------------- Mock interview debrief (Phase 4) ----------------------- */
 
 export interface DebriefDimensionScore {

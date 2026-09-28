@@ -44,9 +44,16 @@ Required in `.env`:
 | `AUTH_SECRET` | random string signing session cookies |
 | `OPENROUTER_API_KEY` | enables live AI generation/evaluation |
 
-OpenRouter is optional at runtime: without a key (or if a call fails) the app
-gracefully falls back to a built-in, deterministic question bank and evaluator
-so every screen still works. The UI tells you when the fallback is active.
+These are validated at startup (`src/lib/env.ts`, invoked from
+`src/instrumentation.ts`) before the server accepts traffic: a missing or blank
+required variable fails the boot with a message naming it — instead of a 500 on
+the first request. `DATABASE_URL` and `AUTH_SECRET` are always required;
+`OPENROUTER_API_KEY` is required in production, so a deploy can never silently
+serve the offline question bank.
+
+In development OpenRouter is optional, and at runtime a failed AI call always
+falls back to the built-in deterministic question bank and evaluator so every
+screen still works. The UI tells you when the fallback is active.
 
 Create an account at `/signup` to start.
 
@@ -56,27 +63,35 @@ Create an account at `/signup` to start.
 | --- | --- |
 | `/` | Landing page |
 | `/signup`, `/login` | Auth (server actions + session cookie; protected routes are gated at the edge by `src/proxy.ts` and support `?next=` redirects) |
-| `/dashboard` | Greeting + recent interviews (real data) |
-| `/interviews` | My Interviews (cards, progress, delete) |
-| `/interviews/new` | Interview setup → streams AI generation |
+| `/dashboard` | Greeting, score trend across mock interviews, recent interviews (real data) |
+| `/interviews` | My Interviews (cards, progress, practice-again, delete; 10 per page) |
+| `/interviews/new` | Interview setup → streams AI generation (`?from=<sessionId>` prefills it) |
 | `/interviews/[id]` | Practice workspace (questions, follow-ups, answers, evaluation) |
 | `/mock/[id]` | AI Mock Interview (preflight → live spoken interview → debrief) |
-| `/history` | Mock history — every spoken session, scores, re-practice, delete |
+| `/history` | Mock history — every spoken session, scores, re-practice, delete (10 per page) |
 | `/history/[id]` | Full debrief (6-dimension breakdown, strengths/weaknesses, transcript) |
 | `/faq` | Frequently asked questions |
 | `/settings` | Profile name + password |
+
+`GET /api/health` reports whether the app can reach its database — the quickest
+way to confirm a fresh Vercel deploy is actually wired up (`200` healthy,
+`503` with the reason in the server logs).
 
 ## Workflow
 
 ```text
 Open app → Create account / Log in
-  → Dashboard → "+ New Interview"
+  → Dashboard → "+ New Interview" (or "Practice again with this setup" on a
+    card in My Interviews / a saved debrief, which reopens the form pre-filled
+    with that role, company and job description)
     → target job: Company / Company type · Job role (required) ·
       Experience level (required) · Interview type · Job description · 10/15/20 questions
     → "Generate Interview" (streams: Analyzing role → Questions → Follow-ups → Saving)
   → Workspace: question list on the left, detail on the right
     → pick a question → read "Why this question matters"
-    → reveal the suggested answer when ready → practice written answers
+    → reveal the suggested answer when ready → practice written answers with a
+      live word count (and estimated spoken length) and an optional per-question
+      timer against the 2-minute answer target
     → follow-up chips probe deeper
     → submit → score + strengths / missing / improvements
   → Progress bar tracks practiced/total per interview
@@ -103,6 +118,7 @@ npm test          # unit tests (node:test + tsx)
 npm run db:seed   # idempotent demo account + sample interview
 npx tsc --noEmit  # typecheck
 npx prisma studio # inspect the local database
+curl -i localhost:3000/api/health   # is the database reachable?
 ```
 
 Optional AI cost control: set `OPENROUTER_CHEAP_MODEL` to route resume

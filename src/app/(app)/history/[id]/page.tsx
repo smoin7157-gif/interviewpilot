@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Mic, Sparkles } from "lucide-react";
+import { ArrowLeft, Mic, Repeat2, Sparkles } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { countMainQuestions, getOwnedMockWithInterview } from "@/lib/mock";
 import { formatRelativeTime, pluralize } from "@/lib/utils";
@@ -66,6 +66,12 @@ export default async function MockDebriefPage({ params }: { params: Promise<{ id
             className={buttonClasses({ variant: complete ? "outline" : "primary", size: "sm" })}
           >
             <Mic className="size-3.5" aria-hidden /> {complete ? "Practice again" : "Continue mock"}
+          </Link>
+          <Link
+            href={`/interviews/new?from=${mock.session.id}`}
+            className={buttonClasses({ variant: "outline", size: "sm" })}
+          >
+            <Repeat2 className="size-3.5" aria-hidden /> Practice again with this setup
           </Link>
           <MockDeleteButton mockId={mock.id} />
         </div>

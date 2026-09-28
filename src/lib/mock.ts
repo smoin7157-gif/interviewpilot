@@ -10,6 +10,12 @@ import type {
   InterviewerContext,
   InterviewTranscriptTurn,
 } from "@/lib/ai/types";
+import {
+  buildCursorPage,
+  HISTORY_PAGE_SIZE,
+  type CursorPage,
+  type PageParams,
+} from "@/lib/pagination";
 
 /**
  * Mock-interview data helpers (InterviewOS Phase 3).
@@ -184,19 +190,89 @@ function toHistoryRows(
   }));
 }
 
+/** Selected columns every mock-history query needs (context + a turn count). */
+const mockHistoryInclude = {
+  session: {
+    select: { role: true, company: true, seniority: true, interviewType: true },
+  },
+  turns: { select: { speaker: true, action: true } },
+} as const;
+
 /** Every mock session a user owns, newest first, with its interview context. */
 export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> {
   const mocks = await prisma.mockInterviewSession.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" as const },
-    include: {
-      session: {
-        select: { role: true, company: true, seniority: true, interviewType: true },
-      },
-      turns: { select: { speaker: true, action: true } },
-    },
+    include: mockHistoryInclude,
   });
   return toHistoryRows(mocks);
+}
+
+/**
+ * One page of a user's mock history, newest first. Keyset-paginated so the
+ * list (and the turn rows it joins) stays a flat 10-session query no matter
+ * how long the history gets.
+ */
+export async function listOwnedMocksPage(
+  userId: string,
+  params: PageParams
+): Promise<CursorPage<MockHistoryRow>> {
+  const { cursor, direction } = params;
+  const mocks = await prisma.mockInterviewSession.findMany({
+    where: { userId },
+    // `id` breaks ties so the cursor stays deterministic when several mocks
+    // share a `createdAt` (bulk seeding, same-second sessions).
+    orderBy:
+      direction === "newer"
+        ? [{ createdAt: "asc" as const }, { id: "asc" as const }]
+        : [{ createdAt: "desc" as const }, { id: "desc" as const }],
+    take: HISTORY_PAGE_SIZE + 1,
+    // The cursor row is the boundary itself and lives on the neighbouring
+    // page, so it is skipped in both directions; the over-fetched row is what
+    // proves that neighbour exists.
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    include: mockHistoryInclude,
+  });
+
+  const page = buildCursorPage(mocks, HISTORY_PAGE_SIZE, direction, Boolean(cursor));
+  return { ...page, items: toHistoryRows(page.items) };
+}
+
+/** One scored session on the progress chart. */
+export interface MockScorePoint {
+  id: string;
+  score: number;
+  role: string;
+  createdAt: Date;
+}
+
+/**
+ * The user's scored mock sessions in chronological order (oldest first), capped
+ * at the most recent `limit`. Selecting only the columns the chart needs keeps
+ * the dashboard query off the transcript tables entirely.
+ */
+export async function listScoreTrend(userId: string, limit = 20): Promise<MockScorePoint[]> {
+  const rows = await prisma.mockInterviewSession.findMany({
+    where: { userId, overallScore: { not: null } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      overallScore: true,
+      createdAt: true,
+      session: { select: { role: true } },
+    },
+  });
+
+  return rows
+    .filter((row) => row.overallScore != null)
+    .reverse()
+    .map((row) => ({
+      id: row.id,
+      score: row.overallScore as number,
+      role: row.session.role,
+      createdAt: row.createdAt,
+    }));
 }
 
 /**
@@ -209,12 +285,7 @@ export async function listRecentMocks(userId: string, limit = 3): Promise<MockHi
     where: { userId },
     orderBy: { createdAt: "desc" as const },
     take: limit,
-    include: {
-      session: {
-        select: { role: true, company: true, seniority: true, interviewType: true },
-      },
-      turns: { select: { speaker: true, action: true } },
-    },
+    include: mockHistoryInclude,
   });
   return toHistoryRows(mocks);
 }

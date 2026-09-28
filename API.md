@@ -1,9 +1,26 @@
 # InterviewOS — API
 
-All routes are server-side only and require the session cookie (set by auth).
-Responses are JSON. Errors use `{ "error": "message" }` with appropriate
-status codes (`400` bad body, `401` unauthenticated, `404` missing or not
-owned, `409` conflict, `422` validation).
+All routes are server-side only and require the session cookie (set by auth),
+except `GET /api/health`. Responses are JSON. Errors use `{ "error": "message" }`
+with appropriate status codes (`400` bad body, `401` unauthenticated, `404`
+missing or not owned, `409` conflict, `422` validation).
+
+## Health
+
+### `GET /api/health` → 200 / 503
+Unauthenticated readiness probe: runs `SELECT 1` and returns `200` only when the
+database answers. Use it to confirm a deploy is wired up (a page that renders
+can still be backed by a blank `DATABASE_URL`).
+
+```json
+{ "status": "ok", "database": "reachable", "latencyMs": 12, "checkedAt": "…" }
+```
+
+On failure it answers `503` with `{ "status": "unhealthy", "database":
+"unreachable", … }`. The body stays thin because the route is public — the real
+Prisma error is logged server-side. A missing or blank `DATABASE_URL` never
+gets this far in practice: the startup env check refuses to boot the server
+(`src/lib/env.ts`).
 
 ## Auth
 
@@ -50,6 +67,11 @@ and `projects` (max 8) are optional candidate-context inputs.
 ### `GET /api/interviews` → 200
 List the caller's sessions, newest activity first, with `questionCount`,
 `practicedCount`, plus `companyType`/`interviewType` when set.
+
+> The **paginated** list that backs `/interviews` is a server component query,
+> not this route: `listSessionsPage` returns 10 rows per page with cursor links
+> (`?cursor=<id>&dir=older|newer`). This route stays unpaginated for API
+> callers.
 
 ### `GET /api/interviews/{id}` → 200
 Full session incl. questions. 404 when not owned.
@@ -219,6 +241,10 @@ Deletes a mock session (turns cascade). Ownership-scoped; 404 when not owned.
 All of the caller's mock sessions, newest first, with interview context
 (`role`, `company`, `seniority`, `interviewType`), `status`, `overallScore`,
 `hasDebrief`, `questionsAsked`, and timestamps.
+
+> `/history` uses `listOwnedMocksPage` instead (10 rows per page, same cursor
+> links), so the page stays a flat query as history grows. `/dashboard` uses
+> `listScoreTrend` for the progress chart: scored sessions only, oldest first.
 
 ## Questions
 

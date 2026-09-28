@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -14,11 +15,13 @@ import {
   Layers,
   Loader2,
   Plus,
+  Repeat2,
   ShieldCheck,
   Trash2,
   UploadCloud,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { InterviewSetupDefaults } from "@/lib/types";
 import {
   COMPANY_TYPE_OPTIONS,
   EXPERIENCE_OPTIONS,
@@ -161,17 +164,38 @@ function SyncRow({
   );
 }
 
-export function NewInterviewFlow() {
+/**
+ * Only prefill chip values the current option lists still contain, so a setup
+ * carried over from an older session can never preselect a chip that no longer
+ * exists (which would validate as "not selected" with nothing highlighted).
+ */
+function validChoice(options: readonly string[], value: string | undefined): string {
+  return value && options.includes(value) ? value : "";
+}
+
+/**
+ * `defaults` prefills the form for "practice again with this setup" (role,
+ * experience, company, interview type and job description from an existing
+ * interview). Everything stays editable, and the resume/GitHub/projects inputs
+ * deliberately start empty — those are files and live lookups, not settings.
+ */
+export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetupDefaults | null }) {
   const router = useRouter();
 
   // Target job
-  const [role, setRole] = useState("");
-  const [seniority, setSeniority] = useState("");
-  const [company, setCompany] = useState("");
-  const [companyType, setCompanyType] = useState("");
-  const [interviewType, setInterviewType] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [count, setCount] = useState<number>(10);
+  const [role, setRole] = useState(defaults?.role ?? "");
+  const [seniority, setSeniority] = useState(() => validChoice(EXPERIENCE_OPTIONS, defaults?.seniority));
+  const [company, setCompany] = useState(defaults?.company ?? "");
+  const [companyType, setCompanyType] = useState(() => validChoice(COMPANY_TYPE_OPTIONS, defaults?.companyType));
+  const [interviewType, setInterviewType] = useState(() =>
+    validChoice(INTERVIEW_TYPE_OPTIONS, defaults?.interviewType)
+  );
+  const [jobDescription, setJobDescription] = useState(defaults?.jobDescription ?? "");
+  const [count, setCount] = useState<number>(() =>
+    defaults && (QUESTION_COUNT_OPTIONS as readonly number[]).includes(defaults.questionCount)
+      ? defaults.questionCount
+      : 10
+  );
 
   // Candidate context
   const [githubUrl, setGithubUrl] = useState("");
@@ -463,6 +487,21 @@ export function NewInterviewFlow() {
       <p className="mt-1.5 text-[15px] text-zinc-500">
         Give InterviewOS enough context to make your practice relevant to the job you&rsquo;re targeting.
       </p>
+
+      {defaults && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+          <p className="flex items-start gap-2 text-[13px] leading-snug text-indigo-800">
+            <Repeat2 className="mt-0.5 size-4 shrink-0" aria-hidden />
+            Prefilled from your &ldquo;{defaults.role}&rdquo; interview — change anything before generating.
+          </p>
+          <Link
+            href="/interviews/new"
+            className="shrink-0 text-[13px] font-semibold text-indigo-700 underline-offset-2 hover:underline"
+          >
+            Start fresh
+          </Link>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_280px]">
         <Card className="p-6 sm:p-8">

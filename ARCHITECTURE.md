@@ -15,15 +15,18 @@ Browser
   │  (React Server Components + client components)
   ▼
 Next.js App Router
+  ├── instrumentation.ts → startup env validation (fails the boot, skipped at build)
   ├── (app)   → protected pages (dashboard, interviews, workspace, faq, settings)
   ├── (focus) → protected, shell-less pages (AI mock interview screen)
   ├── (auth)  → /login /signup (server actions)
-  └── /api    → route handlers (interviews CRUD, generate, evaluate, mock …)
+  └── /api    → route handlers (interviews CRUD, generate, evaluate, mock, health …)
         │
         ▼
    lib/
   ├── auth.ts                session cookie (jose HS256) + bcrypt
+  ├── env.ts                 startup env contract (zod) + fail-fast assertion
   ├── data.ts                ownership-scoped Prisma queries
+  ├── pagination.ts          shared keyset pagination (cursor slices + list URLs)
   ├── mock.ts                mock-interview queries + interviewer context builder + history rows
   ├── debrief.ts             debrief context assembly + transcript budget (Phase 4)
   ├── validation.ts          zod schemas (shared by UI + API)
@@ -84,7 +87,19 @@ Next.js App Router
    persists `overallScore` + `debrief` on the session. Scores are explicitly
    session-level practice feedback — never employability claims. History
    lives at `/history` and `/history/[id]` with re-practice and delete.
-9. **Edge auth gate before render.** `src/proxy.ts` (Next.js 16 proxy, the
+9. **Environment is validated before the server serves traffic.**
+   `src/instrumentation.ts` runs `assertEnv()` (`src/lib/env.ts`, zod) once per
+   server instance, before the instance accepts requests. Vercel bakes env
+   vars into a deployment at build time, so a variable that is missing — or
+   present but blank — otherwise only shows up as a 500 on whichever request
+   touches it first; the check names every offending variable instead.
+   `DATABASE_URL` and `AUTH_SECRET` are always required, `OPENROUTER_API_KEY`
+   in production only (in development its absence just selects the deterministic
+   provider, so it is a warning). The build phase is skipped deliberately:
+   `next build` collects page data without runtime env vars, and a boot check
+   must never fail a build. Diagnostics describe a value's shape (set? blank?
+   right protocol?) and never its content.
+10. **Edge auth gate before render.** `src/proxy.ts` (Next.js 16 proxy, the
    successor to middleware) validates the session cookie at the edge and
    redirects unauthenticated users to `/login?next=…` before any server
    component or DB query runs — protected pages never pay render-then-redirect
@@ -97,6 +112,7 @@ Next.js App Router
 | Area | Files |
 | --- | --- |
 | Landing | `src/app/page.tsx` |
+| Health | `src/app/api/health/route.ts` (DB round-trip; 200/503) |
 | Auth | `src/app/(auth)/*`, `src/lib/auth-actions.ts`, `src/proxy.ts` (edge gate) |
 | Shell | `src/components/app-shell.tsx` (sidebar, mobile drawer) |
 | Dashboard | `src/app/(app)/dashboard/page.tsx` |
@@ -223,10 +239,17 @@ distracts during practice.
 
 See `.env.example`. `DATABASE_URL` is the Postgres connection string (Neon
 pooled URL in production), `AUTH_SECRET` signs session cookies,
-`OPENROUTER_API_KEY` enables live AI (optional — the deterministic fallback
-keeps the flow working without it). `OPENROUTER_CHEAP_MODEL` optionally
-routes bulk extraction tasks (resume parsing, evaluation, follow-ups) to a
-cheaper model. All keys are server-side only.
+`OPENROUTER_API_KEY` enables live AI (required in production; optional in
+development, where the deterministic fallback keeps the flow working without
+it). `OPENROUTER_CHEAP_MODEL` optionally routes bulk extraction tasks (resume
+parsing, evaluation, follow-ups) to a cheaper model. All keys are server-side
+only.
+
+All of the above are checked once at startup (`src/lib/env.ts` via
+`src/instrumentation.ts`) and again lazily by `src/lib/db.ts` on the first query,
+so a misconfigured deployment fails with the variable's name rather than with a
+blank page. `GET /api/health` answers `200` only when the database responds,
+which is the fastest way to confirm a fresh deploy is wired up.
 
 ## Security & abuse controls (Phase 5)
 

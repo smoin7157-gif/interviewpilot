@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mic, MicVocal, Plus, Sparkles } from "lucide-react";
+import { Mic, MicVocal, Plus, Repeat2, Sparkles } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listOwnedMocks } from "@/lib/mock";
+import { listOwnedMocksPage } from "@/lib/mock";
+import { parsePageParams } from "@/lib/pagination";
 import { formatRelativeTime, pluralize } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Pagination } from "@/components/pagination";
 import { MockDeleteButton } from "@/components/mock-delete-button";
 
 export const metadata: Metadata = { title: "Mock History · InterviewOS" };
@@ -30,9 +32,14 @@ function ScoreBadge({ score }: { score: number }) {
   return <Badge tone={tone}>{score}/100</Badge>;
 }
 
-export default async function HistoryPage() {
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cursor?: string; dir?: string }>;
+}) {
   const user = await requireUser();
-  const mocks = await listOwnedMocks(user.id);
+  const params = parsePageParams(await searchParams);
+  const { items: mocks, olderCursor, newerCursor } = await listOwnedMocksPage(user.id, params);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
@@ -49,19 +56,33 @@ export default async function HistoryPage() {
       </div>
 
       {mocks.length === 0 ? (
-        <Card className="mt-8 flex flex-col items-center px-6 py-20 text-center">
-          <div className="flex size-14 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-            <MicVocal className="size-7" aria-hidden />
-          </div>
-          <h2 className="mt-5 text-lg font-semibold text-zinc-950">No mock interviews yet.</h2>
-          <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
-            Open any generated interview and hit &ldquo;Practice aloud&rdquo; to rehearse with the AI
-            interviewer. Completed sessions land here with a full debrief.
-          </p>
-          <Link href="/interviews" className={buttonClasses({ size: "lg", className: "mt-7" })}>
-            <Mic className="size-4" aria-hidden /> Go to My Interviews
-          </Link>
-        </Card>
+        params.cursor ? (
+          // The cursor's session was deleted between requests — offer a way
+          // back to the newest page rather than a dead end.
+          <Card className="mt-8 flex flex-col items-center px-6 py-16 text-center">
+            <h2 className="text-lg font-semibold text-zinc-950">This page is empty.</h2>
+            <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
+              Your mock history moved on — probably because a session was deleted.
+            </p>
+            <Link href="/history" className={buttonClasses({ size: "lg", className: "mt-7" })}>
+              Back to mock history
+            </Link>
+          </Card>
+        ) : (
+          <Card className="mt-8 flex flex-col items-center px-6 py-20 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+              <MicVocal className="size-7" aria-hidden />
+            </div>
+            <h2 className="mt-5 text-lg font-semibold text-zinc-950">No mock interviews yet.</h2>
+            <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
+              Open any generated interview and hit &ldquo;Practice aloud&rdquo; to rehearse with the AI
+              interviewer. Completed sessions land here with a full debrief.
+            </p>
+            <Link href="/interviews" className={buttonClasses({ size: "lg", className: "mt-7" })}>
+              <Mic className="size-4" aria-hidden /> Go to My Interviews
+            </Link>
+          </Card>
+        )
       ) : (
         <ul className="mt-8 space-y-3">
           {mocks.map((mock) => {
@@ -82,6 +103,12 @@ export default async function HistoryPage() {
                       {mock.questionsAsked} {pluralize(mock.questionsAsked, "main question")} asked ·{" "}
                       {formatRelativeTime(mock.createdAt)}
                     </p>
+                    <Link
+                      href={`/interviews/new?from=${mock.interviewSessionId}`}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 transition-colors hover:text-indigo-600"
+                    >
+                      <Repeat2 className="size-3.5" aria-hidden /> Practice again with this setup
+                    </Link>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -114,6 +141,13 @@ export default async function HistoryPage() {
           })}
         </ul>
       )}
+
+      <Pagination
+        basePath="/history"
+        olderCursor={olderCursor}
+        newerCursor={newerCursor}
+        label="Mock history pages"
+      />
     </div>
   );
 }

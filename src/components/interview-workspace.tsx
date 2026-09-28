@@ -22,7 +22,16 @@ import {
 } from "lucide-react";
 import type { EvaluationFeedback, WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
 import { saveAnswerDraftAction } from "@/lib/draft-actions";
-import { cn, formatQuestionCategory, formatQuestionDifficulty, pluralize } from "@/lib/utils";
+import {
+  cn,
+  countWords,
+  estimateSpeakingSeconds,
+  formatClock,
+  formatQuestionCategory,
+  formatQuestionDifficulty,
+  pluralize,
+} from "@/lib/utils";
+import { AnswerTimer } from "@/components/answer-timer";
 import { Badge, categoryTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
@@ -574,6 +583,8 @@ function PracticeSection({
     }
   }
 
+  const words = countWords(text);
+
   return (
     <div className={className}>
       <div className="flex items-center justify-between gap-3">
@@ -615,6 +626,16 @@ function PracticeSection({
             placeholder="Type your answer here…"
             aria-label="Your practice answer"
           />
+          {/* Length feedback: word count (no live region — it would announce
+              every keystroke) plus an optional stopwatch to see whether the
+              answer would actually fit a real interview slot. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <AnswerTimer />
+            <p className="text-xs tabular-nums text-zinc-400">
+              {words} {pluralize(words, "word")}
+              {words > 0 && ` · about ${formatClock(estimateSpeakingSeconds(text))} spoken`}
+            </p>
+          </div>
           <div className="flex items-center justify-between gap-3">
             <p className="flex items-center gap-1.5 text-xs text-zinc-400" aria-live="polite">
               {text.trim().length === 0 ? (
