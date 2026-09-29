@@ -1,4 +1,62 @@
-import type { GenerationContext } from "./types";
+import type { GenerationContext, QuestionCategory } from "./types";
+
+/**
+ * Target category distribution per interview type. Kept in code (not only in
+ * prose) so generation gets an exact, per-request count rather than a set of
+ * percentages the model can ignore. "Mixed" and unknown types fall back to
+ * General.
+ */
+const CATEGORY_MIX: Record<string, Partial<Record<QuestionCategory, number>>> = {
+  general: { technical: 0.2, project: 0.2, job_description: 0.15, behavioral: 0.15, coding: 0.1, company: 0.1, general: 0.1 },
+  technical: { technical: 0.3, coding: 0.2, project: 0.15, job_description: 0.1, system_design: 0.1, behavioral: 0.1, company: 0.05 },
+  behavioral: { behavioral: 0.45, general: 0.15, project: 0.15, company: 0.15, job_description: 0.1 },
+  "hr / recruiter": { behavioral: 0.45, general: 0.15, project: 0.15, company: 0.15, job_description: 0.1 },
+  coding: { coding: 0.4, technical: 0.25, system_design: 0.15, project: 0.1, general: 0.1 },
+  "system design": { system_design: 0.4, technical: 0.2, coding: 0.1, project: 0.1, company: 0.1, general: 0.1 },
+  "data / ml": { data_ml: 0.4, technical: 0.2, project: 0.15, coding: 0.1, behavioral: 0.1, general: 0.05 },
+  product: { job_description: 0.3, behavioral: 0.25, company: 0.15, project: 0.15, technical: 0.1, general: 0.05 },
+};
+
+/**
+ * Allocate a whole number of questions per category for an interview type.
+ * Uses largest-remainder rounding so the targets always sum to exactly
+ * `count` (no over/under-delivery from naive percentage rounding).
+ */
+export function targetCategoryMix(
+  interviewType: string | undefined,
+  count: number
+): Array<[QuestionCategory, number]> {
+  if (count <= 0) return [];
+  const key = (interviewType ?? "").trim().toLowerCase();
+  const mix = CATEGORY_MIX[key] ?? CATEGORY_MIX.general;
+  const entries = Object.entries(mix) as Array<[QuestionCategory, number]>;
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  const allocated = entries.map(([category, weight]) => {
+    const exact = (weight / total) * count;
+    return { category, exact, n: Math.floor(exact) };
+  });
+  let assigned = allocated.reduce((sum, a) => sum + a.n, 0);
+  const byRemainder = [...allocated].sort((a, b) => b.exact - b.n - (a.exact - a.n));
+  let i = 0;
+  while (assigned < count && byRemainder.length > 0) {
+    byRemainder[i % byRemainder.length].n += 1;
+    assigned += 1;
+    i += 1;
+  }
+  return allocated.filter((a) => a.n > 0).map((a) => [a.category, a.n]);
+}
+
+/** Generic filler questions the engine must not emit unless an opener is called for. */
+export const BOILERPLATE_QUESTIONS = [
+  "tell me about yourself",
+  "what are your strengths",
+  "what is your biggest weakness",
+  "what are your weaknesses",
+  "where do you see yourself in 5 years",
+  "why should we hire you",
+  "why do you want to work here",
+  "what makes you a good fit",
+] as const;
 
 export const GENERATION_SYSTEM_PROMPT = `You are an experienced interviewer who designs realistic, personal interview practice sets for job candidates on InterviewOS.
 
@@ -12,19 +70,13 @@ Rules:
 - Never invent candidate experience, projects, technologies, GitHub activity, or achievements. If a context source is missing, simply don't reference it.
 - Use the job description to ground role-specific questions.
 - Difficulty must map to experience level (Fresher/0–1 = mostly easy; 1–3 = easy/medium; 3–5 = medium; 5+ = medium/hard).
-- Shape the question mix to the interview type when provided, approximately:
-  - General/Mixed: 20% technical, 20% project/resume, 15% job_description, 15% behavioral, 10% coding, 10% company, 10% general
-  - Technical: 30% technical, 20% coding, 15% project, 10% job_description, 10% system_design, 10% behavioral, 5% company/general
-  - Behavioral / HR Recruiter: 45% behavioral, 15% general, 15% project, 15% company, 10% job_description
-  - Coding: 40% coding, 25% technical, 15% system_design, 10% project, 10% general
-  - System Design: 40% system_design, 20% technical, 10% coding, 10% project, 10% company, 10% general
-  - Data / ML: 40% data_ml, 20% technical, 15% project, 10% coding, 10% behavioral, 5% general
-  - Product: 30% job_description, 25% behavioral, 15% company, 15% project, 10% technical, 5% general
-  When no interview type is given, use the General/Mixed mix.
+- Category mix: the request supplies an exact target distribution for the selected interview type. Hit that distribution (within ±1 question per category) while keeping every question distinct. When no interview type is given, spread across technical, project, job_description, behavioral, coding, company, and general.
 - Categories (use exactly these keys): technical, behavioral, project, job_description, coding, system_design, data_ml, company, general.
 - Difficulty (use exactly these keys): easy, medium, hard.
 - Every question must carry a short "reason" (why it matters for this role/level) and a source_context array drawn from: experience, company, interview_type, job_description, resume, github, project, general.
 Quality contract (hard requirements):
+- No boilerplate. Never emit generic filler questions (e.g. "tell me about yourself", "what are your strengths and weaknesses?", "where do you see yourself in five years?", "why should we hire you?"). At most ONE opening/general question is allowed, and it must name the specific role/company and connect to this candidate's actual background.
+- Ground the set in the provided context. When a job description and/or candidate context is present, the large majority of questions (aim for 70%+) must name a concrete, specific detail from them — a responsibility, tool, project, technology, or claim. A question that could be asked of any candidate for this role is a failure; rewrite it until it is tied to this candidate and this job.
 - No duplicates: every question must test a distinct skill, topic, or experience. Never emit two questions that are rephrases of the same thing (e.g. "explain event loop" and "what is the event loop").
 - Fresh set: if an "Already asked before" list is provided, do NOT repeat, rephrase, or mildly re-angle any question on it. Treat it as covered ground and produce new questions.
 - One idea per question. No stacked multi-part questions ("... and also describe ..."). Ask the sharpest single question.
@@ -49,6 +101,20 @@ export function buildGenerationUserPrompt(ctx: GenerationContext): string {
   if (ctx.avoidQuestions && ctx.avoidQuestions.length > 0) {
     lines.push(
       `\nAlready asked before (do NOT repeat, rephrase, or re-angle these — produce fresh questions):\n${ctx.avoidQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
+    );
+  }
+  const mix = targetCategoryMix(ctx.interviewType, ctx.count);
+  if (mix.length > 0) {
+    lines.push(
+      `\nTarget category mix for these ${ctx.count} questions (follow it within ±1 per category): ${mix
+        .map(([category, n]) => `${category} ×${n}`)
+        .join(", ")}.`
+    );
+  }
+  if (ctx.jobDescription || ctx.candidateContext) {
+    const grounded = Math.max(1, Math.ceil(ctx.count * 0.7));
+    lines.push(
+      `Context grounding: at least ${grounded} of the ${ctx.count} questions must name a concrete detail (a technology, project, responsibility, or claim) from the job description or candidate context above. No generic filler that could be asked of any candidate.`
     );
   }
   lines.push(
@@ -78,7 +144,29 @@ export function buildGenerationUserPrompt(ctx: GenerationContext): string {
   return lines.join("\n");
 }
 
-export const FOLLOWUP_SYSTEM_PROMPT = `You are an experienced interviewer. Given one main interview question and the candidate's context, generate 3 sharp follow-up questions an interviewer would naturally ask to probe deeper. Each follow-up must relate directly to the main question. Return ONLY valid JSON: {"follow_up_questions": ["...", "...", "..."]}. No markdown.`;
+export const FOLLOWUP_SYSTEM_PROMPT = `You are an experienced interviewer. You are given a main interview question and, when available, the candidate's actual spoken answer to it.
+
+Your job: generate exactly 3 sharp follow-up questions that probe the REAL answer — not a generic pool of standard follow-ups.
+
+Rules:
+- If the candidate's answer is provided, every follow-up must react to specific content in it: a named technology, decision, trade-off, metric, or claim. Reference that content so the candidate can tell you actually read their answer.
+- If the answer is very short (under ~15 words) or does not clearly address the question, do NOT assume depth exists. Probe for the missing basics instead: the concrete situation, what the candidate personally did, and the outcome.
+- If no answer is provided, base the follow-ups on the main question and candidate context.
+- Each follow-up must be distinct, ask something the main question did not already ask, and be answerable aloud in a sentence or two.
+Return ONLY valid JSON: {"follow_up_questions": ["...", "...", "..."]}. No markdown.`;
+
+/**
+ * True when an answer is too thin or too off-topic to be probed for depth:
+ * either very short, or it shares no meaningful vocabulary with the question.
+ */
+export function isShallowAnswer(question: string, answer: string): boolean {
+  const words = answer.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 15) return true;
+  const questionTokens = new Set(question.toLowerCase().match(/[a-z][a-z-]{3,}/g) ?? []);
+  if (questionTokens.size === 0) return false;
+  const answerTokens = answer.toLowerCase().match(/[a-z][a-z-]{3,}/g) ?? [];
+  return !answerTokens.some((token) => questionTokens.has(token));
+}
 
 export function buildFollowUpUserPrompt(ctx: {
   question: string;
@@ -88,12 +176,26 @@ export function buildFollowUpUserPrompt(ctx: {
   companyType?: string;
   interviewType?: string;
   jobDescription?: string;
+  answer?: string;
 }): string {
   const lines = [`Main question: ${ctx.question}`, `Target role: ${ctx.role}`, `Experience level: ${ctx.seniority}`];
   if (ctx.companyType) lines.push(`Company type: ${ctx.companyType}`);
   if (ctx.company) lines.push(`Company: ${ctx.company}`);
   if (ctx.interviewType) lines.push(`Interview type: ${ctx.interviewType}`);
   if (ctx.jobDescription) lines.push(`\nJob description:\n${ctx.jobDescription}`);
+  const answer = ctx.answer?.trim();
+  if (answer) {
+    lines.push(`\nCandidate's actual answer to that question:\n"""\n${answer}\n"""`);
+    if (isShallowAnswer(ctx.question, answer)) {
+      lines.push(
+        `\nThis answer is very short or does not clearly address the question. Do NOT assume depth exists — every follow-up must probe for the missing basics: the specific situation, what the candidate personally did, and the concrete outcome.`
+      );
+    } else {
+      lines.push(
+        `\nEvery follow-up must reference a specific claim, technology, decision, or result from that answer. Generic follow-ups that could apply to any answer are a failure.`
+      );
+    }
+  }
   return lines.join("\n");
 }
 
@@ -114,6 +216,14 @@ Guidelines:
 - 2-4 items per list, each 5-14 words, concrete and specific to their answer.
 - If a strong suggested answer exists, compare against it without parroting it.
 - For behavioral questions note STAR structure (situation/task/action/result).
+
+Calibration set — match the answer to the nearest anchor BEFORE scoring, so similar-quality answers receive similar scores across runs:
+- ~15 (band 1): "I'm not sure. I'd just try things until it works." — no method, no specifics, no result.
+- ~40 (band 2): "I'd use caching to make it faster because performance matters." — names a relevant keyword but gives no reasoning or example.
+- ~65 (band 3): "I'd profile first to find the bottleneck, then cache the hot reads. In my last project that cut p95 latency by about 30%." — sound method and one concrete detail, but thin on trade-offs or alternatives.
+- ~82 (band 4): states the situation, the exact steps taken, a measured outcome, and one trade-off weighed.
+- ~94 (band 5): all of band 4 plus an alternative rejected and why, and how the result was verified.
+After matching an anchor, adjust by at most ±7 points for specifics actually present in the answer. Do not cluster at 70–80, and do not drift: two answers of equal quality must receive nearly identical scores.
 No markdown, no commentary outside the JSON.`;
 
 export function buildEvaluationUserPrompt(ctx: {
@@ -254,7 +364,8 @@ Rules:
   - relevance: how directly answers addressed the question asked
   - project_knowledge: command of the candidate's own projects/experience (depth, trade-offs, decisions)
   - problem_solving: reasoning, trade-offs, and method shown when tackling problems
-- Provide one short "note" (under 20 words) per dimension explaining the score from the transcript.
+- Every dimension MUST include an "evidence" field: a short VERBATIM quote from the candidate's answer (≤ 140 characters, wrapped in quotation marks) or, if quoting is impractical, a precise paraphrase of one specific moment that justifies the score. Generic evidence ("the candidate communicated well", "answers were solid") is a failure — cite the actual words. If a dimension truly was not exercised in this session (e.g. no technical questions were asked), set evidence to a short factual note saying so.
+- Provide one short "note" (under 20 words) per dimension explaining the score. The note interprets; the evidence proves it from the transcript.
 - strengths / weaknesses / missedOpportunities: 3-4 concrete items each, 6-14 words, grounded in specific answers.
 - strongestAnswer / weakestAnswer: pick real exchanges. "question" is the interviewer's question text; "why" is one concrete sentence on what made it the strongest/weakest.
 - recommendedPractice: 3-4 actionable, specific practice tips (6-14 words each) tied to observed weaknesses.
@@ -264,7 +375,7 @@ Return ONLY valid JSON in this exact shape:
 {
   "overallScore": 0,
   "breakdown": [
-    { "dimension": "technical | communication | structure | relevance | project_knowledge | problem_solving", "score": 0, "note": "one short sentence" }
+    { "dimension": "technical | communication | structure | relevance | project_knowledge | problem_solving", "score": 0, "note": "one short sentence", "evidence": "\"a verbatim quote or precise paraphrase of a specific moment\"" }
   ],
   "strengths": ["..."],
   "weaknesses": ["..."],

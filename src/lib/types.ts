@@ -58,6 +58,8 @@ export interface DebriefDimensionScore {
   dimension: string;
   score: number;
   note?: string;
+  /** Verbatim quote or paraphrase from the transcript that justifies the score. */
+  evidence?: string;
 }
 
 export interface DebriefData {

@@ -49,6 +49,9 @@ export interface FollowUpContext {
   companyType?: string;
   interviewType?: string;
   jobDescription?: string;
+  /** The candidate's actual answer, when one exists. Follow-ups must target
+   *  its content; a short/off-topic answer is probed for missing depth. */
+  answer?: string;
 }
 
 export interface EvaluationContext {
@@ -158,6 +161,9 @@ export interface DebriefDimensionScore {
   score: number;
   /** One short sentence on what the score reflects. */
   note?: string;
+  /** A verbatim quote or precise paraphrase of the transcript moment that
+   *  justifies the score — required in output, optional for legacy stored rows. */
+  evidence?: string;
 }
 
 export interface DebriefAnswerHighlight {

@@ -36,9 +36,32 @@ import {
 } from "./validate";
 
 const DEFAULT_MODEL = "openai/gpt-4o-mini";
-// Cheap/fast model for bulk extraction tasks (resume parsing, answer
-// evaluation). Override with OPENROUTER_CHEAP_MODEL to cut costs further.
-const CHEAP_MODEL = process.env.OPENROUTER_CHEAP_MODEL ?? DEFAULT_MODEL;
+
+/**
+ * Model routing by task cost. There are exactly two tiers:
+ *  - CHEAP_MODEL: bulk EXTRACTION only (resume parsing). Low-stakes and
+ *    high-volume, so cheaper is a real saving with no quality loss.
+ *  - this.model: everything the candidate experiences — question generation,
+ *    answer scoring, live interviewing, and the debrief.
+ * Override the cheap tier with OPENROUTER_CHEAP_MODEL (defaults to the full
+ * model, so a deployment that never sets it behaves exactly as before).
+ */
+const CHEAP_MODEL = process.env.OPENROUTER_CHEAP_MODEL?.trim() || DEFAULT_MODEL;
+
+/**
+ * Temperature by task type (consistency vs. variety):
+ *  - extraction/scoring/debrief: low, so identical inputs score identically.
+ *  - generation/follow-ups: moderate, so repeat sessions feel fresh.
+ *  - interviewer: moderate-low — a natural live interviewer, not an erratic one.
+ */
+const TEMPERATURE = {
+  generation: 0.7,
+  followUp: 0.6,
+  scoring: 0.2,
+  extraction: 0.2,
+  interviewer: 0.5,
+  debrief: 0.3,
+} as const;
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
 const API_KEY = process.env.OPENROUTER_API_KEY;
 
@@ -111,7 +134,9 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       GENERATION_SYSTEM_PROMPT,
       buildGenerationUserPrompt(ctx),
-      MAX_COMPLETION_TOKENS
+      MAX_COMPLETION_TOKENS,
+      this.model, // full model: candidate-facing generation
+      TEMPERATURE.generation
     );
     // Model drift or a saturated bank can still repeat a practiced question —
     // enforce the avoid-list server-side so repeat sessions stay fresh.
@@ -119,7 +144,13 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {
-    const raw = await this.chatCompletion(FOLLOWUP_SYSTEM_PROMPT, buildFollowUpUserPrompt(ctx), 2_000, CHEAP_MODEL);
+    const raw = await this.chatCompletion(
+      FOLLOWUP_SYSTEM_PROMPT,
+      buildFollowUpUserPrompt(ctx),
+      2_000,
+      this.model, // full model: candidate-facing generation
+      TEMPERATURE.followUp
+    );
     return parseFollowUps(raw);
   }
 
@@ -128,8 +159,8 @@ export class OpenRouterProvider implements AIProvider {
       EVALUATION_SYSTEM_PROMPT,
       buildEvaluationUserPrompt(ctx),
       2_000,
-      CHEAP_MODEL,
-      0.2 // scoring must be consistent, not creative
+      this.model, // full model: scoring quality drives the calibration promise
+      TEMPERATURE.scoring // scoring must be consistent, not creative
     );
     return parseEvaluation(raw);
   }
@@ -139,7 +170,8 @@ export class OpenRouterProvider implements AIProvider {
       RESUME_EXTRACTION_SYSTEM_PROMPT,
       buildResumeExtractionUserPrompt(text),
       3_000,
-      CHEAP_MODEL
+      CHEAP_MODEL, // cheap model: bulk extraction only
+      TEMPERATURE.extraction // extraction must be deterministic
     );
     return parseResume(raw);
   }
@@ -148,7 +180,9 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       INTERVIEWER_SYSTEM_PROMPT,
       buildInterviewerUserPrompt(ctx),
-      700
+      700,
+      this.model, // full model: live interviewing
+      TEMPERATURE.interviewer // moderate-low: natural, never erratic
     );
     return parseInterviewerDecision(raw);
   }
@@ -158,8 +192,8 @@ export class OpenRouterProvider implements AIProvider {
       DEBRIEF_SYSTEM_PROMPT,
       buildDebriefUserPrompt(ctx),
       2_500,
-      this.model,
-      0.3 // session scores must be stable across regenerations
+      this.model, // full model: candidate-facing debrief
+      TEMPERATURE.debrief // session scores must be stable across regenerations
     );
     const parsed = parseDebrief(raw);
     return {

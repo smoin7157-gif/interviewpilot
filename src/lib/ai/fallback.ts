@@ -13,6 +13,7 @@ import type {
   QuestionCategory,
 } from "./types";
 import { normalizeCategory, normalizeDifficulty } from "./validate";
+import { isShallowAnswer } from "./prompts";
 import { EMPTY_RESUME, type ResumeData } from "@/lib/candidate-context";
 
 /**
@@ -400,11 +401,13 @@ function difficultyFor(seniority: string): DifficultyWeight {
   return SENIORITY_DIFFICULTY[key] ?? DEFAULT_DIFFICULTY;
 }
 
+// Project/resume questions rank above behavioral ones for generic interview
+// types, mirroring the AI prompt's emphasis on the candidate's actual work.
 const FALLBACK_CATEGORY_ORDER: QuestionCategory[] = [
   "general",
   "technical",
-  "behavioral",
   "project",
+  "behavioral",
   "company",
 ];
 
@@ -517,12 +520,29 @@ export class FallbackProvider implements AIProvider {
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {
+    const answer = ctx.answer?.trim();
+    // Thin or off-topic answer: probe for the missing basics rather than
+    // assuming depth the candidate never actually showed.
+    if (answer && isShallowAnswer(ctx.question, answer)) {
+      return [
+        "Let's slow down on that one — what was the specific situation, and what did you personally do?",
+        "What was the concrete outcome, and how did you measure it?",
+        "What would you do differently if you faced that same situation again?",
+      ];
+    }
+    if (answer) {
+      const snippet = answer.replace(/\s+/g, " ").slice(0, 90);
+      return [
+        `You said "${snippet}${answer.length > 90 ? "…" : ""}". What trade-offs did you weigh when you made that choice?`,
+        "Walk me through the specific result — how did you measure whether it worked?",
+        "What would you change about that approach if you had to do it again?",
+      ];
+    }
     return [
       `What made you choose that approach for "${ctx.question}"?`,
       "What trade-offs did you consider, and which did you accept?",
       "What would you change if you had to do it again?",
-      "How would you measure whether it worked?",
-    ].slice(0, 3);
+    ];
   }
 
   /** Deterministic mock interviewer: walks the prepared bank, cycles each
@@ -666,19 +686,45 @@ export class FallbackProvider implements AIProvider {
       return Math.min(95, score);
     };
 
-    const dimension = (key: DebriefDimension, score: number, note: string): DebriefResult["breakdown"][number] => ({
+    // Each dimension cites the actual words from the transcript that justify
+    // its score — generic notes are what make AI debriefs feel worthless.
+    const quote = (sample: (typeof samples)[number] | undefined, max = 140): string | undefined => {
+      if (!sample) return undefined;
+      const text = sample.text.replace(/\s+/g, " ");
+      return `"${text.slice(0, max)}${text.length > max ? "…" : ""}"`;
+    };
+    const firstStructured = samples.find((s) => s.structured);
+    const longest = samples.reduce((a, b) => (b.words > a.words ? b : a), samples[0]);
+
+    const dimension = (
+      key: DebriefDimension,
+      score: number,
+      note: string,
+      evidence?: string
+    ): DebriefResult["breakdown"][number] => ({
       dimension: key,
       score: clamp(score),
       note,
+      ...(evidence ? { evidence } : {}),
     });
 
     if (count === 0) {
       const empty: DebriefResult["breakdown"] = ctx.transcript.some((t) => t.speaker === "AI")
         ? ["technical", "communication", "structure", "relevance", "project_knowledge", "problem_solving"].map((d) =>
-            dimension(d as DebriefDimension, 0, "No spoken answers were captured — nothing to score.")
+            dimension(
+              d as DebriefDimension,
+              0,
+              "No spoken answers were captured — nothing to score.",
+              "No answer was recorded in the transcript for this dimension."
+            )
           )
         : ["technical", "communication", "structure", "relevance", "project_knowledge", "problem_solving"].map((d) =>
-            dimension(d as DebriefDimension, 0, "The session ended before the first question was answered.")
+            dimension(
+              d as DebriefDimension,
+              0,
+              "The session ended before the first question was answered.",
+              "The transcript ended before any answer was given."
+            )
           );
       return {
         overallScore: 0,
@@ -729,36 +775,46 @@ export class FallbackProvider implements AIProvider {
         technicalScore,
         techSamples.length > 0
           ? `Based on ${techSamples.length} technical answer${techSamples.length === 1 ? "" : "s"}.`
-          : "No technical questions were asked in this session — this reflects general reasoning only."
+          : "No technical questions were asked in this session — this reflects general reasoning only.",
+        techSamples.length > 0
+          ? quote(techSamples[0])
+          : "No technical questions were asked in this session."
       ),
       dimension(
         "communication",
         communicationScore,
-        `Answers averaged ${Math.round(avgWords)} words; ${Math.round(exampleFrac * 100)}% used concrete examples.`
+        `Answers averaged ${Math.round(avgWords)} words; ${Math.round(exampleFrac * 100)}% used concrete examples.`,
+        quote(longest, 100)
       ),
       dimension(
         "structure",
         structureScore,
-        `${Math.round(structuredFrac * 100)}% of answers used an explicit structure (first/then/result).`
+        `${Math.round(structuredFrac * 100)}% of answers used an explicit structure (first/then/result).`,
+        firstStructured ? quote(firstStructured) : "No answer used an explicit structure (first/then/result)."
       ),
       dimension(
         "relevance",
         relevanceScore,
-        `${Math.round(relevanceFrac * 100)}% of answers directly addressed the question asked.`
+        `${Math.round(relevanceFrac * 100)}% of answers directly addressed the question asked.`,
+        quote(samples.find(onTopic) ?? samples[0], 100)
       ),
       dimension(
         "project_knowledge",
         projectScore,
         projSamples.length > 0
           ? `Based on ${projSamples.length} project/experience answer${projSamples.length === 1 ? "" : "s"}.`
-          : "No project questions were asked in this session — this reflects general answers only."
+          : "No project questions were asked in this session — this reflects general answers only.",
+        projSamples.length > 0 ? quote(projSamples[0]) : "No project questions were asked in this session."
       ),
       dimension(
         "problem_solving",
         problemScore,
         probeSamples.length > 0
           ? `Based on ${probeSamples.length} medium/hard question${probeSamples.length === 1 ? "" : "s"}.`
-          : "No probing questions were asked — this reflects the depth of the answers given."
+          : "No probing questions were asked — this reflects the depth of the answers given.",
+        probeSamples.length > 0
+          ? quote(probeSamples[0])
+          : "No medium/hard probing questions were asked in this session."
       ),
     ];
 

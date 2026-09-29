@@ -302,6 +302,7 @@ const debriefShape = z.object({
         dimension: z.enum(debriefDimensions),
         score: z.union([z.number(), z.string()]),
         note: z.string().optional().nullable(),
+        evidence: z.string().optional().nullable(),
       })
     )
     .min(6)
@@ -333,7 +334,7 @@ const cleanStrings = (list: string[], max: number): string[] =>
 
 export function parseDebrief(raw: string): {
   overallScore: number;
-  breakdown: Array<{ dimension: DebriefDimension; score: number; note?: string }>;
+  breakdown: Array<{ dimension: DebriefDimension; score: number; note?: string; evidence?: string }>;
   strengths: string[];
   weaknesses: string[];
   missedOpportunities: string[];
@@ -354,7 +355,8 @@ export function parseDebrief(raw: string): {
     return {
       dimension: b.dimension,
       score: Math.min(100, Math.max(0, score)),
-      note: b.note?.trim().slice(0, 200) || undefined,
+      note: b.note?.trim().replace(/\s+/g, " ").slice(0, 200) || undefined,
+      evidence: b.evidence?.trim().replace(/\s+/g, " ").slice(0, 240) || undefined,
     };
   });
 

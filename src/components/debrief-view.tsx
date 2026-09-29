@@ -87,7 +87,7 @@ function ScoreRing({ score, tone }: { score: number; tone: "dark" | "light" }) {
   );
 }
 
-function DimensionBar({ dimension, score, note, tone }: { dimension: string; score: number; note?: string; tone: "dark" | "light" }) {
+function DimensionBar({ dimension, score, note, evidence, tone }: { dimension: string; score: number; note?: string; evidence?: string; tone: "dark" | "light" }) {
   const color = scoreTone(score);
   const bar =
     color === "emerald"
@@ -107,6 +107,16 @@ function DimensionBar({ dimension, score, note, tone }: { dimension: string; sco
         <div className={cn("h-full rounded-full transition-all duration-700", bar)} style={{ width: `${score}%` }} />
       </div>
       {note && <p className={cn("mt-1 text-xs leading-relaxed", tone === "dark" ? "text-zinc-500" : "text-zinc-400")}>{note}</p>}
+      {evidence && (
+        <p
+          className={cn(
+            "mt-1.5 border-l-2 pl-2 text-[11px] italic leading-relaxed",
+            tone === "dark" ? "border-zinc-700 text-zinc-500" : "border-zinc-200 text-zinc-400"
+          )}
+        >
+          {evidence}
+        </p>
+      )}
     </li>
   );
 }
@@ -204,7 +214,7 @@ export function DebriefView({ debrief, tone = "light" }: { debrief: DebriefData;
         </div>
         <ul className="grid flex-1 gap-3 sm:grid-cols-2">
           {debrief.breakdown.map((dim) => (
-            <DimensionBar key={dim.dimension} dimension={dim.dimension} score={dim.score} note={dim.note} tone={tone} />
+            <DimensionBar key={dim.dimension} dimension={dim.dimension} score={dim.score} note={dim.note} evidence={dim.evidence} tone={tone} />
           ))}
         </ul>
       </div>
