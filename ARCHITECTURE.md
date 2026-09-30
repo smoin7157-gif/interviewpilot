@@ -34,13 +34,56 @@ Next.js App Router
   ├── resume.ts              PDF → text extraction
   ├── github.ts              public GitHub profile analysis
   ├── speech.ts              client-only replaceable speech layer (STT/TTS/media)
-  └── ai/
-      ├── service.ts     facade: pick provider, retry, graceful fallback
-      ├── openrouter.ts  OpenRouter chat-completions provider (+ interviewer)
-      ├── fallback.ts    deterministic offline provider (+ interviewer + resume)
-      ├── prompts.ts     system/user prompt builders
-      └── validate.ts    tolerant JSON extraction + strict validation
+  ├── ai/
+  │   ├── service.ts     facade: pick provider, retry, graceful fallback
+  │   ├── openrouter.ts  OpenRouter chat-completions provider (+ interviewer)
+  │   ├── fallback.ts    deterministic offline provider (+ interviewer + resume)
+  │   ├── prompts.ts     system/user prompt builders
+  │   └── validate.ts    tolerant JSON extraction + strict validation
+  └── jd/                    offline job-description seed dataset (build-time)
+      ├── schema.ts          shared Zod schema + seniority/company vocabularies
+      ├── roles.ts           29-role catalog: stack, themes, focus areas
+      ├── compose.ts         deterministic offline composer (no API key)
+      ├── openrouter-batch.ts batched LLM generator (better wording)
+      └── dedupe.ts          token-overlap near-duplicate removal
 ```
+
+## Job description seed dataset (techjd)
+
+`prisma/seed-data/job-descriptions.json` is a generated, validated dataset of
+**1,282 original job descriptions** — every 29-role × 3-seniority × 3-company-
+type combination, five variants each, minus what the dedupe pass collapsed. It
+exists so the *offline* side of the product has real, role-specific JD material
+instead of a handful of generic templates. Nothing is scraped or copied: every
+entry is composed from `src/lib/jd/roles.ts`, a distilled catalog of how each
+role is practised.
+
+```
+scripts/generate-job-descriptions.ts
+  catalog → for each combination: batch of 5 → provider → zod validation (retry)
+          → running checkpoint → token-overlap dedupe → job-descriptions.json
+```
+
+Two interchangeable backends produce the same shape, so the pipeline can always
+finish:
+
+- **`openrouter`** — one batched chat completion per combination, with the
+  catalog injected as grounding (`OPENROUTER_API_KEY` required).
+- **`local`** — `src/lib/jd/compose.ts`, a deterministic composer that assembles
+  original sentences from the catalog plus seniority/company-type modifiers.
+  No key, no network, ~6 seconds for the whole dataset.
+
+`--provider=auto` (default) picks OpenRouter when a key is set, else local. Runs
+checkpoint per combination, so a run that dies mid-way resumes instead of
+starting over; the checkpoint and run logs are git-ignored because the JSON is
+the artifact. `npm test` covers the dataset (schema validity, full coverage, ≥3
+variants per combination, derived `yearsExperience`, no soft-skill
+"technologies", re-dedupe is a no-op) and the composer's variation guarantees.
+
+**Planned (not wired into the app yet):** a compact cached index over this JSON
+and JD-grounded *fallback* questions — the live OpenRouter question path is
+deliberately untouched, so this data cannot regress production generation until
+that step lands deliberately.
 
 ## Key decisions
 
@@ -274,7 +317,8 @@ which is the fastest way to confirm a fresh deploy is wired up.
 - **Cost controls**: per-task `max_tokens`, debrief transcript capped at 30k
   chars, interviewer context summarized to the last 10 turns.
 - **Tests**: `npm test` (node:test + tsx) covers validation schemas, file
-  checks, the rate limiter, utils, and the fallback AI provider.
+  checks, the rate limiter, utils, the fallback AI provider, and the JD seed
+dataset + composer.
 - **Seed**: `npm run db:seed` provisions an idempotent demo account.
 - **Client resilience**: the dark `(focus)` route group has its own error
   boundary (interviewer crashes mid-session recover in place), and the history

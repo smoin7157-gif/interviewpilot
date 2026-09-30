@@ -17,8 +17,8 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
   interview type, job description, question count (10/15/20) — all persisted
 - ✅ InterviewOS brand/identity pass (wordmark, metadata, copy)
 - ✅ Seed script (`prisma/seed.ts`, `npm run db:seed`) + automated test
-  suite (`npm test`, 39 tests — validation, file safety, rate limiter,
-  utils, fallback AI provider)
+  suite (`npm test`, 137 tests — validation, file safety, rate limiter,
+  utils, fallback AI provider, JD seed dataset)
 
 ## Phase 2 — Written practice + candidate context 🟡
 
@@ -111,12 +111,39 @@ Remaining in Phase 3 (roadmap notes):
 - **Performance/cost:** cheap model routing for extraction tasks
   (`OPENROUTER_CHEAP_MODEL`), debrief transcript budget-capped at 30k
   chars, interviewer context already summarized to the last 10 turns
-- **Tests:** `npm test` — 39 unit tests (validation schemas, file-check,
-  rate limiter, utils, fallback AI provider)
+- **Tests:** `npm test` — 137 unit tests (validation schemas, file-check,
+  rate limiter, utils, fallback AI provider, JD seed dataset)
 - **Seed:** `npm run db:seed` — atomic, idempotent demo account + sample
   interview (verified against Neon)
 - **Deployment:** Prisma client generation fixed for Vercel builds
   (`postinstall` + `prisma generate` in `build`)
+
+## Phase 6 — Offline question-bank enrichment 🟡
+
+Targeting the "Reliable → Useful" edge: the deterministic fallback should ask
+about the actual role, not a fixed bank of generic templates.
+
+- ✅ 29-role JD catalog (`src/lib/jd/roles.ts`), shared Zod schema
+  (`src/lib/jd/schema.ts`), token-overlap dedupe (`src/lib/jd/dedupe.ts`)
+- ✅ Batched LLM generator with catalog grounding, resumable checkpointing and
+  per-combination retries (`scripts/generate-job-descriptions.ts`)
+- ✅ **Deterministic offline composer** (`src/lib/jd/compose.ts`) +
+  `--provider=local|auto|openrouter`, so the dataset can always be rebuilt
+  without an API key or credits
+- ✅ **1,282-entry validated dataset** committed at
+  `prisma/seed-data/job-descriptions.json`, guarded by `tests/jd-seed.test.ts`
+  (schema validity, full combination coverage, ≥3 variants each, re-dedupe is a
+  no-op)
+
+⬜ Remaining in Phase 6:
+- `src/lib/jd/index.ts` — compact cached index over the dataset (role/seniority
+  keyed), so lookups stay DB-free and cheap
+- JD-grounded fallback questions (`src/lib/ai/jd-questions.ts`) wired into
+  `FallbackProvider` *additively*: seed-grounded questions first, falling through
+  to the template bank, with the existing seniority difficulty mix and
+  cross-session avoid-list preserved so current tests stay green
+- `job_description_templates` Prisma table + `npm run seed:jds:load` so the set
+  is also queryable/versionable server-side (needs a migration)
 
 ## Explicitly out of scope (do not build)
 

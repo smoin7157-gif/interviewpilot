@@ -875,3 +875,55 @@ If the run uses the grouped-24 variant of the catalog, the report reads
    dependency-free and deterministic. Default is auto.
 3. **Dedup threshold** — `0.7` recommended; `0.6` (matching question-level) would
    remove noticeably more variants.
+
+---
+
+## 14. Implementation status (this repo)
+
+Shipped:
+
+| Piece | Where | Status |
+| --- | --- | --- |
+| Schema + seniority/company vocabularies (§3) | `src/lib/jd/schema.ts` | ✅ |
+| 29-role catalog (§2, §5.5) | `src/lib/jd/roles.ts` | ✅ |
+| Token-overlap dedupe (§7) | `src/lib/jd/dedupe.ts` | ✅ |
+| Batched LLM provider (§5.2, §5.3) | `src/lib/jd/openrouter-batch.ts` | ✅ |
+| **Deterministic offline composer** (§5.2 `local`) | `src/lib/jd/compose.ts` | ✅ |
+| Generator: checkpointing, retries, report (§5.4, §10) | `scripts/generate-job-descriptions.ts` | ✅ `--provider=auto\|local\|openrouter` |
+| Generated dataset | `prisma/seed-data/job-descriptions.json` | ✅ 1,282 JDs · 261/261 combinations · 0 rejected · 1 duplicate removed |
+| Dataset guards (§9) | `tests/jd-seed.test.ts` | ✅ 9 tests |
+
+Deferred (deliberately, so nothing about live generation changes by accident):
+
+- `src/lib/jd/index.ts` + `src/lib/ai/jd-questions.ts` — the cached compact
+  index and JD-grounded *fallback* questions (§8.2, §8.3). It must stay
+  additive: seed-grounded questions first, fall through to the template bank,
+  and keep the seniority difficulty mix, the interview-type emphasis and the
+  cross-session avoid-list, so `tests/golden-questions.test.ts`,
+  `tests/fallback.test.ts` and `tests/variation.test.ts` stay green.
+- `job_description_templates` Prisma model, `prisma/seed-jds.ts` and
+  `npm run seed:jds:load` (§8.4) — needs a migration against the deployment's
+  database, so it is not bundled with the data work.
+
+Operational notes:
+
+- The first OpenRouter run died on `HTTP 402` (credit ceiling) with no JSON
+  written, which is why the offline composer exists: the pipeline now always
+  finishes, and a partially generated checkpoint can be topped up by re-running
+  the same command without `--fresh`.
+- `techjd.md` is the generator's markdown dataset document (written by a run
+  without `--json-only`); this file is the design spec and is appended to it as
+  the preserved appendix. The stale spec duplicate that used to sit at
+  `techjd.md` was removed — rerun the generator to produce the real document.
+- The run checkpoint (`.jd-checkpoint.json`) and `.jd-run*.log` are git-ignored:
+  the JSON dataset is the committed artifact.
+- The committed dataset was composed offline, so its wording is
+  template-derived rather than model-generated. `--provider=openrouter --fresh`
+  regenerates it with richer wording under the same schema, coverage and dedupe
+  guarantees.
+
+```bash
+npm run seed:jds -- --provider=local --variants=5 --target=1000 --json-only  # offline, deterministic, ~6s
+npm run seed:jds -- --provider=openrouter --fresh                            # richer wording (needs credits)
+npm test                                                                     # includes the dataset guards
+```

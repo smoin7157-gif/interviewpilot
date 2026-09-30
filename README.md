@@ -116,6 +116,7 @@ npm run build     # production build
 npm run lint      # eslint
 npm test          # unit tests (node:test + tsx)
 npm run db:seed   # idempotent demo account + sample interview
+npm run seed:jds  # regenerate the JD seed dataset (offline by default)
 npx tsc --noEmit  # typecheck
 npx prisma studio # inspect the local database
 curl -i localhost:3000/api/health   # is the database reachable?
@@ -128,6 +129,29 @@ than `OPENROUTER_MODEL`. AI/expensive endpoints are rate-limited per user
 `Retry-After` — the debrief UI counts the cooldown down for you. Login and
 signup use a separate per-IP limiter (`src/lib/auth-rate-limit.ts`) so
 brute-force attempts can't consume the AI budget.
+
+## Job description seed dataset
+
+`prisma/seed-data/job-descriptions.json` holds **1,282 original job
+descriptions** covering all 29 catalog roles × 3 seniorities × 3 company types.
+Each entry is validated against the shared Zod schema (`src/lib/jd/schema.ts`)
+and de-duplicated with the same token-overlap pass the question engine uses.
+Every JD is composed from this repo's own role catalog — nothing is scraped,
+quoted or paraphrased from a job board.
+
+```bash
+npm run seed:jds -- --provider=local --variants=5 --target=1000   # offline, ~6s, no API key
+npm run seed:jds -- --provider=openrouter --fresh                 # richer wording (needs OPENROUTER_API_KEY)
+npm run seed:jds -- --roles="Backend Engineer" --variants=3       # partial rebuild
+```
+
+`--provider=auto` (the default) uses OpenRouter when a key is configured and
+falls back to the deterministic composer otherwise, so the dataset can always
+be rebuilt — even with no credits. Runs are resumable from a git-ignored
+checkpoint, so a partial run can be topped up later, and `--json-only` skips
+the generated markdown dataset document (`techjd.md`). The design + integration
+spec is in [techjd-spec.md](./techjd-spec.md); `tests/jd-seed.test.ts` pins the
+dataset's schema validity, coverage and de-duplication.
 
 ## Docs
 
