@@ -736,6 +736,7 @@ export function InterviewWorkspace({
   const [fupIdx, setFupIdx] = useState(0);
   const [mobileListOpen, setMobileListOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const skippingRef = useRef(false);
   // Drafts typed in this page session, keyed by practice key. A PracticeSection
   // unmounts when its question is left behind, and a confirmed save clears the
@@ -807,6 +808,7 @@ export function InterviewWorkspace({
     if (!main || skippingRef.current) return;
     skippingRef.current = true;
     setSkipping(true);
+    setStatusError(null);
     fetch(`/api/questions/${main.id}/practice`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -817,7 +819,9 @@ export function InterviewWorkspace({
         setQuestions((prev) => prev.map((q) => (q.id === main.id ? { ...q, status } : q)));
       })
       .catch(() => {
-        // Non-critical — keep UI as-is and ignore.
+        // A silently ignored failure made Skip look like a dead button — say so
+        // instead, and leave the question's real status untouched.
+        setStatusError("Couldn't save that — check your connection and try again.");
       })
       .finally(() => {
         skippingRef.current = false;
@@ -1031,6 +1035,11 @@ export function InterviewWorkspace({
                       <CircleSlash2 className="size-3.5" aria-hidden />
                       {skipping ? "Skipping…" : main.status === "SKIPPED" ? "Undo skip" : "Skip"}
                     </button>
+                  )}
+                  {statusError && (
+                    <span role="alert" className="text-xs font-medium text-amber-600">
+                      {statusError}
+                    </span>
                   )}
                   <span className="text-xs font-medium tabular-nums text-zinc-400">
                     {viewingFollowUp ? "Follow-up" : "Question"} {positionInTab} of {totalInTab}

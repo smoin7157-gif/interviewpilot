@@ -76,6 +76,25 @@ async function streamGenerate(
 
 type Phase = "generating" | "done" | "error";
 
+/**
+ * Did the questions actually get saved?
+ *
+ * Used to recover from a lost final NDJSON event: the route commits the
+ * questions and then emits `done`, so a dropped connection (or a retry that
+ * hits "already generated") can leave a fully-built interview looking failed.
+ * Returns null when the check itself fails — the caller then reports an error.
+ */
+async function savedQuestionCount(sessionId: string): Promise<number | null> {
+  try {
+    const res = await fetch(`/api/interviews/${sessionId}`, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { questionCount?: number };
+    return typeof data.questionCount === "number" ? data.questionCount : null;
+  } catch {
+    return null;
+  }
+}
+
 export function GeneratePanel({
   sessionId,
   context,
@@ -101,6 +120,10 @@ export function GeneratePanel({
     const controller = new AbortController();
     let disposed = false;
     async function run() {
+      // The stream can end without ever delivering `done` (connection reset,
+      // proxy truncation). Without this flag the panel would sit on the spinner
+      // forever with no error and no way to retry.
+      let sawDone = false;
       try {
         await streamGenerate(
           sessionId,
@@ -110,14 +133,41 @@ export function GeneratePanel({
               const idx = STAGES.findIndex((s) => s.key === event.key);
               if (idx >= 0) setStageIndex(idx);
             } else if (event.type === "done") {
+              sawDone = true;
               setDoneInfo({ questionCount: event.questionCount, source: event.provider });
             }
           },
           controller.signal
         );
-        if (!disposed) setPhase("done");
+        if (disposed) return;
+        if (sawDone) {
+          setPhase("done");
+          return;
+        }
+        // No `done` event: the questions may still be saved — check before
+        // showing a failure the user would have to retry by hand.
+        const saved = await savedQuestionCount(sessionId);
+        if (disposed) return;
+        if (saved !== null && saved > 0) {
+          setDoneInfo({ questionCount: saved, source: "saved" });
+          setPhase("done");
+          return;
+        }
+        setPhase("error");
+        setError(
+          "The connection ended before your questions were ready. Nothing was lost — try again and we'll finish generating them."
+        );
       } catch (err) {
         if (disposed || controller.signal.aborted) return;
+        // A failure can also mean the stream broke after the questions were
+        // committed (a retry then gets "already generated"). Same recovery.
+        const saved = await savedQuestionCount(sessionId);
+        if (disposed) return;
+        if (saved !== null && saved > 0) {
+          setDoneInfo({ questionCount: saved, source: "saved" });
+          setPhase("done");
+          return;
+        }
         setPhase("error");
         setError(
           err instanceof Error ? err.message : "We couldn't generate your interview. Please try again."

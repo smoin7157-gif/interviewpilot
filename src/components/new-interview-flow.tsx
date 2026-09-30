@@ -203,7 +203,6 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
   const [projects, setProjects] = useState<ProjectDraft[]>([]);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("form");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<StepKey, StepState>>(INITIAL_STEPS);
@@ -223,39 +222,48 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
   // Inline validation mirrors createInterviewSchema (src/lib/validation.ts),
   // the GitHub username rules (src/lib/github.ts), and the resume upload
   // limits so users see problems as they type, not just on submit.
-  function validateField(key: "role" | "seniority" | "github" | "resume"): string {
-    switch (key) {
-      case "role": {
-        const trimmed = role.trim();
-        if (trimmed.length < 2) return "Enter the job role you're preparing for.";
-        if (trimmed.length > 120) return "Role is too long (120 characters max).";
-        return "";
-      }
-      case "seniority":
-        return seniority ? "" : "Pick your experience level.";
-      case "github": {
-        const url = githubUrl.trim();
-        if (!url) return "";
-        const stripped = url.startsWith("@") ? url.slice(1) : url;
-        const username = (stripped.match(/github\.com\/([^/?#]+)/i) ?? stripped.match(/^([^/?#]+)$/))?.[1]
-          ?.replace(/\/+$/, "");
-        if (!username || !GITHUB_USERNAME_RE.test(username))
-          return "Enter a GitHub profile URL like https://github.com/username.";
-        return "";
-      }
-      case "resume": {
-        if (!resumeFile) return "";
-        const isPdf = resumeFile.type === "application/pdf" || resumeFile.name.toLowerCase().endsWith(".pdf");
-        if (!isPdf) return "That file isn't a PDF. Choose a PDF resume.";
-        if (resumeFile.size > RESUME_MAX_BYTES)
-          return "That resume is larger than 3 MB. Choose a smaller file.";
-        return "";
-      }
-    }
+  //
+  // Each validator takes the value it should judge: a handler that calls
+  // `setRole(next)` and then re-validates would otherwise read the *previous*
+  // state (React state updates are not synchronous), so an error lingered one
+  // keystroke behind and a replaced file kept reporting the old file's problem.
+  function validateRole(value: string): string {
+    const trimmed = value.trim();
+    if (trimmed.length < 2) return "Enter the job role you're preparing for.";
+    if (trimmed.length > 120) return "Role is too long (120 characters max).";
+    return "";
   }
 
-  function revalidate(key: "role" | "seniority" | "github" | "resume") {
-    setFieldError(key, validateField(key));
+  function validateGithub(value: string): string {
+    const url = value.trim();
+    if (!url) return "";
+    const stripped = url.startsWith("@") ? url.slice(1) : url;
+    const username = (stripped.match(/github\.com\/([^/?#]+)/i) ?? stripped.match(/^([^/?#]+)$/))?.[1]
+      ?.replace(/\/+$/, "");
+    if (!username || !GITHUB_USERNAME_RE.test(username))
+      return "Enter a GitHub profile URL like https://github.com/username.";
+    return "";
+  }
+
+  function validateResumeFile(file: File | null): string {
+    if (!file) return "";
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) return "That file isn't a PDF. Choose a PDF resume.";
+    if (file.size > RESUME_MAX_BYTES) return "That resume is larger than 3 MB. Choose a smaller file.";
+    return "";
+  }
+
+  function validateField(key: "role" | "seniority" | "github" | "resume"): string {
+    switch (key) {
+      case "role":
+        return validateRole(role);
+      case "seniority":
+        return seniority ? "" : "Pick your experience level.";
+      case "github":
+        return validateGithub(githubUrl);
+      case "resume":
+        return validateResumeFile(resumeFile);
+    }
   }
 
   const payload: GenerationContextPayload = useMemo(
@@ -284,7 +292,6 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
       github: githubUrl.trim() ? { state: "running" } : { state: "pending" },
       resume: resumeFile ? { state: "running" } : { state: "pending" },
     });
-    setFormError(null);
 
     const cleanedProjects = projects
       .filter((p) => p.name.trim().length > 0)
@@ -394,7 +401,6 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
     }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
-    setFormError(null);
     setPhase("syncing");
     void runSync();
   }
@@ -505,12 +511,6 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_280px]">
         <Card className="p-6 sm:p-8">
-          {formError && (
-            <div role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-              {formError}
-            </div>
-          )}
-
           <div className="space-y-8">
             <section className="space-y-5">
               <SectionTitle
@@ -538,10 +538,11 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                   id="role"
                   value={role}
                   onChange={(e) => {
-                    setRole(e.target.value);
-                    if (fieldErrors.role) revalidate("role");
+                    const next = e.target.value;
+                    setRole(next);
+                    if (fieldErrors.role) setFieldError("role", validateRole(next));
                   }}
-                  onBlur={() => revalidate("role")}
+                  onBlur={(e) => setFieldError("role", validateRole(e.target.value))}
                   placeholder="Software Development Engineer"
                   aria-invalid={Boolean(fieldErrors.role)}
                   className={fieldErrors.role ? "border-red-400 focus:border-red-500 focus:ring-red-500/15" : undefined}
@@ -560,7 +561,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                   value={seniority}
                   onChange={(v) => {
                     setSeniority(v);
-                    if (fieldErrors.seniority) revalidate("seniority");
+                    setFieldError("seniority", v ? "" : "Pick your experience level.");
                   }}
                   ariaLabel="Experience level"
                 />
@@ -618,10 +619,11 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                   id="githubUrl"
                   value={githubUrl}
                   onChange={(e) => {
-                    setGithubUrl(e.target.value);
-                    if (fieldErrors.github) revalidate("github");
+                    const next = e.target.value;
+                    setGithubUrl(next);
+                    if (fieldErrors.github) setFieldError("github", validateGithub(next));
                   }}
-                  onBlur={() => revalidate("github")}
+                  onBlur={(e) => setFieldError("github", validateGithub(e.target.value))}
                   placeholder="https://github.com/username"
                   aria-invalid={Boolean(fieldErrors.github)}
                   aria-describedby={fieldErrors.github ? "githubUrl-error" : undefined}
@@ -655,9 +657,12 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                     accept="application/pdf,.pdf"
                     className="sr-only"
                     onChange={(e) => {
+                      // Validate the picked file itself: `resumeFile` is still the
+                      // previous file during this render, so re-validating state
+                      // reported the wrong file's problem (and never cleared it).
                       const file = e.target.files?.[0] ?? null;
                       setResumeFile(file);
-                      revalidate("resume");
+                      setFieldError("resume", validateResumeFile(file));
                     }}
                   />
                   {resumeFile ? (
