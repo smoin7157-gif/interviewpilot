@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "tsx --test tests/*.test.ts",
     "db:seed": "prisma db seed",
+    "seed:jds": "tsx scripts/generate-job-descriptions.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

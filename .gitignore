@@ -46,3 +46,8 @@ next-env.d.ts
 /prisma/*.db
 /prisma/*.db-journal
 /prisma/*.sqlite-backup
+
+# JD seed generation artifacts (the resumable checkpoint is a cache; the
+# dataset itself is prisma/seed-data/job-descriptions.json)
+/prisma/seed-data/.jd-checkpoint.json
+/.jd-run*.log
