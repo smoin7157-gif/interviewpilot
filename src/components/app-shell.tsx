@@ -6,17 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleHelp, ClipboardList, History, LayoutDashboard, Loader2, LogOut, Menu, Plus, Settings, X } from "lucide-react";
 import { logoutAction } from "@/lib/auth-actions";
-import { cn, initials } from "@/lib/utils";
+import { cn, FOCUSABLE_SELECTOR, initials } from "@/lib/utils";
 import { LogoMark } from "@/components/logo";
-
-const FOCUSABLE_SELECTOR = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  '[tabindex]:not([tabindex="-1"])',
-].join(",");
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

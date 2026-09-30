@@ -26,6 +26,7 @@ import {
   cn,
   countWords,
   estimateSpeakingSeconds,
+  FOCUSABLE_SELECTOR,
   formatClock,
   formatQuestionCategory,
   formatQuestionDifficulty,
@@ -489,6 +490,20 @@ function useAnswerDraft({
     if (persistToServer) void saveAnswerDraftAction(questionId, "").catch(() => {});
   }
 
+  /**
+   * Forget the stored draft but keep the text on screen. Used once an answer
+   * has been submitted and scored: the answer is now an attempt, a fresh draft
+   * would only duplicate it, and clearing the box out from under the user
+   * (seconds after their feedback appears) read as lost work.
+   */
+  function clearStoredDraft() {
+    removeDraftBuffer(storageKey);
+    confirmedText.current = text;
+    setSavedText(text);
+    setFailed(false);
+    if (persistToServer) void saveAnswerDraftAction(questionId, "").catch(() => {});
+  }
+
   const saveState: DraftSaveState =
     text.trim().length === 0
       ? "idle"
@@ -498,7 +513,7 @@ function useAnswerDraft({
           ? "saved"
           : "saving";
 
-  return { text, setText, restored, saveState, discardDraft };
+  return { text, setText, restored, saveState, discardDraft, clearStoredDraft };
 }
 
 function PracticeSection({
@@ -509,6 +524,7 @@ function PracticeSection({
   persistToServer,
   onDraftChange,
   onEvaluated,
+  nextAction,
   className,
 }: {
   prompt: string;
@@ -518,10 +534,12 @@ function PracticeSection({
   persistToServer: boolean;
   onDraftChange?: (storageKey: string, text: string) => void;
   onEvaluated: (feedback: EvaluationFeedback) => void;
+  /** Offered next to the feedback so practice loops answer → feedback → next. */
+  nextAction?: { label: string; onClick: () => void } | null;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { text, setText, restored, saveState, discardDraft } = useAnswerDraft({
+  const { text, setText, restored, saveState, discardDraft, clearStoredDraft } = useAnswerDraft({
     questionId,
     storageKey,
     initialDraft,
@@ -572,8 +590,9 @@ function PracticeSection({
       };
       setFeedback(fb);
       onEvaluated(fb);
-      // The answer is now persisted server-side as an attempt — drop the draft.
-      discardDraft();
+      // The answer is now persisted server-side as an attempt — drop the stored
+      // draft, but leave the text visible beside its feedback.
+      clearStoredDraft();
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't get feedback on that answer. Please try again in a moment.");
@@ -695,6 +714,13 @@ function PracticeSection({
               />
             </div>
           </div>
+          {nextAction && (
+            <div className="mt-3 flex justify-end">
+              <Button size="sm" onClick={nextAction.onClick}>
+                {nextAction.label} <ArrowRight className="size-4" aria-hidden />
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -735,6 +761,9 @@ export function InterviewWorkspace({
   const [tab, setTab] = useState<Tab>("interview");
   const [fupIdx, setFupIdx] = useState(0);
   const [mobileListOpen, setMobileListOpen] = useState(false);
+  const mobileListRef = useRef<HTMLDivElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
+  const detailScrollRef = useRef<HTMLDivElement>(null);
   const [skipping, setSkipping] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const skippingRef = useRef(false);
@@ -777,6 +806,48 @@ export function InterviewWorkspace({
     setTab("followup");
     setMobileListOpen(false);
   }, []);
+
+  // Mobile question list is a modal drawer: lock background scroll, move focus
+  // inside, and close on Escape — the same behaviour as the app-shell drawer,
+  // so a phone user is never stranded inside an overlay.
+  useEffect(() => {
+    if (!mobileListOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    mobileCloseRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileListOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const container = mobileListRef.current;
+      if (!container) return;
+      const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileListOpen]);
+
+  // Selecting another question should start you at its top. Without this the
+  // detail pane keeps the previous question's scroll position, so a click in
+  // the list lands you halfway down a question you have not read yet.
+  useEffect(() => {
+    detailScrollRef.current?.scrollTo({ top: 0 });
+  }, [mainIdx, fupIdx, tab]);
 
   // Keyboard navigation: arrow left / right.
   useEffect(() => {
@@ -884,6 +955,17 @@ export function InterviewWorkspace({
   const totalInTab = viewingFollowUp ? followUps.length : questions.length;
   const positionInTab = viewingFollowUp ? (fupIdx >= followUps.length ? 1 : fupIdx + 1) : mainIdx + 1;
 
+  // What comes after this answer: the next follow-up, back to the question, or
+  // the next question. Offered inside the feedback block so finishing an answer
+  // doesn't require hunting for the bottom bar.
+  const nextAction = viewingFollowUp
+    ? fupIdx + 1 < followUps.length
+      ? { label: "Next follow-up", onClick: () => selectFollowUp(fupIdx + 1) }
+      : { label: "Back to the question", onClick: () => setTab("interview") }
+    : mainIdx + 1 < questions.length
+      ? { label: "Next question", onClick: () => selectMain(mainIdx + 1) }
+      : null;
+
   const goNext = () =>
     viewingFollowUp
       ? setFupIdx((i) => Math.min(i + 1, followUps.length - 1))
@@ -969,10 +1051,17 @@ export function InterviewWorkspace({
             className="absolute inset-0 bg-zinc-950/30"
             onClick={() => setMobileListOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 z-10 flex w-[85%] max-w-sm flex-col bg-white shadow-xl">
+          <div
+            ref={mobileListRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Question list"
+            className="absolute inset-y-0 left-0 z-10 flex w-[85%] max-w-sm flex-col bg-white shadow-xl"
+          >
             <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
               <span className="text-sm font-semibold text-zinc-900">Questions</span>
               <button
+                ref={mobileCloseRef}
                 type="button"
                 onClick={() => setMobileListOpen(false)}
                 aria-label="Close"
@@ -998,7 +1087,7 @@ export function InterviewWorkspace({
           aria-label="Question detail"
           className="flex min-w-0 flex-1 flex-col bg-zinc-50/50"
         >
-          <div className="flex-1 overflow-y-auto">
+          <div ref={detailScrollRef} className="flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 sm:py-9">
               {/* Top meta */}
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -1102,6 +1191,7 @@ export function InterviewWorkspace({
                   persistToServer={!viewingFollowUp}
                   onDraftChange={rememberDraft}
                   onEvaluated={() => handleEvaluated(activeQuestion.id)}
+                  nextAction={nextAction}
                 />
               </section>
 

@@ -10,19 +10,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { TriangleAlert, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, FOCUSABLE_SELECTOR } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 type Tone = "light" | "dark";
-
-const FOCUSABLE_SELECTOR = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "textarea:not([disabled])",
-  "select:not([disabled])",
-  '[tabindex]:not([tabindex="-1"])',
-].join(",");
 
 /**
  * Modal dialog primitive.
