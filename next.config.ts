@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
   // to a non-existent virtual module; loading the real package at runtime
   // (like plain Node) keeps resume parsing working.
   serverExternalPackages: ["pdfjs-dist"],
+  // The offline JD index reads its seed dataset from disk at runtime. Without
+  // tracing the JSON into the serverless bundle, the index would silently
+  // degrade to its generic template bank on Vercel.
+  outputFileTracingIncludes: {
+    "/**": ["prisma/seed-data/job-descriptions.json"],
+  },
   async headers() {
     return [
       {
