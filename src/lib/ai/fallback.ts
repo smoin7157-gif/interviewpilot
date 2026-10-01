@@ -14,6 +14,8 @@ import type {
 } from "./types";
 import { normalizeCategory, normalizeDifficulty } from "./validate";
 import { isShallowAnswer } from "./prompts";
+import { buildJdGroundedPool, type JdGroundedQuestion } from "./jd-questions";
+import { findJdRefs } from "@/lib/jd";
 import { EMPTY_RESUME, type ResumeData } from "@/lib/candidate-context";
 
 /**
@@ -495,6 +497,36 @@ function pick(ctx: GenerationContext, isEligible: (t: Template) => boolean = () 
   return result.slice(0, count);
 }
 
+/**
+ * Deterministic JD-grounding plan: one grounded candidate fixed per template.
+ *
+ * Fixing the mapping (rather than choosing a candidate at selection time) means
+ * the rewrite is stable across calls, so the avoid-list can recognize a
+ * previously-generated grounded question and skip its template — repeat
+ * sessions stay fresh even though their rendered text is now role-specific.
+ *
+ * The template itself still decides category and difficulty, so grounding
+ * cannot change the shape of a generated set. Returns an empty map when no
+ * seed JD matches, leaving the template bank untouched.
+ */
+function planJdGrounding(ctx: GenerationContext): Map<Template, JdGroundedQuestion> {
+  const plan = new Map<Template, JdGroundedQuestion>();
+  const refs = findJdRefs(ctx.role, ctx.seniority, ctx.companyType);
+  if (refs.length === 0) return plan;
+
+  const pool = buildJdGroundedPool(ctx, refs);
+  const cursor = new Map<QuestionCategory, number>();
+  for (const template of TEMPLATES) {
+    const candidates = pool.get(template.category);
+    if (!candidates || candidates.length === 0) continue;
+    const index = cursor.get(template.category) ?? 0;
+    if (index >= candidates.length) continue;
+    plan.set(template, candidates[index]);
+    cursor.set(template.category, index + 1);
+  }
+  return plan;
+}
+
 export class FallbackProvider implements AIProvider {
   readonly name = "fallback";
 
@@ -503,16 +535,40 @@ export class FallbackProvider implements AIProvider {
     // practiced) so repeat offline sessions surface fresh templates. Fill the
     // remaining slots with unused templates via the normal quotas.
     const avoid = new Set((ctx.avoidQuestions ?? []).map((q) => q.trim().toLowerCase()));
-    const selected = pick(ctx, (t) => !avoid.has(t.question(ctx).trim().toLowerCase()));
-    return selected.map((t) => ({
-      question: t.question(ctx),
-      category: t.category,
-      difficulty: t.difficulty,
-      reason: t.reason(ctx),
-      source_context: templateSources(t, ctx),
-      suggested_answer: t.answer(ctx),
-      follow_up_questions: t.followUps(ctx).slice(0, 3),
-    }));
+    const plan = planJdGrounding(ctx);
+    const isEligible = (t: Template): boolean => {
+      if (avoid.has(t.question(ctx).trim().toLowerCase())) return false;
+      const grounded = plan.get(t);
+      // A template whose grounded rewrite was already served counts as seen.
+      return !(grounded && avoid.has(grounded.question.trim().toLowerCase()));
+    };
+
+    const selected = pick(ctx, isEligible);
+    return selected.map((t) => {
+      const grounded = plan.get(t);
+      if (!grounded) {
+        return {
+          question: t.question(ctx),
+          category: t.category,
+          difficulty: t.difficulty,
+          reason: t.reason(ctx),
+          source_context: templateSources(t, ctx),
+          suggested_answer: t.answer(ctx),
+          follow_up_questions: t.followUps(ctx).slice(0, 3),
+        };
+      }
+      // Wording only — category and difficulty stay the template's, so the
+      // seniority mix and interview-type emphasis are unchanged.
+      return {
+        question: grounded.question,
+        category: t.category,
+        difficulty: t.difficulty,
+        reason: grounded.reason,
+        source_context: grounded.source_context,
+        suggested_answer: grounded.suggested_answer,
+        follow_up_questions: grounded.follow_up_questions.slice(0, 3),
+      };
+    });
   }
 
   async extractResume(text: string): Promise<ResumeData> {
