@@ -38,6 +38,7 @@ Next.js App Router
   │   ├── service.ts     facade: pick provider, retry, graceful fallback
   │   ├── openrouter.ts  OpenRouter chat-completions provider (+ interviewer)
   │   ├── fallback.ts    deterministic offline provider (+ interviewer + resume)
+  │   ├── jd-questions.ts JD-grounded candidates for the offline fallback
   │   ├── prompts.ts     system/user prompt builders
   │   └── validate.ts    tolerant JSON extraction + strict validation
   └── jd/                    offline job-description seed dataset (build-time)
@@ -45,6 +46,7 @@ Next.js App Router
       ├── roles.ts           29-role catalog: stack, themes, focus areas
       ├── compose.ts         deterministic offline composer (no API key)
       ├── openrouter-batch.ts batched LLM generator (better wording)
+      ├── index.ts           lazy cached index the fallback reads (role lookup)
       └── dedupe.ts          token-overlap near-duplicate removal
 ```
 
@@ -80,10 +82,19 @@ the artifact. `npm test` covers the dataset (schema validity, full coverage, ≥
 variants per combination, derived `yearsExperience`, no soft-skill
 "technologies", re-dedupe is a no-op) and the composer's variation guarantees.
 
-**Planned (not wired into the app yet):** a compact cached index over this JSON
-and JD-grounded *fallback* questions — the live OpenRouter question path is
-deliberately untouched, so this data cannot regress production generation until
-that step lands deliberately.
+**Runtime grounding (offline path only).** `src/lib/jd/index.ts` reads the JSON
+once per process into a compact, role/seniority-keyed index (fuzzy role
+resolution, experience-level and company-type mapping). When the deterministic
+fallback gets a request whose role matches a seed JD,
+`src/lib/ai/jd-questions.ts` builds candidates from that role's real skills,
+responsibilities and interview focus areas, and `FallbackProvider` rewrites the
+selected templates with them — keeping each template's category and difficulty,
+so the seniority mix, interview-type emphasis, template bank and cross-session
+avoid-list are all unchanged. If the seed file isn't in the deployed bundle the
+index is empty and the fallback uses its bank exactly as before
+(`outputFileTracingIncludes` in `next.config.ts` ships the JSON). The live
+OpenRouter question path is deliberately untouched, so this data cannot regress
+production generation.
 
 ## Key decisions
 

@@ -135,13 +135,18 @@ about the actual role, not a fixed bank of generic templates.
   (schema validity, full combination coverage, ≥3 variants each, re-dedupe is a
   no-op)
 
+- ✅ `src/lib/jd/index.ts` — compact, lazy, cached index over the dataset
+  (role/seniority keyed) with fuzzy role resolution and experience-level /
+  company-type mapping; degrades to an empty index if the seed file is missing,
+  so lookups stay DB-free and the fallback still works
+- ✅ JD-grounded fallback questions (`src/lib/ai/jd-questions.ts`) wired into
+  `FallbackProvider` *additively*: matched seed JDs rewrite the selected
+  templates' wording (skills, responsibilities, interview focus areas) while the
+  template keeps its category and difficulty — the seniority mix, interview-type
+  emphasis, template bank and cross-session avoid-list all stay unchanged, and
+  the live OpenRouter path is untouched
+
 ⬜ Remaining in Phase 6:
-- `src/lib/jd/index.ts` — compact cached index over the dataset (role/seniority
-  keyed), so lookups stay DB-free and cheap
-- JD-grounded fallback questions (`src/lib/ai/jd-questions.ts`) wired into
-  `FallbackProvider` *additively*: seed-grounded questions first, falling through
-  to the template bank, with the existing seniority difficulty mix and
-  cross-session avoid-list preserved so current tests stay green
 - `job_description_templates` Prisma table + `npm run seed:jds:load` so the set
   is also queryable/versionable server-side (needs a migration)
 

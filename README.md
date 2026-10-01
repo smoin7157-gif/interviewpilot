@@ -53,7 +53,10 @@ serve the offline question bank.
 
 In development OpenRouter is optional, and at runtime a failed AI call always
 falls back to the built-in deterministic question bank and evaluator so every
-screen still works. The UI tells you when the fallback is active.
+screen still works. When the target role matches a seed job description, that
+bank is grounded in the role's real skills, responsibilities and interview
+focus areas instead of generic templates (see the JD dataset section below).
+The UI tells you when the fallback is active.
 
 Create an account at `/signup` to start.
 
