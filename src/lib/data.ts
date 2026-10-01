@@ -71,6 +71,7 @@ export interface InterviewSummary {
   questionCount: number;
   practicedCount: number;
   createdAt: Date;
+  updatedAt: Date;
   lastActivityAt: Date | null;
 }
 
@@ -149,6 +150,7 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
     questionCount: session._count.questions,
     practicedCount: practicedMap.get(session.id) ?? 0,
     createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
     lastActivityAt: lastActivityBySession.get(session.id) ?? null,
   }));
 }
@@ -215,6 +217,23 @@ export async function getInterviewSetupDefaults(
     jobDescription: session.jobDescription ?? "",
     questionCount: session.questionCountTarget,
   };
+}
+
+/**
+ * Every owned session as a summary, newest activity first — the backing query
+ * for the unpaginated `GET /api/interviews`.
+ *
+ * Counts are aggregated with the same grouped queries as the paginated list
+ * (see `buildSummaries`), so this never loads per-question rows: the payload
+ * stays O(sessions) instead of O(sessions + questions).
+ */
+export async function listInterviewSummaries(userId: string): Promise<InterviewSummary[]> {
+  const sessions = await prisma.interviewSession.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    select: summarySelect,
+  });
+  return buildSummaries(sessions);
 }
 
 /** Dashboard greeting data: recent sessions (latest first) capped at `limit`. */

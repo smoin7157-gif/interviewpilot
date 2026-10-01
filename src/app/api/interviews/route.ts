@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { listInterviewSummaries } from "@/lib/data";
 import { createInterviewSchema } from "@/lib/validation";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
@@ -73,27 +74,8 @@ export async function GET() {
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const sessions = await prisma.interviewSession.findMany({
-    where: { userId: user.id },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      questions: { select: { status: true } },
-    },
-  });
-
-  return NextResponse.json({
-    interviews: sessions.map((session) => ({
-      id: session.id,
-      role: session.role,
-      seniority: session.seniority,
-      company: session.company,
-      companyType: session.companyType,
-      interviewType: session.interviewType,
-      status: session.status,
-      questionCount: session.questions.length,
-      practicedCount: session.questions.filter((q) => q.status === "PRACTICED").length,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-    })),
-  });
+  // Aggregated counts only — loading every question row for every session made
+  // this endpoint scale with total questions rather than total sessions.
+  const interviews = await listInterviewSummaries(user.id);
+  return NextResponse.json({ interviews });
 }

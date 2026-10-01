@@ -158,21 +158,33 @@ export interface MockHistoryRow {
   createdAt: Date;
 }
 
+/** Selected columns every mock-history query needs: context + a filtered turn count. */
+const mockHistoryInclude = {
+  session: {
+    select: { role: true, company: true, seniority: true, interviewType: true },
+  },
+  // A filtered relation count makes the live-marker count a server-side
+  // aggregate: the list no longer loads every turn row (and reads it into
+  // memory) only to count the interviewer's main questions.
+  _count: {
+    select: {
+      turns: {
+        where: { speaker: "AI", action: { in: ["ask_question", "move_topic"] as string[] } },
+      },
+    },
+  },
+} as const;
+
+type MockHistorySource = Prisma.MockInterviewSessionGetPayload<{
+  include: typeof mockHistoryInclude;
+}>;
+
 /**
  * Assemble MockHistoryRows from already-fetched mocks.
  * (Kept separate from the query so both the full history and the
  * take-limited dashboard strip share the same mapping.)
  */
-function toHistoryRows(
-  mocks: Array<
-    Prisma.MockInterviewSessionGetPayload<{
-      include: {
-        session: { select: { role: true; company: true; seniority: true; interviewType: true } };
-        turns: { select: { speaker: true; action: true } };
-      };
-    }>
-  >
-): MockHistoryRow[] {
+function toHistoryRows(mocks: MockHistorySource[]): MockHistoryRow[] {
   return mocks.map((mock) => ({
     id: mock.id,
     interviewSessionId: mock.interviewSessionId,
@@ -183,20 +195,12 @@ function toHistoryRows(
     status: mock.status,
     overallScore: mock.overallScore,
     hasDebrief: Boolean(mock.debrief && mock.overallScore != null),
-    questionsAsked: countMainQuestions(mock.turns),
+    questionsAsked: mock._count.turns,
     startedAt: mock.startedAt,
     endedAt: mock.endedAt,
     createdAt: mock.createdAt,
   }));
 }
-
-/** Selected columns every mock-history query needs (context + a turn count). */
-const mockHistoryInclude = {
-  session: {
-    select: { role: true, company: true, seniority: true, interviewType: true },
-  },
-  turns: { select: { speaker: true, action: true } },
-} as const;
 
 /** Every mock session a user owns, newest first, with its interview context. */
 export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> {
