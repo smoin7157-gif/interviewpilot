@@ -50,7 +50,9 @@ model InterviewSession {
   projects  CandidateProject[]
   mocks     MockInterviewSession[]
 
-  @@index([userId])
+  // Keyset-paginated list + dashboard strips filter by userId and order by
+  // updatedAt, so the composite serves both the filter and the sort.
+  @@index([userId, updatedAt])
   @@map("interview_sessions")
 }
 
@@ -93,6 +95,8 @@ model InterviewQuestion {
   attempts QuestionAttempt[]
 
   @@index([sessionId, orderIndex])
+  // Practiced-count aggregation groups by session and filters on status.
+  @@index([sessionId, status])
   @@map("interview_questions")
 }
 
@@ -109,8 +113,10 @@ model QuestionAttempt {
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   question InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([questionId])
+  // Latest-attempt lookups filter by user/question and order by createdAt; the
+  // composites cover the single-column prefixes too, so no separate indexes.
+  @@index([userId, createdAt])
+  @@index([questionId, createdAt])
   @@map("question_attempts")
 }
 

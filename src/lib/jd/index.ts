@@ -30,6 +30,12 @@ interface JdIndex {
   byRoleSeniority: Map<string, JdSeedRef[]>;
   /** Every normalized catalog role label, used for fuzzy resolution. */
   normalizedRoles: Set<string>;
+  /**
+   * Whole-word matcher per normalized role, compiled once at index build.
+   * Fuzzy role resolution used to compile a fresh RegExp for every role on
+   * every lookup; the catalog is static, so the patterns are precomputed.
+   */
+  roleMatchers: Map<string, RegExp>;
 }
 
 const SEED_PATH = path.join(process.cwd(), "prisma", "seed-data", "job-descriptions.json");
@@ -50,10 +56,9 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Whole-word containment, so "backend" never matches "frontend". */
-function wholeWordContains(haystack: string, needle: string): boolean {
-  if (!needle) return false;
-  return new RegExp(`(?:^| )${escapeRegExp(needle)}(?: |$)`).test(haystack);
+/** Whole-word pattern for `needle` inside a normalized, single-spaced string. */
+function wholeWordPattern(needle: string): RegExp {
+  return new RegExp(`(?:^| )${escapeRegExp(needle)}(?: |$)`);
 }
 
 function buildIndex(): JdIndex {
@@ -77,7 +82,12 @@ function buildIndex(): JdIndex {
     byRoleSeniority.set(key, list);
   }
 
-  return { byRoleSeniority, normalizedRoles };
+  const roleMatchers = new Map<string, RegExp>();
+  for (const normalizedRole of normalizedRoles) {
+    roleMatchers.set(normalizedRole, wholeWordPattern(normalizedRole));
+  }
+
+  return { byRoleSeniority, normalizedRoles, roleMatchers };
 }
 
 /**
@@ -91,7 +101,7 @@ function index(): JdIndex {
     cached = buildIndex();
   } catch (err) {
     console.warn(`[jd] seed index unavailable: ${err instanceof Error ? err.message : String(err)}`);
-    cached = { byRoleSeniority: new Map(), normalizedRoles: new Set() };
+    cached = { byRoleSeniority: new Map(), normalizedRoles: new Set(), roleMatchers: new Map() };
   }
   return cached;
 }
@@ -129,18 +139,34 @@ export function toSeedCompanyType(companyType?: string): CompanyType | null {
  * Resolve free-text role input to a catalog role. Exact normalized match wins;
  * otherwise the longest catalog label contained in (or containing) the input,
  * so "Senior Backend Engineer" resolves to "Backend Engineer".
+ *
+ * The catalog-side matchers are precompiled on the index; the query-side
+ * pattern is built once per lookup instead of once per role.
  */
-function resolveRole(normalizedQuery: string, roles: Set<string>): string | null {
-  if (!normalizedQuery || roles.size === 0) return null;
-  if (roles.has(normalizedQuery)) return normalizedQuery;
+function resolveRole(normalizedQuery: string, index: JdIndex): string | null {
+  const { normalizedRoles, roleMatchers } = index;
+  if (!normalizedQuery || normalizedRoles.size === 0) return null;
+  if (normalizedRoles.has(normalizedQuery)) return normalizedQuery;
 
+  const queryMatcher = wholeWordPattern(normalizedQuery);
   let best: string | null = null;
-  for (const role of roles) {
-    if (!wholeWordContains(normalizedQuery, role) && !wholeWordContains(role, normalizedQuery)) continue;
+  for (const role of normalizedRoles) {
+    const roleMatcher = roleMatchers.get(role);
+    if (!roleMatcher) continue;
+    if (!roleMatcher.test(normalizedQuery) && !queryMatcher.test(role)) continue;
     if (best === null || role.length > best.length) best = role;
   }
   return best;
 }
+
+/**
+ * Memoized lookups. The seed index is immutable and resolution is a pure
+ * function of (role, seniority, companyType), so repeat generations for a
+ * common role skip both fuzzy matching and company-type filtering. Capped so a
+ * stream of arbitrary free-text roles can't grow the map without bound.
+ */
+const LOOKUP_CACHE_LIMIT = 500;
+const lookupCache = new Map<string, JdSeedRef[]>();
 
 /**
  * Seed JD variants matching a role + experience level (and company type when it
@@ -151,16 +177,28 @@ export function findJdRefs(role: string, seniority: string, companyType?: string
   const seniorityEnum = toSeedSeniority(seniority);
   if (!seniorityEnum) return [];
 
-  const { byRoleSeniority, normalizedRoles } = index();
-  const resolved = resolveRole(normalizeRoleLabel(role), normalizedRoles);
+  const normalizedQuery = normalizeRoleLabel(role);
+  const companyKey = (companyType ?? "").trim().toLowerCase();
+  const cacheKey = `${normalizedQuery}|${seniorityEnum}|${companyKey}`;
+  const cachedRefs = lookupCache.get(cacheKey);
+  if (cachedRefs) return cachedRefs;
+
+  const idx = index();
+  const resolved = resolveRole(normalizedQuery, idx);
   if (!resolved) return [];
 
-  const refs = byRoleSeniority.get(`${resolved}|${seniorityEnum}`);
+  const refs = idx.byRoleSeniority.get(`${resolved}|${seniorityEnum}`);
   if (!refs || refs.length === 0) return [];
 
   const wantedCompanyType = toSeedCompanyType(companyType);
-  if (!wantedCompanyType) return refs;
+  const result = wantedCompanyType
+    ? (() => {
+        const filtered = refs.filter((ref) => ref.companyType === wantedCompanyType);
+        return filtered.length > 0 ? filtered : refs;
+      })()
+    : refs;
 
-  const filtered = refs.filter((ref) => ref.companyType === wantedCompanyType);
-  return filtered.length > 0 ? filtered : refs;
+  if (lookupCache.size >= LOOKUP_CACHE_LIMIT) lookupCache.clear();
+  lookupCache.set(cacheKey, result);
+  return result;
 }

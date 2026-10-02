@@ -311,6 +311,19 @@ const TECH_KEYWORDS = [
   "numpy", "scikit-learn", "git", "linux", "ci/cd", "jenkins", "figma", "tableau", "excel", "ml", "ai",
 ] as const;
 
+/**
+ * Precompiled keyword matchers. The resume heuristic runs on every upload, and
+ * compiling ~60 regexes per parse was pure overhead — the patterns are static,
+ * so they are built once at module load and reused (non-global, so `.test` is
+ * stateless). Order matches TECH_KEYWORDS, keeping technology ordering stable.
+ */
+const TECH_KEYWORD_MATCHERS: ReadonlyArray<{ label: string; pattern: RegExp }> = TECH_KEYWORDS.map(
+  (kw) => ({
+    label: kw === "node.js" ? "Node.js" : kw === "next.js" ? "Next.js" : kw === "ml" || kw === "ai" ? kw.toUpperCase() : kw,
+    pattern: new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`),
+  })
+);
+
 const HEADER_SECTION_KEY = (line: string): keyof ResumeData | null => {
   const trimmed = line.trim().replace(/:\s*$/, "");
   if (trimmed.length < 2 || trimmed.length > 40) return null;
@@ -333,10 +346,9 @@ function extractResumeHeuristic(text: string): ResumeData {
 
   // Technologies: keyword scan across the whole text (only facts present).
   const technologies: string[] = [];
-  for (const kw of TECH_KEYWORDS) {
+  for (const { label, pattern } of TECH_KEYWORD_MATCHERS) {
     if (technologies.length >= 25) break;
-    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`\\b${escaped}\\b`).test(lower)) technologies.push(kw === "node.js" ? "Node.js" : kw === "next.js" ? "Next.js" : kw === "ml" || kw === "ai" ? kw.toUpperCase() : kw);
+    if (pattern.test(lower)) technologies.push(label);
   }
   result.technologies = technologies;
 

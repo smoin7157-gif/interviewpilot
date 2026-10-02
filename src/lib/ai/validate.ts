@@ -118,7 +118,12 @@ function questionFingerprint(question: string): string[] {
 
 function isNearDuplicate(a: string[], b: string[]): boolean {
   if (a.length === 0 || b.length === 0) return false;
-  const shared = a.filter((t) => b.includes(t)).length;
+  // Set membership keeps this O(a + b) — the avoid-list check runs every
+  // fingerprint against up to 200 prior questions, so the nested `.includes`
+  // scan added up.
+  const setB = new Set(b);
+  let shared = 0;
+  for (const token of a) if (setB.has(token)) shared++;
   const smaller = Math.min(a.length, b.length);
   // ≥ 60% token overlap on the smaller question ⇒ effectively the same ask.
   return shared / smaller >= 0.6;

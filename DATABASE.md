@@ -94,9 +94,15 @@ Written by the `saveAnswerDraftAction` server action (see API.md).
   is verified at the query level and would be reinforced by RLS on Postgres.
 - **Cascades**: deleting a user/session/question removes dependents via
   `onDelete: Cascade`.
-- **Indexes**: `interview_sessions(userId)`,
-  `interview_questions(sessionId, orderIndex)`, `question_attempts(userId)`,
-  `question_attempts(questionId)`.
+- **Indexes** (composites cover their single-column prefixes):
+  `interview_sessions(userId, updatedAt)` for list pagination,
+  `interview_questions(sessionId, orderIndex)` for question order,
+  `interview_questions(sessionId, status)` for progress counts,
+  `question_attempts(userId, createdAt)` and
+  `question_attempts(questionId, createdAt)` for latest-attempt lookups,
+  `mock_interview_sessions(userId, createdAt)`,
+  `mock_interview_sessions(interviewSessionId, status)`, and
+  `interview_turns(mockSessionId, turnIndex)`.
 - **JSON columns**: `followUps`, `feedback` are validated before writing.
 
 ### mock_interview_sessions
@@ -135,6 +141,8 @@ One row per spoken exchange in a mock session — the transcript. Raw audio/vide
 *Migration `interviewos_mock_interview` added the two mock entities above.*
 *Migration `add_question_draft` added `draftAnswer`/`draftSavedAt` to
 `interview_questions`.*
+*Migration `add_hot_path_indexes` replaced the single-column session/attempt
+indexes with composites matching the app's read patterns.*
 
 ## Planned entities (not yet in schema)
 
