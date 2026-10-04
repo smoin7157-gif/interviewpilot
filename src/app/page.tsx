@@ -304,11 +304,53 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 text-sm text-zinc-500 sm:flex-row">
-          <Logo href="/" />
-          <p className="order-first text-zinc-500 sm:order-last">
-            AI-powered interview practice built around the job you actually want.
-          </p>
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 py-10 text-sm text-zinc-500 sm:flex-row">
+          <div className="flex flex-col items-center gap-3 sm:items-start">
+            <Logo href="/" />
+            <p className="text-center text-zinc-500 sm:text-left">
+              AI-powered interview practice built around the job you actually want.
+            </p>
+          </div>
+          <nav
+            aria-label="Footer"
+            className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
+          >
+            <Link
+              href="#features"
+              className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+            >
+              Why InterviewOS
+            </Link>
+            <Link
+              href="#how-it-works"
+              className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+            >
+              How it works
+            </Link>
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="font-medium text-indigo-600 transition-colors hover:text-indigo-500"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="font-medium text-indigo-600 transition-colors hover:text-indigo-500"
+                >
+                  Start practicing
+                </Link>
+              </>
+            )}
+          </nav>
         </div>
       </footer>
     </div>
