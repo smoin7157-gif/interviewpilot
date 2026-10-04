@@ -11,7 +11,9 @@ import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/pagination";
 import { MockDeleteButton } from "@/components/mock-delete-button";
 
-export const metadata: Metadata = { title: "Mock History · InterviewOS" };
+// The root layout's title template appends "· InterviewOS", so only the page
+// name belongs here — including it again produced a doubled suffix.
+export const metadata: Metadata = { title: "Mock History" };
 
 function statusInfo(status: string): { label: string; tone: "green" | "amber" | "zinc" | "red" } {
   switch (status) {

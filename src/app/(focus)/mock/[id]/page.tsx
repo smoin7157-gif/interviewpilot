@@ -4,7 +4,8 @@ import { requireUser } from "@/lib/auth";
 import { getOwnedInterviewSession } from "@/lib/mock";
 import { MockInterview } from "@/components/mock-interview";
 
-export const metadata: Metadata = { title: "AI Mock Interview · InterviewOS" };
+// The root layout's title template appends "· InterviewOS" — see history/page.tsx.
+export const metadata: Metadata = { title: "AI Mock Interview" };
 
 export default async function MockInterviewPage({
   params,
