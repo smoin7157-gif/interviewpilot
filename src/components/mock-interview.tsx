@@ -51,6 +51,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { DebriefView } from "@/components/debrief-view";
+import { DebriefExport } from "@/components/debrief-export";
 import type { DebriefData } from "@/lib/types";
 
 type Stage = "preflight" | "starting" | "live" | "done";
@@ -85,6 +86,8 @@ interface MockDetail {
   status: string;
   maxQuestions: number;
   questionsAsked: number;
+  /** ISO timestamp; present on the GET detail response, used to date exports. */
+  startedAt?: string;
   turns: Array<{ speaker: string; text: string; action?: string | null; category?: string | null; difficulty?: string | null }>;
 }
 
@@ -676,6 +679,13 @@ export function MockInterview({
               ) : debrief ? (
                 <>
                   <DebriefView debrief={debrief} tone="dark" />
+                  <DebriefExport
+                    debrief={debrief}
+                    meta={{ role, company, seniority, interviewType, createdAt: doneSummary?.startedAt }}
+                    turns={(doneSummary?.turns ?? []).map((turn) => ({ speaker: turn.speaker, text: turn.text }))}
+                    tone="dark"
+                    className="mt-4"
+                  />
                   <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
                     {doneSummary?.id ? (
                       <Link
