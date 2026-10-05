@@ -93,6 +93,10 @@ Remaining in Phase 3 (roadmap notes):
   `/history/[id]` (full debrief + transcript), `GET
   /api/mock-interviews/history`, `DELETE /api/mock-interviews/:id`,
   dashboard "Recent Mock Interviews" strip.
+- ✅ Debrief + transcript export: copy as Markdown or download a `.md` file
+  from the completion screen and `/history/[id]`
+  (`src/lib/debrief-export.ts` + the shared `DebriefExport` component;
+  transcript-only when no debrief exists yet).
 
 ## Phase 5 — Polish ✅ (this build)
 

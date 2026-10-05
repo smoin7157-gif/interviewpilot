@@ -140,7 +140,11 @@ production generation.
    structured 6-dimension debrief (Zod-validated, deterministic fallback), and
    persists `overallScore` + `debrief` on the session. Scores are explicitly
    session-level practice feedback — never employability claims. History
-   lives at `/history` and `/history/[id]` with re-practice and delete.
+   lives at `/history` and `/history/[id]` with re-practice and delete. A
+   stored debrief (plus its transcript) can be copied or downloaded as
+   Markdown through the pure `src/lib/debrief-export.ts` serializer and the
+   shared `DebriefExport` client component, shown on the completion screen and
+   the history detail page, so feedback isn't trapped in the app.
 9. **Environment is validated before the server serves traffic.**
    `src/instrumentation.ts` runs `assertEnv()` (`src/lib/env.ts`, zod) once per
    server instance, before the instance accepts requests. Vercel bakes env

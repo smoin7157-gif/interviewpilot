@@ -109,6 +109,8 @@ Practice aloud → preflight (mic + optional camera self-view, permission copy)
   → End → completion screen auto-generates your debrief (6-dimension score,
     strengths/weaknesses, recommended practice) → full debrief + transcript
     saved to /history for re-practice or delete
+  → copy the debrief + transcript as Markdown, or download a .md file, from
+    the completion screen or the saved debrief at /history/{id}
 ```
 
 ## Useful commands
