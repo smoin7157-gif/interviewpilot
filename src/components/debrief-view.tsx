@@ -9,16 +9,8 @@
 
 import { AlertTriangle, ArrowUpRight, Check, Lightbulb, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
 import type { DebriefData } from "@/lib/types";
+import { DIMENSION_LABELS } from "@/lib/debrief-export";
 import { cn } from "@/lib/utils";
-
-const DIMENSION_LABELS: Record<string, string> = {
-  technical: "Technical",
-  communication: "Communication",
-  structure: "Structure",
-  relevance: "Relevance",
-  project_knowledge: "Project knowledge",
-  problem_solving: "Problem solving",
-};
 
 function scoreTone(score: number): string {
   if (score >= 80) return "emerald";
