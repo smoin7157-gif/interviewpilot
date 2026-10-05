@@ -9,6 +9,7 @@ import type { DebriefData } from "@/lib/types";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DebriefView } from "@/components/debrief-view";
+import { DebriefExport } from "@/components/debrief-export";
 import { DebriefPanel } from "@/components/debrief-panel";
 import { MockDeleteButton } from "@/components/mock-delete-button";
 
@@ -26,6 +27,14 @@ export default async function MockDebriefPage({ params }: { params: Promise<{ id
   const hasDebrief = Boolean(debrief && mock.overallScore != null);
   const questionsAsked = countMainQuestions(mock.turns);
   const complete = mock.status === "SESSION_COMPLETE";
+  const exportMeta = {
+    role: mock.session.role,
+    company: mock.session.company,
+    seniority: mock.session.seniority,
+    interviewType: mock.session.interviewType,
+    createdAt: mock.createdAt,
+  };
+  const exportTurns = mock.turns.map((turn) => ({ speaker: turn.speaker, text: turn.transcript }));
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-8">
@@ -80,9 +89,21 @@ export default async function MockDebriefPage({ params }: { params: Promise<{ id
 
       <div className="mt-8">
         {hasDebrief && debrief ? (
-          <DebriefView debrief={debrief} tone="light" />
+          <>
+            <DebriefView debrief={debrief} tone="light" />
+            <DebriefExport
+              debrief={debrief}
+              meta={exportMeta}
+              turns={exportTurns}
+              tone="light"
+              className="mt-4"
+            />
+          </>
         ) : (
-          <DebriefPanel mockId={mock.id} />
+          <>
+            <DebriefPanel mockId={mock.id} />
+            <DebriefExport meta={exportMeta} turns={exportTurns} tone="light" className="mt-4" />
+          </>
         )}
       </div>
 
