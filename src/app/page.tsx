@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { Logo } from "@/components/logo";
+import { LandingDemo } from "@/components/landing-demo";
 import { buttonClasses } from "@/components/ui/button";
 
 const features = [
@@ -98,6 +99,12 @@ export default async function Home() {
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Logo href="/" />
           <nav aria-label="Primary" className="flex items-center gap-1.5">
+            <Link
+              href="#sample"
+              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
+            >
+              See a sample
+            </Link>
             <Link
               href="#features"
               className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
@@ -198,6 +205,25 @@ export default async function Home() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Interactive sample */}
+        <section id="sample" className="scroll-mt-20 border-b border-zinc-200 bg-white">
+          <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
+                See a real question
+              </p>
+              <h2 className="mt-4 text-balance text-4xl font-bold tracking-[-0.03em] text-zinc-950 sm:text-[44px] sm:leading-[1.08]">
+                Every question comes with depth, not just a prompt.
+              </h2>
+              <p className="mt-5 text-lg leading-relaxed text-zinc-500">
+                Pick a role and open a sample the way you would in the workspace — why it matters, a
+                strong answer to aim for, and the follow-ups that come next.
+              </p>
+            </div>
+            <LandingDemo primaryHref={primaryHref} />
           </div>
         </section>
 
@@ -315,6 +341,12 @@ export default async function Home() {
             aria-label="Footer"
             className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
           >
+            <Link
+              href="#sample"
+              className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+            >
+              See a sample
+            </Link>
             <Link
               href="#features"
               className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
