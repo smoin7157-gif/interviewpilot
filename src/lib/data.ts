@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { listRecentMocks, listScoreTrend, type MockScorePoint } from "@/lib/mock";
+import { currentStreak, dayKey, type PracticeStats } from "@/lib/stats";
 import type { InterviewSetupDefaults } from "@/lib/types";
 import {
   buildCursorPage,
@@ -258,6 +259,80 @@ export async function getRecentMocks(userId: string, limit = 3) {
  */
 export async function getScoreTrend(userId: string, limit = 20): Promise<MockScorePoint[]> {
   return listScoreTrend(userId, limit);
+}
+
+/**
+ * Everything the dashboard's momentum panel needs: totals across the account,
+ * the mock-score summary, and consecutive practice days.
+ *
+ * All counts are server-side aggregates (`count`/`aggregate`), and the two date
+ * reads are bounded to a 60-day window and capped, so the panel costs a fixed
+ * handful of index scans no matter how long the history gets. The streak is
+ * derived from attempt + mock start timestamps — the moments the user actually
+ * practiced.
+ */
+export interface PracticeOverview extends PracticeStats {
+  latestMock: { id: string; hasDebrief: boolean } | null;
+}
+
+export async function getPracticeOverview(userId: string): Promise<PracticeOverview> {
+  const since = new Date();
+  since.setDate(since.getDate() - 60);
+
+  const [
+    interviews,
+    questionsGenerated,
+    questionsPracticed,
+    mocksCompleted,
+    scores,
+    attemptDays,
+    mockStarts,
+    latestMockRow,
+  ] = await Promise.all([
+    prisma.interviewSession.count({ where: { userId } }),
+    prisma.interviewQuestion.count({ where: { session: { userId } } }),
+    prisma.interviewQuestion.count({ where: { session: { userId }, status: "PRACTICED" } }),
+    prisma.mockInterviewSession.count({ where: { userId, status: "SESSION_COMPLETE" } }),
+    prisma.mockInterviewSession.aggregate({
+      where: { userId, overallScore: { not: null } },
+      _avg: { overallScore: true },
+      _max: { overallScore: true },
+    }),
+    prisma.questionAttempt.findMany({
+      where: { userId, createdAt: { gte: since } },
+      select: { createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    }),
+    prisma.mockInterviewSession.findMany({
+      where: { userId, startedAt: { gte: since } },
+      select: { startedAt: true },
+      take: 200,
+    }),
+    prisma.mockInterviewSession.findFirst({
+      where: { userId, status: "SESSION_COMPLETE" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, overallScore: true, debrief: true },
+    }),
+  ]);
+
+  const practiceDayKeys = new Set<string>();
+  for (const row of attemptDays) practiceDayKeys.add(dayKey(row.createdAt));
+  for (const row of mockStarts) practiceDayKeys.add(dayKey(row.startedAt));
+
+  return {
+    interviews,
+    questionsGenerated,
+    questionsPracticed,
+    mocksCompleted,
+    averageScore: scores._avg.overallScore == null ? null : Math.round(scores._avg.overallScore),
+    bestScore: scores._max.overallScore ?? null,
+    streakDays: currentStreak(practiceDayKeys, new Date()),
+    practiceDays: practiceDayKeys.size,
+    latestMock: latestMockRow
+      ? { id: latestMockRow.id, hasDebrief: Boolean(latestMockRow.debrief && latestMockRow.overallScore != null) }
+      : null,
+  };
 }
 
 /**

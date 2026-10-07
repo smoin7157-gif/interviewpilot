@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Mic, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getRecentMocks, getRecentSessions, getScoreTrend } from "@/lib/data";
+import { getPracticeOverview, getRecentMocks, getRecentSessions, getScoreTrend } from "@/lib/data";
 import { greeting, formatRelativeTime, pluralize } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScoreTrendChart } from "@/components/score-trend-chart";
+import { NextStepCard, PracticeStatsStrip } from "@/components/practice-overview";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -35,11 +36,12 @@ function MockScoreChip({ score }: { score: number }) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  // The panels fetch independently — one round trip instead of three.
-  const [recent, recentMocks, scoreTrend] = await Promise.all([
+  // The panels fetch independently — one round trip instead of four.
+  const [recent, recentMocks, scoreTrend, overview] = await Promise.all([
     getRecentSessions(user.id, 3),
     getRecentMocks(user.id, 3),
     getScoreTrend(user.id),
+    getPracticeOverview(user.id),
   ]);
 
   return (
@@ -58,6 +60,11 @@ export default async function DashboardPage() {
           <Plus className="size-4" aria-hidden /> New Interview
         </Link>
       </div>
+
+      <section aria-label="Practice momentum" className="mt-8 space-y-4">
+        <NextStepCard overview={overview} />
+        <PracticeStatsStrip overview={overview} />
+      </section>
 
       <section className="mt-10">
         <div className="flex items-center justify-between">
