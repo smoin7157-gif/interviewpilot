@@ -16,6 +16,8 @@ import {
   List,
   MessageCircleQuestion,
   Mic,
+  PanelLeftClose,
+  PanelLeftOpen,
   PenLine,
   Sparkles,
   X,
@@ -760,6 +762,11 @@ export function InterviewWorkspace({
   );
   const [tab, setTab] = useState<Tab>("interview");
   const [fupIdx, setFupIdx] = useState(0);
+  // Distraction-free reading: collapses the desktop question list so a long
+  // question or a suggested answer can be read without the index beside it.
+  // Session-scoped on purpose — a persisted preference would need a post-mount
+  // sync that flashes the wrong layout on first paint.
+  const [focusMode, setFocusMode] = useState(false);
   const [mobileListOpen, setMobileListOpen] = useState(false);
   const mobileListRef = useRef<HTMLDivElement>(null);
   const mobileCloseRef = useRef<HTMLButtonElement>(null);
@@ -1022,6 +1029,20 @@ export function InterviewWorkspace({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setFocusMode((value) => !value)}
+            aria-pressed={focusMode}
+            title={focusMode ? "Show the question list" : "Hide the question list"}
+            className="hidden items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-zinc-600 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 md:inline-flex"
+          >
+            {focusMode ? (
+              <PanelLeftOpen className="size-3.5" aria-hidden />
+            ) : (
+              <PanelLeftClose className="size-3.5" aria-hidden />
+            )}
+            {focusMode ? "Show list" : "Focus"}
+          </button>
           <div className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-zinc-100 sm:block" role="presentation">
             <div
               className="h-full rounded-full bg-indigo-500 transition-all"
@@ -1077,10 +1098,13 @@ export function InterviewWorkspace({
 
       {/* Body */}
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        {/* Desktop list */}
-        <aside className="hidden w-80 shrink-0 border-r border-zinc-200 bg-white md:block xl:w-96">
-          {listContent}
-        </aside>
+        {/* Desktop list — hidden in focus mode, where the mobile slide-over
+            still opens it on small screens. */}
+        {!focusMode && (
+          <aside className="hidden w-80 shrink-0 border-r border-zinc-200 bg-white md:block xl:w-96">
+            {listContent}
+          </aside>
+        )}
 
         {/* Detail */}
         <section
