@@ -8,6 +8,7 @@ import { CircleHelp, ClipboardList, History, LayoutDashboard, Loader2, LogOut, M
 import { logoutAction } from "@/lib/auth-actions";
 import { cn, FOCUSABLE_SELECTOR, initials } from "@/lib/utils";
 import { LogoMark } from "@/components/logo";
+import { CommandPalette, CommandPaletteTrigger } from "@/components/command-palette";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -60,11 +61,16 @@ function SidebarContent({
         <Link
           href="/interviews/new"
           onClick={onNavigate}
-          className="mb-5 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-indigo-600 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(61,78,224,.5)] transition-colors hover:bg-indigo-700"
+          className="mb-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-indigo-600 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(61,78,224,.5)] transition-colors hover:bg-indigo-700"
         >
           <Plus className="size-4" aria-hidden />
           Create Interview
         </Link>
+
+        {/* Closes the mobile drawer, then opens the palette over the page. */}
+        <div onClick={onNavigate} className="mb-5">
+          <CommandPaletteTrigger />
+        </div>
 
         <nav aria-label="Main" className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
@@ -231,17 +237,20 @@ export function AppShell({
             Interview<span className="text-indigo-600">OS</span>
           </span>
         </Link>
-        <button
-          ref={openButtonRef}
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Open navigation"
-          aria-expanded={drawerOpen}
-          aria-haspopup="dialog"
-          className="rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          <Menu className="size-5" aria-hidden />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <CommandPaletteTrigger variant="icon" />
+          <button
+            ref={openButtonRef}
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation"
+            aria-expanded={drawerOpen}
+            aria-haspopup="dialog"
+            className="rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <Menu className="size-5" aria-hidden />
+          </button>
+        </div>
       </div>
 
       {/* Main */}
@@ -250,6 +259,8 @@ export function AppShell({
           <div className="h-full overflow-y-auto">{children}</div>
         </main>
       </div>
+
+      <CommandPalette />
     </div>
   );
 }
