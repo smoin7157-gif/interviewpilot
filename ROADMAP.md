@@ -154,6 +154,24 @@ about the actual role, not a fixed bank of generic templates.
 - `job_description_templates` Prisma table + `npm run seed:jds:load` so the set
   is also queryable/versionable server-side (needs a migration)
 
+## Phase 7 — Experience polish ✅ (this build)
+
+Faster to navigate and clearer about what to do next, without touching the AI
+pipeline.
+
+- ✅ **⌘K command palette** — keyboard-first navigation to every top-level page
+  and "Create interview", with focus trapping and triggers in the sidebar and
+  mobile top bar (`src/components/command-palette.tsx`)
+- ✅ **Dashboard momentum panel** — derived practice streak, practiced/total
+  questions, completed mocks and best debrief score, plus a single
+  next-best-step card; rules live in a pure `src/lib/stats.ts` guarded by
+  `tests/stats.test.ts`
+- ✅ **Interactive landing sample** — per-role sample questions with
+  why-it-matters, a revealable answer and follow-ups
+  (`src/components/landing-demo.tsx`)
+- ✅ **Workspace focus mode** — collapse the desktop question list for
+  distraction-free reading (mobile slide-over unaffected)
+
 ## Explicitly out of scope (do not build)
 
 Real-interview copilot, stealth assistance, screen capture, employer tools,

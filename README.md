@@ -17,6 +17,18 @@ written practice, the AI mock interview, and the mock **debrief + history**
 re-practice, delete) — plus the Phase 5 polish: accessibility, rate limiting,
 security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
 
+## Highlights
+
+- **⌘K command palette** — jump to any page or start a new interview from
+  anywhere in the app (Ctrl+K on Windows/Linux).
+- **Dashboard momentum panel** — your practice streak, practiced/total
+  questions, completed mocks and best debrief score, plus a single "next step"
+  card that points at the most useful thing to do next.
+- **Interactive landing sample** — open a real sample question per role (why it
+  matters, a revealable suggested answer, follow-ups) before you sign up.
+- **Focus mode** — collapse the question list in the practice workspace for
+  distraction-free reading and answer comparison.
+
 ## Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) — pages + API routes
@@ -84,9 +96,11 @@ way to confirm a fresh Vercel deploy is actually wired up (`200` healthy,
 
 ```text
 Open app → Create account / Log in
-  → Dashboard → "+ New Interview" (or "Practice again with this setup" on a
-    card in My Interviews / a saved debrief, which reopens the form pre-filled
-    with that role, company and job description)
+  → Dashboard (streak · practice stats · one "next step" card)
+    → "+ New Interview", or ⌘K → "Create interview" from anywhere
+    (or "Practice again with this setup" on a card in My Interviews / a saved
+    debrief, which reopens the form pre-filled with that role, company and job
+    description)
     → target job: Company / Company type · Job role (required) ·
       Experience level (required) · Interview type · Job description · 10/15/20 questions
     → "Generate Interview" (streams: Analyzing role → Questions → Follow-ups → Saving)

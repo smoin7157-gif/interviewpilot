@@ -169,7 +169,9 @@ production generation.
 
 | Area | Files |
 | --- | --- |
-| Landing | `src/app/page.tsx` |
+| Landing | `src/app/page.tsx` + `landing-demo.tsx` (interactive sample question) |
+| Command palette | `src/components/command-palette.tsx` (⌘K; mounted once in the app shell) |
+| Practice analytics | `src/lib/stats.ts` (pure) → `src/components/practice-overview.tsx` on the dashboard |
 | Health | `src/app/api/health/route.ts` (DB round-trip; 200/503) |
 | Auth | `src/app/(auth)/*`, `src/lib/auth-actions.ts`, `src/proxy.ts` (edge gate) |
 | Shell | `src/components/app-shell.tsx` (sidebar, mobile drawer) |
@@ -285,7 +287,8 @@ distracts during practice.
   hydration, mock page shell, FAQ (they own auth + DB reads).
 - **Client components**: auth forms, create-interview form, streaming
   generation panel, interview workspace (tabs, reveal/hide, practice,
-  evaluation, keyboard nav), mock interview screen, session delete menu.
+  evaluation, keyboard nav, focus mode), mock interview screen, session delete
+  menu, the ⌘K command palette, and the landing sample demo.
 - **Server actions**: `signupAction`, `loginAction`, `logoutAction`,
   `updateProfileAction`, `changePasswordAction` (`src/lib/auth-actions.ts`),
   plus `saveAnswerDraftAction` (`src/lib/draft-actions.ts`) for written-practice
@@ -339,6 +342,27 @@ dataset + composer.
   boundary (interviewer crashes mid-session recover in place), and the history
   debrief panel honors the rate limiter's `Retry-After` with a visible
   countdown instead of a generic error.
+
+## Navigation & practice analytics (post-V1 polish)
+
+- **Command palette** (`src/components/command-palette.tsx`): a keyboard-first
+  launcher for every top-level page plus "Create interview", opened with
+  ⌘K/Ctrl+K or the sidebar/top-bar triggers. It is decoupled from the shell via
+  a window event (`openCommandPalette()`), traps focus, restores focus to its
+  trigger, and never becomes the only route to a screen — every command is also
+  in the sidebar.
+- **Practice analytics** (`src/lib/stats.ts`): the dashboard's streak and
+  next-step logic as pure functions (`currentStreak`, `streakFromDates`,
+  `nextBestStep`), unit-tested in `tests/stats.test.ts`. `data.ts`
+  (`getPracticeOverview`) runs the bounded aggregates — counts, score
+  min/max/avg, and a 60-day window of attempt/mock timestamps — and the panel
+  renders them. Nothing is fabricated: empty states show a dash rather than
+  zeros dressed up as progress.
+- **Landing sample** (`src/components/landing-demo.tsx`): an interactive,
+  clearly-labelled illustration of one question per role, mirroring the
+  workspace's why-it-matters → suggested answer → follow-ups structure.
+- **Workspace focus mode**: a header toggle that collapses the desktop question
+  list for distraction-free reading; the mobile slide-over still reaches it.
 
 ## Future modules (extension points)
 
