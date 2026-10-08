@@ -134,6 +134,11 @@ export default async function DashboardPage() {
             icon={Mic}
             title="Practice aloud with the AI interviewer."
             description="From any interview, hit “Practice aloud” to rehearse spoken answers and get a scored debrief."
+            action={
+              <Link href="/interviews?status=ready" className={buttonClasses({ variant: "outline", size: "sm" })}>
+                Find an interview to practice
+              </Link>
+            }
           />
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -165,14 +170,22 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-10">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h2 className="text-base font-semibold text-zinc-900">Recent Interviews</h2>
-          <Link
-            href="/interviews"
-            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            View all <ArrowRight className="size-3.5" aria-hidden />
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/interviews?status=practiced"
+              className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-800"
+            >
+              In progress
+            </Link>
+            <Link
+              href="/interviews"
+              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              View all <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </div>
         </div>
 
         {recent.length === 0 ? (

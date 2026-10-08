@@ -1047,12 +1047,13 @@ export function MockInterview({
           </div>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Practice aloud with an AI interviewer.
-          </h1>            <p className="mt-2 text-[15px] leading-relaxed text-zinc-400">
-              You&rsquo;ll answer spoken questions and get live follow-ups — just like the real thing.
-              Your microphone is used only to transcribe your spoken answers in your browser; transcripts are
-              saved to your session, but audio is never recorded. The camera, if you turn it on, is a private
-              self-view and is never sent anywhere.
-            </p>
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-zinc-400">
+            You&rsquo;ll answer spoken questions and get live follow-ups — just like the real thing.
+            Your microphone is used only to transcribe your spoken answers in your browser; transcripts are
+            saved to your session, but audio is never recorded. The camera, if you turn it on, is a private
+            self-view and is never sent anywhere.
+          </p>
 
           {/* Context summary */}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -1199,7 +1200,12 @@ export function MockInterview({
               )}
             </button>
             <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
-              {questionCount} prepared {questionCount === 1 ? "question" : "questions"} · {Math.min(targetCount || 10, questionCount)} will be asked
+              {questionCount} prepared {questionCount === 1 ? "question" : "questions"} ·{" "}
+              {Math.min(targetCount || 10, questionCount)} will be asked · about{" "}
+              {Math.max(2, Math.min(targetCount || 10, questionCount) * 2)} minutes
+            </p>
+            <p className="mt-1 text-center text-xs leading-relaxed text-zinc-600">
+              You can end the mock at any time — your transcript is saved as you go.
             </p>
           </div>
         </div>
