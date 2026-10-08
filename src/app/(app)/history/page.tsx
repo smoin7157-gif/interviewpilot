@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/pagination";
 import { MockDeleteButton } from "@/components/mock-delete-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // The root layout's title template appends "· InterviewOS", so only the page
 // name belongs here — including it again produced a doubled suffix.
@@ -45,45 +47,44 @@ export default async function HistoryPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-[28px]">Mock History</h1>
-          <p className="mt-1.5 text-[15px] text-zinc-500">
-            Every AI mock interview you&rsquo;ve practiced aloud, with debriefs and scores.
-          </p>
-        </div>
-        <Link href="/interviews" className={buttonClasses({ size: "lg" })}>
-          <Plus className="size-4" aria-hidden /> Create Interview
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Spoken practice"
+        title="Mock History"
+        description="Every AI mock interview you've practiced aloud, with debriefs and scores."
+        actions={
+          <Link href="/interviews" className={buttonClasses({ size: "lg" })}>
+            <Plus className="size-4" aria-hidden /> Create Interview
+          </Link>
+        }
+      />
 
       {mocks.length === 0 ? (
         params.cursor ? (
           // The cursor's session was deleted between requests — offer a way
           // back to the newest page rather than a dead end.
-          <Card className="mt-8 flex flex-col items-center px-6 py-16 text-center">
-            <h2 className="text-lg font-semibold text-zinc-950">This page is empty.</h2>
-            <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
-              Your mock history moved on — probably because a session was deleted.
-            </p>
-            <Link href="/history" className={buttonClasses({ size: "lg", className: "mt-7" })}>
-              Back to mock history
-            </Link>
-          </Card>
+          <EmptyState
+            className="mt-8"
+            icon={MicVocal}
+            title="This page is empty."
+            description="Your mock history moved on — probably because a session was deleted."
+            action={
+              <Link href="/history" className={buttonClasses({ size: "lg" })}>
+                Back to mock history
+              </Link>
+            }
+          />
         ) : (
-          <Card className="mt-8 flex flex-col items-center px-6 py-20 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-              <MicVocal className="size-7" aria-hidden />
-            </div>
-            <h2 className="mt-5 text-lg font-semibold text-zinc-950">No mock interviews yet.</h2>
-            <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
-              Open any generated interview and hit &ldquo;Practice aloud&rdquo; to rehearse with the AI
-              interviewer. Completed sessions land here with a full debrief.
-            </p>
-            <Link href="/interviews" className={buttonClasses({ size: "lg", className: "mt-7" })}>
-              <Mic className="size-4" aria-hidden /> Go to My Interviews
-            </Link>
-          </Card>
+          <EmptyState
+            className="mt-8"
+            icon={MicVocal}
+            title="No mock interviews yet."
+            description="Open any generated interview and hit “Practice aloud” to rehearse with the AI interviewer. Completed sessions land here with a full debrief."
+            action={
+              <Link href="/interviews" className={buttonClasses({ size: "lg" })}>
+                <Mic className="size-4" aria-hidden /> Go to My Interviews
+              </Link>
+            }
+          />
         )
       ) : (
         <ul className="mt-8 space-y-3">

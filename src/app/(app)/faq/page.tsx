@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, MessagesSquare } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "FAQ" };
 
@@ -87,18 +88,12 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
 export default function FaqPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-8">
-      <div className="text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-600">
-          <MessagesSquare className="size-3.5" aria-hidden />
-          Help Center
-        </span>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-[28px]">
-          Frequently asked questions
-        </h1>
-        <p className="mx-auto mt-2 max-w-lg text-[15px] leading-relaxed text-zinc-500">
-          Everything you need to know about practicing, your history, and how your data is handled.
-        </p>
-      </div>
+      <PageHeader
+        align="center"
+        eyebrow="Help center"
+        title="Frequently asked questions"
+        description="Everything you need to know about practicing, your history, and how your data is handled."
+      />
 
       <div className="mt-10 space-y-8">
         {FAQ_GROUPS.map((group) => (

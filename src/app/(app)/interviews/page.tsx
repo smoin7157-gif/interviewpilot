@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/pagination";
 import { SessionMenu } from "@/components/session-menu";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = { title: "My Interviews" };
 
@@ -24,43 +26,44 @@ export default async function InterviewsPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-[28px]">My Interviews</h1>
-          <p className="mt-1.5 text-[15px] text-zinc-500">Practice for the roles that matter to you.</p>
-        </div>
-        <Link href="/interviews/new" className={buttonClasses({ size: "lg" })}>
-          <Plus className="size-4" aria-hidden /> New Interview
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Your practice library"
+        title="My Interviews"
+        description="Practice for the roles that matter to you."
+        actions={
+          <Link href="/interviews/new" className={buttonClasses({ size: "lg" })}>
+            <Plus className="size-4" aria-hidden /> New Interview
+          </Link>
+        }
+      />
 
       {sessions.length === 0 ? (
         params.cursor ? (
           // A cursor that no longer resolves (the session was deleted between
           // requests) is not an empty account — send the user back to page one.
-          <Card className="mt-8 flex flex-col items-center px-6 py-16 text-center">
-            <h2 className="text-lg font-semibold text-zinc-950">This page is empty.</h2>
-            <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
-              The interview list moved on — probably because a session was deleted.
-            </p>
-            <Link href="/interviews" className={buttonClasses({ size: "lg", className: "mt-7" })}>
-              Back to my interviews
-            </Link>
-          </Card>
+          <EmptyState
+            className="mt-8"
+            icon={ClipboardList}
+            title="This page is empty."
+            description="The interview list moved on — probably because a session was deleted."
+            action={
+              <Link href="/interviews" className={buttonClasses({ size: "lg" })}>
+                Back to my interviews
+              </Link>
+            }
+          />
         ) : (
-          <Card className="mt-8 flex flex-col items-center px-6 py-20 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-              <ClipboardList className="size-7" aria-hidden />
-            </div>
-            <h2 className="mt-5 text-lg font-semibold text-zinc-950">Your interview practice starts here.</h2>
-            <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-500">
-              Create an interview for the role you&rsquo;re targeting and we&rsquo;ll generate realistic
-              questions for you to practice.
-            </p>
-            <Link href="/interviews/new" className={buttonClasses({ size: "lg", className: "mt-7" })}>
-              <Plus className="size-4" aria-hidden /> Create Interview
-            </Link>
-          </Card>
+          <EmptyState
+            className="mt-8"
+            icon={ClipboardList}
+            title="Your interview practice starts here."
+            description="Create an interview for the role you're targeting and we'll generate realistic questions for you to practice."
+            action={
+              <Link href="/interviews/new" className={buttonClasses({ size: "lg" })}>
+                <Plus className="size-4" aria-hidden /> Create Interview
+              </Link>
+            }
+          />
         )
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

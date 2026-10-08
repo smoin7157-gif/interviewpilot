@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScoreTrendChart } from "@/components/score-trend-chart";
 import { NextStepCard, PracticeStatsStrip } from "@/components/practice-overview";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -46,20 +48,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-indigo-600">{greeting()}, {user.name.split(" ")[0]}</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-[28px]">
-            Prepare for your next interview.
-          </h1>
-          <p className="mt-1.5 text-[15px] text-zinc-500">
-            Create an interview for the role you&rsquo;re targeting and practice realistic questions.
-          </p>
-        </div>
-        <Link href="/interviews/new" className={buttonClasses({ size: "lg" })}>
-          <Plus className="size-4" aria-hidden /> New Interview
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow={`${greeting()}, ${user.name.split(" ")[0]}`}
+        title="Prepare for your next interview."
+        description="Create an interview for the role you're targeting and practice realistic questions."
+        actions={
+          <Link href="/interviews/new" className={buttonClasses({ size: "lg" })}>
+            <Plus className="size-4" aria-hidden /> New Interview
+          </Link>
+        }
+      />
 
       <section aria-label="Practice momentum" className="mt-8 space-y-4">
         <NextStepCard overview={overview} />
@@ -95,24 +93,26 @@ export default async function DashboardPage() {
             />
           </Card>
         ) : (
-          <Card className="mt-4 flex flex-col items-center px-6 py-10 text-center">
-            <div className="flex size-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-              <TrendingUp className="size-5" aria-hidden />
-            </div>
-            <h3 className="mt-3 text-base font-semibold text-zinc-900">
-              {scoreTrend.length === 1
+          <EmptyState
+            className="mt-4"
+            size="sm"
+            icon={TrendingUp}
+            title={
+              scoreTrend.length === 1
                 ? "One scored mock so far."
-                : "Your score trend starts after your first mock."}
-            </h3>
-            <p className="mt-1 max-w-sm text-sm leading-relaxed text-zinc-500">
-              {scoreTrend.length === 1
+                : "Your score trend starts after your first mock."
+            }
+            description={
+              scoreTrend.length === 1
                 ? "Finish one more spoken mock interview and your progress will chart here."
-                : "Complete a spoken mock interview and its overall score will chart here, so you can see whether you're improving."}
-            </p>
-            <Link href="/interviews" className={buttonClasses({ variant: "outline", size: "sm", className: "mt-5" })}>
-              View my interviews
-            </Link>
-          </Card>
+                : "Complete a spoken mock interview and its overall score will chart here, so you can see whether you're improving."
+            }
+            action={
+              <Link href="/interviews" className={buttonClasses({ variant: "outline", size: "sm" })}>
+                View my interviews
+              </Link>
+            }
+          />
         )}
       </section>
 
@@ -128,16 +128,13 @@ export default async function DashboardPage() {
         </div>
 
         {recentMocks.length === 0 ? (
-          <Card className="mt-4 flex flex-col items-center justify-center px-6 py-10 text-center">
-            <div className="flex size-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-              <Mic className="size-5" aria-hidden />
-            </div>
-            <h3 className="mt-3 text-base font-semibold text-zinc-900">Practice aloud with the AI interviewer.</h3>
-            <p className="mt-1 max-w-sm text-sm leading-relaxed text-zinc-500">
-              From any interview, hit &ldquo;Practice aloud&rdquo; to rehearse spoken answers and get a
-              scored debrief.
-            </p>
-          </Card>
+          <EmptyState
+            className="mt-4"
+            size="sm"
+            icon={Mic}
+            title="Practice aloud with the AI interviewer."
+            description="From any interview, hit “Practice aloud” to rehearse spoken answers and get a scored debrief."
+          />
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-3">
             {recentMocks.map((mock) => (
@@ -179,19 +176,17 @@ export default async function DashboardPage() {
         </div>
 
         {recent.length === 0 ? (
-          <Card className="mt-4 flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="flex size-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-              <Plus className="size-6" aria-hidden />
-            </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">Your interview practice starts here.</h3>
-            <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-zinc-500">
-              Create an interview for the role you&rsquo;re targeting and we&rsquo;ll generate realistic
-              questions for you.
-            </p>
-            <Link href="/interviews/new" className={buttonClasses({ className: "mt-6" })}>
-              Create Interview
-            </Link>
-          </Card>
+          <EmptyState
+            className="mt-4"
+            icon={Plus}
+            title="Your interview practice starts here."
+            description="Create an interview for the role you're targeting and we'll generate realistic questions for you."
+            action={
+              <Link href="/interviews/new" className={buttonClasses()}>
+                Create Interview
+              </Link>
+            }
+          />
         ) : (
           <ul className="mt-4 space-y-3">
             {recent.map((session) => (

@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { GeneratePanel, type GenerationContextPayload } from "@/components/generate-interview";
 
 type Phase = "form" | "syncing" | "generating";
@@ -413,10 +414,11 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
   if (phase === "generating" && sessionId) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Preparing your interview</h1>
-        <p className="mt-1.5 text-[15px] text-zinc-500">
-          Sit tight — we&rsquo;re tailoring questions to this role and what you told us.
-        </p>
+        <PageHeader
+          eyebrow="New interview"
+          title="Preparing your interview"
+          description="Sit tight — we're tailoring questions to this role and what you told us."
+        />
         <div className="mt-8">
           <GeneratePanel
             sessionId={sessionId}
@@ -433,10 +435,11 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
     const sessionError = steps.session.state === "error";
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Adding your context</h1>
-        <p className="mt-1.5 text-[15px] text-zinc-500">
-          We&rsquo;re preparing your session before generating questions.
-        </p>
+        <PageHeader
+          eyebrow="New interview"
+          title="Adding your context"
+          description="We're preparing your session before generating questions."
+        />
 
         <Card className="mt-8 p-6 sm:p-8">
           <ul className="space-y-5">
@@ -487,12 +490,11 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-[28px]">
-        Prepare for your interview
-      </h1>
-      <p className="mt-1.5 text-[15px] text-zinc-500">
-        Give InterviewOS enough context to make your practice relevant to the job you&rsquo;re targeting.
-      </p>
+      <PageHeader
+        eyebrow="New interview"
+        title="Prepare for your interview"
+        description="Give InterviewOS enough context to make your practice relevant to the job you're targeting."
+      />
 
       {defaults && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
