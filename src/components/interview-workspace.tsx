@@ -729,6 +729,40 @@ function PracticeSection({
   );
 }
 
+/**
+ * Shown once every question has been practiced.
+ *
+ * Written practice used to just... continue to the next question with no
+ * acknowledgement that the set was finished, so the natural next step (rehearse
+ * it aloud) was only discoverable from the header. This makes finishing visible
+ * and puts the spoken mock one click away.
+ */
+function AllPracticedBanner({ onStartMock }: { onStartMock: () => void }) {
+  return (
+    <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+          <CheckCircle2 className="size-5" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="font-display text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+            Written practice complete
+          </p>
+          <h2 className="mt-1 text-base font-bold tracking-[-0.01em] text-zinc-950">
+            You&rsquo;ve practiced every question.
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-600">
+            Now rehearse it aloud with the AI interviewer to test your delivery under pressure.
+          </p>
+        </div>
+      </div>
+      <Button onClick={onStartMock} className="shrink-0">
+        <Mic className="size-4" aria-hidden /> Practice aloud
+      </Button>
+    </div>
+  );
+}
+
 function FeedbackList({ title, items, icon }: { title: string; items: string[]; icon: React.ReactNode }) {
   if (items.length === 0) return null;
   return (
@@ -757,9 +791,15 @@ export function InterviewWorkspace({
 }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<WorkspaceQuestion[]>(initialQuestions);
-  const [mainIdx, setMainIdx] = useState(() =>
-    initialQuestions.length > 0 ? 0 : -1
-  );
+  // Open on the first question that hasn't been practiced yet, so returning to
+  // a half-finished interview drops the user back where they left off instead
+  // of at question 1 every time. Falls back to the first question when the set
+  // is complete.
+  const [mainIdx, setMainIdx] = useState(() => {
+    if (initialQuestions.length === 0) return -1;
+    const firstUnfinished = initialQuestions.findIndex((q) => q.status !== "PRACTICED");
+    return firstUnfinished === -1 ? 0 : firstUnfinished;
+  });
   const [tab, setTab] = useState<Tab>("interview");
   const [fupIdx, setFupIdx] = useState(0);
   // Distraction-free reading: collapses the desktop question list so a long
@@ -971,7 +1011,8 @@ export function InterviewWorkspace({
       : { label: "Back to the question", onClick: () => setTab("interview") }
     : mainIdx + 1 < questions.length
       ? { label: "Next question", onClick: () => selectMain(mainIdx + 1) }
-      : null;
+      : // Last question: point at the spoken mock rather than dead-ending.
+        { label: "Practice aloud", onClick: () => router.push(`/mock/${session.id}`) };
 
   const goNext = () =>
     viewingFollowUp
@@ -1113,6 +1154,10 @@ export function InterviewWorkspace({
         >
           <div ref={detailScrollRef} className="flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 sm:py-9">
+              {practicedCount === questions.length && questions.length > 0 && (
+                <AllPracticedBanner onStartMock={() => router.push(`/mock/${session.id}`)} />
+              )}
+
               {/* Top meta */}
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1254,8 +1299,11 @@ export function InterviewWorkspace({
             <Button variant="outline" size="sm" onClick={goPrev} disabled={positionInTab <= 1} className="w-32">
               <ChevronLeft className="size-4" aria-hidden /> Previous
             </Button>
-            <p className="text-xs font-medium tabular-nums text-zinc-400">
+            <p className="text-center text-xs font-medium tabular-nums text-zinc-400">
               {viewingFollowUp ? "Follow-up" : "Question"} {positionInTab} of {totalInTab}
+              <span className="mt-0.5 block font-normal text-zinc-300">
+                Use <kbd className="font-sans">←</kbd> <kbd className="font-sans">→</kbd> to move
+              </span>
             </p>
             <Button size="sm" onClick={goNext} disabled={positionInTab >= totalInTab} className="w-32">
               Next Question <ArrowRight className="size-4" aria-hidden />
