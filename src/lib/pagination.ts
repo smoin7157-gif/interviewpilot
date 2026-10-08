@@ -39,13 +39,45 @@ export function parsePageParams(searchParams: { cursor?: string; dir?: string } 
   };
 }
 
-/** Build a list URL for one pagination step (the plain path when unparameterized). */
-export function pageHref(pathname: string, params: PageParams): string {
+/** Extra, non-pagination query params (filters) to carry alongside a cursor. */
+export type ExtraQuery = Record<string, string | undefined>;
+
+/**
+ * Build a list URL for one pagination step (the plain path when
+ * unparameterized). `extra` carries the active filters (`?q=` / `?status=`) so
+ * paging never silently drops them from a filtered list.
+ */
+export function pageHref(pathname: string, params: PageParams, extra: ExtraQuery = {}): string {
   const search = new URLSearchParams();
   if (params.cursor) search.set("cursor", params.cursor);
   if (params.direction === "newer") search.set("dir", "newer");
+  for (const [key, value] of Object.entries(extra)) {
+    if (value) search.set(key, value);
+  }
   const query = search.toString();
   return query ? `${pathname}?${query}` : pathname;
+}
+
+/**
+ * Read a free-text search term off `?q=`. Trimmed and length-capped so a
+ * stray paste can't become an unbounded `ILIKE` pattern.
+ */
+export function parseSearchQuery(searchParams: { q?: string } = {}): string {
+  return (searchParams.q ?? "").trim().slice(0, 80);
+}
+
+/**
+ * Keep only a known `?status=` value, falling back to `"all"` for anything
+ * else — so an unknown value renders the unfiltered list instead of an empty
+ * one.
+ */
+export function parseStatusFilter<T extends string>(
+  searchParams: { status?: string },
+  allowed: readonly T[],
+  fallback: T = "all" as T
+): T {
+  const value = (searchParams.status ?? "").trim() as T;
+  return allowed.includes(value) ? value : fallback;
 }
 
 /**

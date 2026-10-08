@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardList, Mic, Plus, Repeat2 } from "lucide-react";
+import { ClipboardList, Mic, Plus, Repeat2, SearchX } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listSessionsPage } from "@/lib/data";
-import { parsePageParams } from "@/lib/pagination";
+import { INTERVIEW_STATUS_FILTERS, listSessionsPage } from "@/lib/data";
+import { parsePageParams, parseSearchQuery, parseStatusFilter } from "@/lib/pagination";
 import { formatRelativeTime, pluralize } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,17 +12,32 @@ import { Pagination } from "@/components/pagination";
 import { SessionMenu } from "@/components/session-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ListFilters, filterQuery, type FilterOption } from "@/components/list-filters";
 
 export const metadata: Metadata = { title: "My Interviews" };
+
+const STATUS_OPTIONS: readonly FilterOption[] = [
+  { value: "all", label: "All" },
+  { value: "ready", label: "Ready" },
+  { value: "practiced", label: "Practiced" },
+  { value: "draft", label: "Not generated" },
+];
 
 export default async function InterviewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cursor?: string; dir?: string }>;
+  searchParams: Promise<{ cursor?: string; dir?: string; q?: string; status?: string }>;
 }) {
   const user = await requireUser();
-  const params = parsePageParams(await searchParams);
-  const { items: sessions, olderCursor, newerCursor } = await listSessionsPage(user.id, params);
+  const raw = await searchParams;
+  const params = parsePageParams(raw);
+  const q = parseSearchQuery(raw);
+  const status = parseStatusFilter(raw, INTERVIEW_STATUS_FILTERS);
+  const hasFilters = q.length > 0 || status !== "all";
+  const { items: sessions, olderCursor, newerCursor } = await listSessionsPage(user.id, params, {
+    q,
+    status,
+  });
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
@@ -37,12 +52,36 @@ export default async function InterviewsPage({
         }
       />
 
+      <ListFilters
+        className="mt-6"
+        basePath="/interviews"
+        query={q}
+        status={status}
+        statusOptions={STATUS_OPTIONS}
+      />
+
       {sessions.length === 0 ? (
-        params.cursor ? (
+        hasFilters ? (
+          <EmptyState
+            className="mt-4"
+            icon={SearchX}
+            title="No interviews match these filters."
+            description={
+              q
+                ? `Nothing matched “${q}”. Try a different role, company, or status.`
+                : "No interviews are in that state yet. Try another filter."
+            }
+            action={
+              <Link href="/interviews" className={buttonClasses({ variant: "outline", size: "lg" })}>
+                Clear filters
+              </Link>
+            }
+          />
+        ) : params.cursor ? (
           // A cursor that no longer resolves (the session was deleted between
           // requests) is not an empty account — send the user back to page one.
           <EmptyState
-            className="mt-8"
+            className="mt-4"
             icon={ClipboardList}
             title="This page is empty."
             description="The interview list moved on — probably because a session was deleted."
@@ -54,7 +93,7 @@ export default async function InterviewsPage({
           />
         ) : (
           <EmptyState
-            className="mt-8"
+            className="mt-4"
             icon={ClipboardList}
             title="Your interview practice starts here."
             description="Create an interview for the role you're targeting and we'll generate realistic questions for you to practice."
@@ -66,7 +105,7 @@ export default async function InterviewsPage({
           />
         )
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {sessions.map((session) => {
             const progress = session.questionCount === 0 ? 0 : Math.round((session.practicedCount / session.questionCount) * 100);
             const actionLabel = session.questionCount === 0 ? "Generate" : session.practicedCount > 0 ? "Continue" : "Start";
@@ -151,6 +190,7 @@ export default async function InterviewsPage({
         olderCursor={olderCursor}
         newerCursor={newerCursor}
         label="My interviews pages"
+        query={filterQuery(q, status)}
       />
     </div>
   );

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mic, MicVocal, Plus, Repeat2, Sparkles } from "lucide-react";
+import { Mic, MicVocal, Plus, Repeat2, SearchX, Sparkles } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listOwnedMocksPage } from "@/lib/mock";
-import { parsePageParams } from "@/lib/pagination";
+import { MOCK_STATUS_FILTERS, listOwnedMocksPage } from "@/lib/mock";
+import { parsePageParams, parseSearchQuery, parseStatusFilter } from "@/lib/pagination";
 import { formatRelativeTime, pluralize } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Pagination } from "@/components/pagination";
 import { MockDeleteButton } from "@/components/mock-delete-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ListFilters, filterQuery, type FilterOption } from "@/components/list-filters";
 
 // The root layout's title template appends "· InterviewOS", so only the page
 // name belongs here — including it again produced a doubled suffix.
@@ -36,14 +37,28 @@ function ScoreBadge({ score }: { score: number }) {
   return <Badge tone={tone}>{score}/100</Badge>;
 }
 
+const STATUS_OPTIONS: readonly FilterOption[] = [
+  { value: "all", label: "All" },
+  { value: "complete", label: "Complete" },
+  { value: "active", label: "In progress" },
+  { value: "scored", label: "Scored" },
+];
+
 export default async function HistoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cursor?: string; dir?: string }>;
+  searchParams: Promise<{ cursor?: string; dir?: string; q?: string; status?: string }>;
 }) {
   const user = await requireUser();
-  const params = parsePageParams(await searchParams);
-  const { items: mocks, olderCursor, newerCursor } = await listOwnedMocksPage(user.id, params);
+  const raw = await searchParams;
+  const params = parsePageParams(raw);
+  const q = parseSearchQuery(raw);
+  const status = parseStatusFilter(raw, MOCK_STATUS_FILTERS);
+  const hasFilters = q.length > 0 || status !== "all";
+  const { items: mocks, olderCursor, newerCursor } = await listOwnedMocksPage(user.id, params, {
+    q,
+    status,
+  });
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-8">
@@ -58,12 +73,36 @@ export default async function HistoryPage({
         }
       />
 
+      <ListFilters
+        className="mt-6"
+        basePath="/history"
+        query={q}
+        status={status}
+        statusOptions={STATUS_OPTIONS}
+      />
+
       {mocks.length === 0 ? (
-        params.cursor ? (
+        hasFilters ? (
+          <EmptyState
+            className="mt-4"
+            icon={SearchX}
+            title="No mock sessions match these filters."
+            description={
+              q
+                ? `Nothing matched “${q}”. Try a different role, company, or status.`
+                : "No sessions are in that state yet. Try another filter."
+            }
+            action={
+              <Link href="/history" className={buttonClasses({ variant: "outline", size: "lg" })}>
+                Clear filters
+              </Link>
+            }
+          />
+        ) : params.cursor ? (
           // The cursor's session was deleted between requests — offer a way
           // back to the newest page rather than a dead end.
           <EmptyState
-            className="mt-8"
+            className="mt-4"
             icon={MicVocal}
             title="This page is empty."
             description="Your mock history moved on — probably because a session was deleted."
@@ -75,7 +114,7 @@ export default async function HistoryPage({
           />
         ) : (
           <EmptyState
-            className="mt-8"
+            className="mt-4"
             icon={MicVocal}
             title="No mock interviews yet."
             description="Open any generated interview and hit “Practice aloud” to rehearse with the AI interviewer. Completed sessions land here with a full debrief."
@@ -87,7 +126,7 @@ export default async function HistoryPage({
           />
         )
       ) : (
-        <ul className="mt-8 space-y-3">
+        <ul className="mt-4 space-y-3">
           {mocks.map((mock) => {
             const status = statusInfo(mock.status);
             return (
@@ -150,6 +189,7 @@ export default async function HistoryPage({
         olderCursor={olderCursor}
         newerCursor={newerCursor}
         label="Mock history pages"
+        query={filterQuery(q, status)}
       />
     </div>
   );

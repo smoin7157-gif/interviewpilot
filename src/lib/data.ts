@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { listRecentMocks, listScoreTrend, type MockScorePoint } from "@/lib/mock";
 import { currentStreak, dayKey, type PracticeStats } from "@/lib/stats";
@@ -156,18 +157,61 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
   }));
 }
 
+/** Status buckets offered by the My Interviews filter bar. */
+export const INTERVIEW_STATUS_FILTERS = ["all", "ready", "draft", "practiced"] as const;
+export type InterviewStatusFilter = (typeof INTERVIEW_STATUS_FILTERS)[number];
+
+/** Narrowing for the interview list: free-text search plus a lifecycle bucket. */
+export interface InterviewListFilters {
+  /** Matches the role or company, case-insensitively. */
+  q?: string;
+  /** `ready` = questions generated, `draft` = none yet, `practiced` = started. */
+  status?: InterviewStatusFilter;
+}
+
+/** Build the `where` clause the interview list and its API share. */
+function interviewListWhere(
+  userId: string,
+  filters: InterviewListFilters
+): Prisma.InterviewSessionWhereInput {
+  const where: Prisma.InterviewSessionWhereInput = { userId };
+  if (filters.q) {
+    where.OR = [
+      { role: { contains: filters.q, mode: "insensitive" } },
+      { company: { contains: filters.q, mode: "insensitive" } },
+    ];
+  }
+  switch (filters.status) {
+    case "ready":
+      where.questions = { some: {} };
+      break;
+    case "draft":
+      where.questions = { none: {} };
+      break;
+    case "practiced":
+      where.questions = { some: { status: "PRACTICED" } };
+      break;
+    default:
+      break;
+  }
+  return where;
+}
+
 /**
  * One page of a user's interview sessions with question/practice stats,
  * newest activity first. Keyset-paginated (`?cursor=`), so the list stays a
- * flat 10-row query however many sessions the user accumulates.
+ * flat 10-row query however many sessions the user accumulates. Optional
+ * search/status filters narrow the same query, so a filtered list is still a
+ * single indexed page rather than a client-side scan.
  */
 export async function listSessionsPage(
   userId: string,
-  params: PageParams
+  params: PageParams,
+  filters: InterviewListFilters = {}
 ): Promise<CursorPage<InterviewSummary>> {
   const { cursor, direction } = params;
   const rows = await prisma.interviewSession.findMany({
-    where: { userId },
+    where: interviewListWhere(userId, filters),
     // `id` breaks ties so the cursor stays deterministic when two sessions
     // share an `updatedAt` (bulk generation, seeded data).
     orderBy:

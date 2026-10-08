@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
-import { pageHref } from "@/lib/pagination";
+import { pageHref, type ExtraQuery } from "@/lib/pagination";
 
 /**
  * Newer/Older controls for a keyset-paginated list.
@@ -16,12 +16,15 @@ export function Pagination({
   olderCursor,
   newerCursor,
   label,
+  query,
 }: {
   basePath: string;
   olderCursor: string | null;
   newerCursor: string | null;
   /** Accessible name for the nav landmark, e.g. "Mock history pages". */
   label: string;
+  /** Active filters to carry across pages (`?q=` / `?status=`). */
+  query?: ExtraQuery;
 }) {
   if (!olderCursor && !newerCursor) return null;
 
@@ -29,7 +32,7 @@ export function Pagination({
     <nav aria-label={label} className="mt-6 flex items-center justify-between gap-3">
       {newerCursor ? (
         <Link
-          href={pageHref(basePath, { cursor: newerCursor, direction: "newer" })}
+          href={pageHref(basePath, { cursor: newerCursor, direction: "newer" }, query)}
           rel="prev"
           className={buttonClasses({ variant: "outline", size: "sm" })}
         >
@@ -40,7 +43,7 @@ export function Pagination({
       )}
       {olderCursor ? (
         <Link
-          href={pageHref(basePath, { cursor: olderCursor, direction: "older" })}
+          href={pageHref(basePath, { cursor: olderCursor, direction: "older" }, query)}
           rel="next"
           className={buttonClasses({ variant: "outline", size: "sm" })}
         >

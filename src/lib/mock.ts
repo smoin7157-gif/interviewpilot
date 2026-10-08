@@ -212,18 +212,60 @@ export async function listOwnedMocks(userId: string): Promise<MockHistoryRow[]> 
   return toHistoryRows(mocks);
 }
 
+/** Status buckets offered by the Mock History filter bar. */
+export const MOCK_STATUS_FILTERS = ["all", "complete", "active", "scored"] as const;
+export type MockStatusFilter = (typeof MOCK_STATUS_FILTERS)[number];
+
+/** Narrowing for mock history: free-text search plus a lifecycle bucket. */
+export interface MockListFilters {
+  /** Matches the interview's role or company, case-insensitively. */
+  q?: string;
+  /** `complete` = finished, `active` = in progress, `scored` = has a debrief. */
+  status?: MockStatusFilter;
+}
+
+/** Build the `where` clause the mock-history list uses. */
+function mockListWhere(
+  userId: string,
+  filters: MockListFilters
+): Prisma.MockInterviewSessionWhereInput {
+  const where: Prisma.MockInterviewSessionWhereInput = { userId };
+  if (filters.q) {
+    where.OR = [
+      { session: { role: { contains: filters.q, mode: "insensitive" } } },
+      { session: { company: { contains: filters.q, mode: "insensitive" } } },
+    ];
+  }
+  switch (filters.status) {
+    case "complete":
+      where.status = "SESSION_COMPLETE";
+      break;
+    case "active":
+      where.status = { notIn: [...TERMINAL_STATUSES] };
+      break;
+    case "scored":
+      where.overallScore = { not: null };
+      break;
+    default:
+      break;
+  }
+  return where;
+}
+
 /**
  * One page of a user's mock history, newest first. Keyset-paginated so the
  * list (and the turn rows it joins) stays a flat 10-session query no matter
- * how long the history gets.
+ * how long the history gets. Optional search/status filters narrow the same
+ * query.
  */
 export async function listOwnedMocksPage(
   userId: string,
-  params: PageParams
+  params: PageParams,
+  filters: MockListFilters = {}
 ): Promise<CursorPage<MockHistoryRow>> {
   const { cursor, direction } = params;
   const mocks = await prisma.mockInterviewSession.findMany({
-    where: { userId },
+    where: mockListWhere(userId, filters),
     // `id` breaks ties so the cursor stays deterministic when several mocks
     // share a `createdAt` (bulk seeding, same-second sessions).
     orderBy:

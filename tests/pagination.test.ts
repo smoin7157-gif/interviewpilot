@@ -1,6 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildCursorPage, pageHref, parsePageParams } from "../src/lib/pagination";
+import {
+  buildCursorPage,
+  pageHref,
+  parsePageParams,
+  parseSearchQuery,
+  parseStatusFilter,
+} from "../src/lib/pagination";
 
 /** Rows as the data layer returns them, newest-first. */
 const rows = (...ids: string[]) => ids.map((id) => ({ id }));
@@ -112,5 +118,44 @@ describe("pageHref", () => {
       pageHref("/history", { cursor: "clx1", direction: "newer" }),
       "/history?cursor=clx1&dir=newer"
     );
+  });
+
+  it("carries active filters across a page step", () => {
+    assert.equal(
+      pageHref("/interviews", { cursor: "clx1", direction: "older" }, { q: "backend", status: "ready" }),
+      "/interviews?cursor=clx1&q=backend&status=ready"
+    );
+  });
+
+  it("omits filters that are not set", () => {
+    assert.equal(
+      pageHref("/interviews", { direction: "older" }, { q: "", status: undefined }),
+      "/interviews"
+    );
+  });
+});
+
+describe("parseSearchQuery", () => {
+  it("defaults to empty and trims whitespace", () => {
+    assert.equal(parseSearchQuery({}), "");
+    assert.equal(parseSearchQuery({ q: "  backend  " }), "backend");
+  });
+
+  it("caps a runaway paste so it can't become an unbounded search", () => {
+    const long = "x".repeat(200);
+    assert.equal(parseSearchQuery({ q: long }).length, 80);
+  });
+});
+
+describe("parseStatusFilter", () => {
+  const allowed = ["all", "ready", "draft"] as const;
+
+  it("keeps a known value", () => {
+    assert.equal(parseStatusFilter({ status: "draft" }, allowed), "draft");
+  });
+
+  it("falls back to all for a missing or unknown value", () => {
+    assert.equal(parseStatusFilter({}, allowed), "all");
+    assert.equal(parseStatusFilter({ status: "nonsense" }, allowed), "all");
   });
 });
