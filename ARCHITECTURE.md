@@ -26,7 +26,7 @@ Next.js App Router
   ├── auth.ts                session cookie (jose HS256) + bcrypt
   ├── env.ts                 startup env contract (zod) + fail-fast assertion
   ├── data.ts                ownership-scoped Prisma queries
-  ├── pagination.ts          shared keyset pagination (cursor slices + list URLs)
+  ├── pagination.ts          shared keyset pagination (cursor slices + filter-aware list URLs)
   ├── mock.ts                mock-interview queries + interviewer context builder + history rows
   ├── debrief.ts             debrief context assembly + transcript budget (Phase 4)
   ├── validation.ts          zod schemas (shared by UI + API)
@@ -175,6 +175,7 @@ production generation.
 | Health | `src/app/api/health/route.ts` (DB round-trip; 200/503) |
 | Auth | `src/app/(auth)/*`, `src/lib/auth-actions.ts`, `src/proxy.ts` (edge gate) |
 | Shell | `src/components/app-shell.tsx` (sidebar, mobile drawer) |
+| UI primitives | `src/components/ui/*` — button, card, badge, field, input, dialog, **page-header**, **empty-state**, **skeleton** |
 | Dashboard | `src/app/(app)/dashboard/page.tsx` |
 | Interviews list | `src/app/(app)/interviews/page.tsx` |
 | Create flow | `src/app/(app)/interviews/new/page.tsx` + `new-interview-flow.tsx` (setup → sync → generate) |
@@ -363,6 +364,38 @@ dataset + composer.
   workspace's why-it-matters → suggested answer → follow-ups structure.
 - **Workspace focus mode**: a header toggle that collapses the desktop question
   list for distraction-free reading; the mobile slide-over still reaches it.
+
+## List search & filters (post-V1 polish)
+
+Both paginated lists (`/interviews`, `/history`) accept a server-side search +
+lifecycle filter instead of scanning the page client-side:
+
+- **URL state.** `?q=<role or company>&status=<bucket>` sits next to the
+  keyset cursor. `parseSearchQuery` trims and caps the term (80 chars) so a
+  paste can't become an unbounded `ILIKE`; `parseStatusFilter` only accepts the
+  documented buckets and otherwise renders the unfiltered list.
+- **One query.** `listSessionsPage` / `listOwnedMocksPage` fold the filter into
+  the same indexed `where` as the cursor — no extra round trip, no memory scan.
+  `data.ts` and `mock.ts` export their allowed buckets so a page and the filter
+  bar can never drift apart.
+- **Filter-aware paging.** `pageHref(pathname, params, extra)` (and the
+  `Pagination` component's `query` prop) carries the filters into Older/Newer
+  links, so a filtered list never loses its filter on page two.
+- **Progressive-enhancement UI.** `ListFilters` is a JS-free server component:
+  the search is a plain `GET` form and the status options are links, so a
+  filtered list is shareable, works without JS, and keeps the back button
+  meaningful.
+
+## Shared page chrome
+
+- **`PageHeader`** — eyebrow / title / description / actions, so every top-level
+  page (dashboard, both lists, create flow, settings, FAQ) shares one heading
+  rhythm instead of hand-rolling its own.
+- **`EmptyState`** — one icon/title/description/action shape for every "nothing
+  here yet" panel, so an empty list always offers a real next step.
+- **`Skeleton` + route loading files** — the app and mock routes stream in
+  page-shaped skeletons (the old lone spinner gave no sense of what was
+  loading), and the layout no longer jumps when content arrives.
 
 ## Future modules (extension points)
 

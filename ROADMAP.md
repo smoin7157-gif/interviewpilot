@@ -172,6 +172,29 @@ pipeline.
 - ✅ **Workspace focus mode** — collapse the desktop question list for
   distraction-free reading (mobile slide-over unaffected)
 
+## Phase 8 — Flow & navigation polish ✅ (this build)
+
+Making the app easier to move through once there is real history to move
+through, without touching the AI pipeline.
+
+- ✅ **Shared page chrome** — `PageHeader` (eyebrow/title/description/actions)
+  and `EmptyState` (icon/title/description/action) primitives, applied to the
+  dashboard, My Interviews, Mock History, the create flow, settings and the FAQ,
+  so headings line up and every empty list offers a real next step
+- ✅ **Search & filters** — `/interviews` and `/history` take `?q=` (role or
+  company) and a lifecycle `?status=` bucket, applied in the same indexed query
+  as the keyset cursor and carried across pagination; the filter bar is plain
+  server-rendered HTML (GET form + links), so a filtered view is shareable and
+  needs no client JS
+- ✅ **Workspace resume** — the practice workspace now opens on the first
+  unpracticed question, and a completion banner (plus the final "next" action)
+  routes a finished set straight into the spoken mock
+- ✅ **Page-shaped loading skeletons** — the app and mock routes load as
+  skeletons that match the page they become instead of a centred spinner
+- ✅ **Mock preflight clarity** — the preflight states how long the session
+  runs and that it can be ended early, and the dashboard links into the new
+  filtered views
+
 ## Explicitly out of scope (do not build)
 
 Real-interview copilot, stealth assistance, screen capture, employer tools,

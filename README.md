@@ -28,6 +28,9 @@ security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
   matters, a revealable suggested answer, follow-ups) before you sign up.
 - **Focus mode** — collapse the question list in the practice workspace for
   distraction-free reading and answer comparison.
+- **Searchable sessions** — My Interviews and Mock History take a free-text
+  search (role or company) plus a lifecycle filter, applied server-side and
+  carried in the URL, so a filtered view is shareable and survives pagination.
 
 ## Stack
 
@@ -79,11 +82,11 @@ Create an account at `/signup` to start.
 | `/` | Landing page |
 | `/signup`, `/login` | Auth (server actions + session cookie; protected routes are gated at the edge by `src/proxy.ts` and support `?next=` redirects) |
 | `/dashboard` | Greeting, score trend across mock interviews, recent interviews (real data) |
-| `/interviews` | My Interviews (cards, progress, practice-again, delete; 10 per page) |
+| `/interviews` | My Interviews (cards, progress, practice-again, delete; 10 per page; `?q=&status=ready|practiced|draft` search & filter) |
 | `/interviews/new` | Interview setup → streams AI generation (`?from=<sessionId>` prefills it) |
 | `/interviews/[id]` | Practice workspace (questions, follow-ups, answers, evaluation) |
 | `/mock/[id]` | AI Mock Interview (preflight → live spoken interview → debrief) |
-| `/history` | Mock history — every spoken session, scores, re-practice, delete (10 per page) |
+| `/history` | Mock history — every spoken session, scores, re-practice, delete (10 per page; `?q=&status=complete|active|scored` search & filter) |
 | `/history/[id]` | Full debrief (6-dimension breakdown, strengths/weaknesses, transcript) |
 | `/faq` | Frequently asked questions |
 | `/settings` | Profile name + password |
@@ -105,6 +108,8 @@ Open app → Create account / Log in
       Experience level (required) · Interview type · Job description · 10/15/20 questions
     → "Generate Interview" (streams: Analyzing role → Questions → Follow-ups → Saving)
   → Workspace: question list on the left, detail on the right
+    → opens on the first unpracticed question; once every question is
+      practiced a completion banner offers the spoken mock
     → pick a question → read "Why this question matters"
     → reveal the suggested answer when ready → practice written answers with a
       live word count (and estimated spoken length) and an optional per-question

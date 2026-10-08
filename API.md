@@ -70,8 +70,9 @@ List the caller's sessions, newest activity first, with `questionCount`,
 
 > The **paginated** list that backs `/interviews` is a server component query,
 > not this route: `listSessionsPage` returns 10 rows per page with cursor links
-> (`?cursor=<id>&dir=older|newer`). This route stays unpaginated for API
-> callers.
+> (`?cursor=<id>&dir=older|newer`) and accepts a server-side search/status
+> filter (`?q=<role or company>&status=all|ready|practiced|draft`). This route
+> stays unpaginated and unfiltered for API callers.
 
 ### `GET /api/interviews/{id}` → 200
 Full session incl. questions. 404 when not owned.
@@ -243,8 +244,9 @@ All of the caller's mock sessions, newest first, with interview context
 `hasDebrief`, `questionsAsked`, and timestamps.
 
 > `/history` uses `listOwnedMocksPage` instead (10 rows per page, same cursor
-> links), so the page stays a flat query as history grows. `/dashboard` uses
-> `listScoreTrend` for the progress chart: scored sessions only, oldest first.
+> links, plus `?q=&status=all|complete|active|scored`), so the page stays a flat
+> query as history grows. `/dashboard` uses `listScoreTrend` for the progress
+> chart: scored sessions only, oldest first.
 
 ## Questions
 
