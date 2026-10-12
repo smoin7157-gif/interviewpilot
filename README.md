@@ -141,6 +141,7 @@ npm run lint      # eslint
 npm test          # unit tests (node:test + tsx)
 npm run db:seed   # idempotent demo account + sample interview
 npm run seed:jds  # regenerate the JD seed dataset (offline by default)
+npm run seed:jds:load  # mirror the dataset into job_description_templates (--verify-only to check without a DB)
 npx tsc --noEmit  # typecheck
 npx prisma studio # inspect the local database
 curl -i localhost:3000/api/health   # is the database reachable?
@@ -176,6 +177,21 @@ checkpoint, so a partial run can be topped up later, and `--json-only` skips
 the generated markdown dataset document (`techjd.md`). The design + integration
 spec is in [techjd-spec.md](./techjd-spec.md); `tests/jd-seed.test.ts` pins the
 dataset's schema validity, coverage and de-duplication.
+
+The JSON file is the source of truth; `npm run seed:jds:load` mirrors it into
+the `job_description_templates` table so the set is also queryable server-side.
+The load validates every entry against the shared schema, replaces the table in
+one transaction (idempotent — re-running it converges on the committed
+dataset), and aborts loudly on any malformed entry instead of silently
+dropping it. Add `--verify-only` to run the same validation without touching
+the database.
+
+## Continuous integration
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`:
+`npm ci`, ESLint, `tsc --noEmit`, and the full unit test suite. All of it is
+offline — no database or API keys are needed — so a broken change is caught
+before it ships.
 
 ## Docs
 

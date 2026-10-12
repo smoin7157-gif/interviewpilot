@@ -138,11 +138,29 @@ One row per spoken exchange in a mock session — the transcript. Raw audio/vide
 | `category` / `difficulty` | nullable — the question's category/difficulty on AI turns |
 | `createdAt` | |
 
+### job_description_templates
+Global reference copy of the committed JD seed dataset
+(`prisma/seed-data/job-descriptions.json`), loaded by `npm run seed:jds:load`.
+No owner — it is not user data — and read-only at runtime; the JSON file stays
+the source of truth and each load replaces the table's contents in one
+transaction.
+
+| Column | Notes |
+| --- | --- |
+| `id` | cuid PK |
+| `role` / `seniority` / `companyType` | the combo key (seed vocabularies: entry/mid/senior, startup/mid-size/enterprise) |
+| `variantIndex` | 0-based position within its combo, in dataset order — unique with the combo key |
+| `yearsExperience` | `0-2` / `3-5` / `6+` (always agrees with `seniority`) |
+| `responsibilities` / `requiredSkills` / `niceToHave` / `interviewFocusAreas` | JSON string arrays |
+| `createdAt` | |
+
 *Migration `interviewos_mock_interview` added the two mock entities above.*
 *Migration `add_question_draft` added `draftAnswer`/`draftSavedAt` to
 `interview_questions`.*
 *Migration `add_hot_path_indexes` replaced the single-column session/attempt
 indexes with composites matching the app's read patterns.*
+*Migration `add_job_description_templates` added the `job_description_templates`
+table above.*
 
 ## Planned entities (not yet in schema)
 

@@ -47,6 +47,7 @@ Next.js App Router
       ├── compose.ts         deterministic offline composer (no API key)
       ├── openrouter-batch.ts batched LLM generator (better wording)
       ├── index.ts           lazy cached index the fallback reads (role lookup)
+      ├── load.ts            pure dataset → job_description_templates row mapping
       └── dedupe.ts          token-overlap near-duplicate removal
 ```
 
@@ -81,6 +82,15 @@ starting over; the checkpoint and run logs are git-ignored because the JSON is
 the artifact. `npm test` covers the dataset (schema validity, full coverage, ≥3
 variants per combination, derived `yearsExperience`, no soft-skill
 "technologies", re-dedupe is a no-op) and the composer's variation guarantees.
+
+The JSON file stays the source of truth; `npm run seed:jds:load`
+(`scripts/load-job-descriptions.ts`) mirrors it into the
+`job_description_templates` table so the set is also queryable/versionable
+server-side. The load validates every entry through the shared schema, assigns
+a stable `variantIndex` per role|seniority|companyType combo, and replaces the
+whole table in one transaction — so it is idempotent, and a malformed entry
+aborts the load with its index instead of silently dropping. `--verify-only`
+runs the same validation without touching the database.
 
 **Runtime grounding (offline path only).** `src/lib/jd/index.ts` reads the JSON
 once per process into a compact, role/seniority-keyed index (fuzzy role

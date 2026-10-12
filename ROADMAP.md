@@ -122,7 +122,7 @@ Remaining in Phase 3 (roadmap notes):
 - **Deployment:** Prisma client generation fixed for Vercel builds
   (`postinstall` + `prisma generate` in `build`)
 
-## Phase 6 — Offline question-bank enrichment 🟡
+## Phase 6 — Offline question-bank enrichment ✅ (this build)
 
 Targeting the "Reliable → Useful" edge: the deterministic fallback should ask
 about the actual role, not a fixed bank of generic templates.
@@ -149,10 +149,21 @@ about the actual role, not a fixed bank of generic templates.
   template keeps its category and difficulty — the seniority mix, interview-type
   emphasis, template bank and cross-session avoid-list all stay unchanged, and
   the live OpenRouter path is untouched
+- ✅ **`job_description_templates` Prisma table** (migration
+  `add_job_description_templates`) + **`npm run seed:jds:load`** — loads the
+  committed dataset server-side as queryable/versionable rows. The JSON file
+  stays the source of truth: the loader validates every entry, assigns a stable
+  `variantIndex` per role|seniority|companyType combo, and replaces the table in
+  one transaction (idempotent; a malformed entry aborts the load with its index).
+  `--verify-only` checks the dataset without touching the DB.
+  Pure mapping in `src/lib/jd/load.ts`, guarded by `tests/jd-table.test.ts`
 
-⬜ Remaining in Phase 6:
-- `job_description_templates` Prisma table + `npm run seed:jds:load` so the set
-  is also queryable/versionable server-side (needs a migration)
+## CI ✅ (this build)
+
+- ✅ **GitHub Actions workflow** (`.github/workflows/ci.yml`) — `npm ci`, lint,
+  typecheck (`tsc --noEmit`) and the full unit test suite on every push to
+  `main` and every pull request. All offline (no DB or API keys required), so a
+  broken change is caught before deploy instead of after
 
 ## Phase 7 — Experience polish ✅ (this build)
 

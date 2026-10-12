@@ -147,6 +147,33 @@ model MockInterviewSession {
   @@map("mock_interview_sessions")
 }
 
+// Phase 6 — offline question-bank enrichment.
+// A DB-queryable copy of the committed JD seed dataset
+// (prisma/seed-data/job-descriptions.json), loaded by `npm run seed:jds:load`.
+// Global reference data — no owner, read-only at runtime — and the JSON file
+// stays the source of truth (the loader replaces the table's contents from it).
+model JobDescriptionTemplate {
+  id                  String   @id @default(cuid())
+  role                String
+  seniority           String   // entry | mid | senior
+  companyType         String   // startup | mid-size | enterprise
+  // 0-based position of this variant within its role|seniority|companyType
+  // combo, in dataset order — makes (role, seniority, companyType, variant)
+  // unique so the full-replace load is stable across runs.
+  variantIndex        Int
+  yearsExperience     String   // 0-2 | 3-5 | 6+ (must agree with seniority)
+  responsibilities    Json     // string[]
+  requiredSkills      Json     // string[]
+  niceToHave          Json     // string[]
+  interviewFocusAreas Json     // string[]
+  createdAt           DateTime @default(now())
+
+  @@unique([role, seniority, companyType, variantIndex])
+  // Role lookups by seniority are the hot path if this is ever queried live.
+  @@index([role, seniority])
+  @@map("job_description_templates")
+}
+
 model InterviewTurn {
   id            String   @id @default(cuid())
   mockSessionId String

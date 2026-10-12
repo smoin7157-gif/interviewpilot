@@ -10,6 +10,7 @@
     "test": "tsx --test tests/*.test.ts",
     "db:seed": "prisma db seed",
     "seed:jds": "tsx scripts/generate-job-descriptions.ts",
+    "seed:jds:load": "tsx scripts/load-job-descriptions.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
