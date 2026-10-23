@@ -35,7 +35,7 @@ import {
   parseResume,
 } from "./validate";
 
-const DEFAULT_MODEL = "openai/gpt-4o-mini";
+const DEFAULT_MODEL = "openai/gpt-4o";
 
 /**
  * Model routing by task cost. There are exactly two tiers:
@@ -43,10 +43,8 @@ const DEFAULT_MODEL = "openai/gpt-4o-mini";
  *    high-volume, so cheaper is a real saving with no quality loss.
  *  - this.model: everything the candidate experiences — question generation,
  *    answer scoring, live interviewing, and the debrief.
- * Override the cheap tier with OPENROUTER_CHEAP_MODEL (defaults to the full
- * model, so a deployment that never sets it behaves exactly as before).
  */
-const CHEAP_MODEL = process.env.OPENROUTER_CHEAP_MODEL?.trim() || DEFAULT_MODEL;
+const CHEAP_MODEL = process.env.OPENROUTER_CHEAP_MODEL?.trim() || "openai/gpt-4o-mini";
 
 /**
  * Temperature by task type (consistency vs. variety):
@@ -55,12 +53,12 @@ const CHEAP_MODEL = process.env.OPENROUTER_CHEAP_MODEL?.trim() || DEFAULT_MODEL;
  *  - interviewer: moderate-low — a natural live interviewer, not an erratic one.
  */
 const TEMPERATURE = {
-  generation: 0.7,
-  followUp: 0.6,
-  scoring: 0.2,
-  extraction: 0.2,
-  interviewer: 0.5,
-  debrief: 0.3,
+  generation: 0.8,
+  followUp: 0.7,
+  scoring: 0.1,
+  extraction: 0.1,
+  interviewer: 0.4,
+  debrief: 0.2,
 } as const;
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
 const API_KEY = process.env.OPENROUTER_API_KEY;

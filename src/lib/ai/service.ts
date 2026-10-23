@@ -65,28 +65,30 @@ function createBestProvider(): AIProvider {
   return new FallbackProvider();
 }
 
-const RETRYABLE_MESSAGES = ["429", "5", "timed out", "timeout", "ECONNRESET", "fetch failed"];
+const RETRYABLE_MESSAGES = ["429", "5", "timed out", "timeout", "ECONNRESET", "fetch failed", "network", "502", "503", "504", "overloaded", "rate limit"];
 
 function isRetryable(message: string): boolean {
-  return RETRYABLE_MESSAGES.some((token) => message.includes(token));
+  const lower = message.toLowerCase();
+  return RETRYABLE_MESSAGES.some((token) => lower.includes(token.toLowerCase()));
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Run `task` once; on a transient failure (rate limit, 5xx, network) wait and
- * try once more before giving up. Returns null when every attempt fails so
- * the caller can degrade to the fallback provider.
+ * Run `task` with retries on transient failures (rate limit, 5xx, network).
+ * Returns null when every attempt fails so the caller can degrade to the fallback provider.
  */
 async function withRetry<T>(task: () => Promise<T>, label: string): Promise<T | null> {
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await task();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] ${label} attempt ${attempt} failed: ${message}`);
-      if (attempt === 2 || !isRetryable(message)) return null;
-      await sleep(1_500 * attempt); // backoff before the retry
+      console.error(`[ai] ${label} attempt ${attempt}/${maxAttempts} failed: ${message}`);
+      if (attempt === maxAttempts || !isRetryable(message)) return null;
+      const backoff = Math.min(2000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 200;
+      await sleep(backoff);
     }
   }
   return null; // unreachable
