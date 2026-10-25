@@ -1032,6 +1032,17 @@ export function InterviewWorkspace({
     viewingFollowUp
       ? setFupIdx((i) => Math.min(i + 1, followUps.length - 1))
       : setMainIdx((i) => Math.min(i + 1, questions.length - 1));
+
+  // The bottom bar never dead-ends. The last follow-up goes back to its
+  // question, and the last question hands off to the spoken mock instead of
+  // showing a disabled "Next" the user has to work around.
+  const footerNext = viewingFollowUp
+    ? positionInTab >= totalInTab
+      ? { label: "Back to question", onClick: () => setTab("interview"), direction: "back" as const }
+      : { label: "Next follow-up", onClick: goNext, direction: "forward" as const }
+    : positionInTab >= totalInTab
+      ? { label: "Practice aloud", onClick: () => router.push(`/mock/${session.id}`), direction: "forward" as const }
+      : { label: "Next question", onClick: goNext, direction: "forward" as const };
   const goPrev = () =>
     viewingFollowUp
       ? setFupIdx((i) => Math.max(i - 1, 0))
@@ -1319,8 +1330,14 @@ export function InterviewWorkspace({
                 Use <kbd className="font-sans">←</kbd> <kbd className="font-sans">→</kbd> to move
               </span>
             </p>
-            <Button size="sm" onClick={goNext} disabled={positionInTab >= totalInTab} className="w-32">
-              Next Question <ArrowRight className="size-4" aria-hidden />
+            <Button size="sm" onClick={footerNext.onClick} className="w-36">
+              {footerNext.direction === "back" ? (
+                <ArrowLeft className="size-4" aria-hidden />
+              ) : null}
+              {footerNext.label}
+              {footerNext.direction === "forward" ? (
+                <ArrowRight className="size-4" aria-hidden />
+              ) : null}
             </Button>
           </div>
         </section>

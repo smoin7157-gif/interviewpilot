@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Mic, Repeat2, Sparkles } from "lucide-react";
+import { ArrowLeft, ClipboardList, Mic, Repeat2, Sparkles } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { countMainQuestions, getOwnedMockWithInterview } from "@/lib/mock";
 import { formatRelativeTime, pluralize } from "@/lib/utils";
@@ -71,6 +71,12 @@ export default async function MockDebriefPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Link
+            href={`/interviews/${mock.session.id}`}
+            className={buttonClasses({ variant: "outline", size: "sm" })}
+          >
+            <ClipboardList className="size-3.5" aria-hidden /> Continue written practice
+          </Link>
           <Link
             href={`/mock/${mock.session.id}`}
             className={buttonClasses({ variant: complete ? "outline" : "primary", size: "sm" })}
