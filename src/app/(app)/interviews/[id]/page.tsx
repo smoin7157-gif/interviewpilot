@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getOwnedWorkspaceSession } from "@/lib/data";
+import { resolvePracticePosition } from "@/lib/practice-position";
 import type { WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
 import { InterviewWorkspace } from "@/components/interview-workspace";
 
@@ -9,11 +10,14 @@ export const metadata: Metadata = { title: "Interview Practice" };
 
 export default async function InterviewWorkspacePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string | string[]; f?: string | string[] }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
+  const query = await searchParams;
 
   const owned = await getOwnedWorkspaceSession(user.id, id);
   if (!owned) notFound();
@@ -48,11 +52,19 @@ export default async function InterviewWorkspacePage({
     draftAnswer: q.draftAnswer,
   }));
 
+  // The question (and follow-up) the URL points at, resolved against the
+  // questions that actually exist — a stale link falls back to the resume rule.
+  const initialPosition = resolvePracticePosition(questions, {
+    q: typeof query.q === "string" ? query.q : undefined,
+    f: typeof query.f === "string" ? query.f : undefined,
+  });
+
   return (
     <InterviewWorkspace
       key={`${session.id}:${session.updatedAt.getTime()}`}
       session={sessionDto}
       initialQuestions={questions}
+      initialPosition={initialPosition}
     />
   );
 }

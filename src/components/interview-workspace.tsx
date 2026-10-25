@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import type { EvaluationFeedback, WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
+import { practiceSearch, type PracticePosition } from "@/lib/practice-position";
 import { saveAnswerDraftAction } from "@/lib/draft-actions";
 import {
   cn,
@@ -785,23 +786,21 @@ function FeedbackList({ title, items, icon }: { title: string; items: string[]; 
 export function InterviewWorkspace({
   session,
   initialQuestions,
+  initialPosition,
 }: {
   session: WorkspaceSession;
   initialQuestions: WorkspaceQuestion[];
+  /** Where the URL says to open; resolved server-side against the real questions. */
+  initialPosition: PracticePosition;
 }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<WorkspaceQuestion[]>(initialQuestions);
-  // Open on the first question that hasn't been practiced yet, so returning to
-  // a half-finished interview drops the user back where they left off instead
-  // of at question 1 every time. Falls back to the first question when the set
-  // is complete.
-  const [mainIdx, setMainIdx] = useState(() => {
-    if (initialQuestions.length === 0) return -1;
-    const firstUnfinished = initialQuestions.findIndex((q) => q.status !== "PRACTICED");
-    return firstUnfinished === -1 ? 0 : firstUnfinished;
-  });
-  const [tab, setTab] = useState<Tab>("interview");
-  const [fupIdx, setFupIdx] = useState(0);
+  // The URL wins (a refresh, a bookmark or a link back from the spoken mock),
+  // and with nothing requested the first unpracticed question is the resume
+  // point. See resolvePracticePosition for the fallback rules.
+  const [mainIdx, setMainIdx] = useState(() => initialPosition.mainIdx);
+  const [tab, setTab] = useState<Tab>(initialPosition.tab);
+  const [fupIdx, setFupIdx] = useState(initialPosition.followUpIdx);
   // Distraction-free reading: collapses the desktop question list so a long
   // question or a suggested answer can be read without the index beside it.
   // Session-scoped on purpose — a persisted preference would need a post-mount
@@ -888,6 +887,21 @@ export function InterviewWorkspace({
       document.body.style.overflow = previousOverflow;
     };
   }, [mobileListOpen]);
+
+  // Keep the address bar on the question being viewed, so refreshing, sharing
+  // or returning from the mock lands back here instead of on question 1. The
+  // native history API is deliberate: a router navigation would re-run the
+  // server page (and its database reads) on every question click.
+  useEffect(() => {
+    const question = mainIdx >= 0 ? questions[mainIdx] : undefined;
+    if (!question) return;
+    const followUpCount = question.followUps?.length ?? 0;
+    const followUp = tab === "followup" && followUpCount > 0 ? fupIdx : undefined;
+    const next = `${window.location.pathname}${practiceSearch(question.id, followUp)}`;
+    if (`${window.location.pathname}${window.location.search}` !== next) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [mainIdx, fupIdx, tab, questions]);
 
   // Selecting another question should start you at its top. Without this the
   // detail pane keeps the previous question's scroll position, so a click in
