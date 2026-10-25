@@ -28,6 +28,12 @@ export interface JdSeedRef {
 interface JdIndex {
   /** `${normalizedRole}|${seniority}` → that combination's variants. */
   byRoleSeniority: Map<string, JdSeedRef[]>;
+  /**
+   * Every distinct technology named in `requiredSkills` across the dataset,
+   * first-seen label order. Used to read the technologies out of a candidate's
+   * own pasted job description without maintaining a second keyword list.
+   */
+  skillVocabulary: string[];
   /** Every normalized catalog role label, used for fuzzy resolution. */
   normalizedRoles: Set<string>;
   /**
@@ -65,10 +71,19 @@ function buildIndex(): JdIndex {
   const raw = JSON.parse(readFileSync(SEED_PATH, "utf8")) as JobDescription[];
   const byRoleSeniority = new Map<string, JdSeedRef[]>();
   const normalizedRoles = new Set<string>();
+  const skillVocabulary: string[] = [];
+  const seenSkills = new Set<string>();
 
   for (const jd of raw) {
     const normalizedRole = normalizeRoleLabel(jd.role);
     normalizedRoles.add(normalizedRole);
+    for (const skill of jd.requiredSkills) {
+      const trimmed = skill.trim();
+      const key = trimmed.toLowerCase();
+      if (!trimmed || seenSkills.has(key)) continue;
+      seenSkills.add(key);
+      skillVocabulary.push(trimmed);
+    }
     const key = `${normalizedRole}|${jd.seniority}`;
     const list = byRoleSeniority.get(key) ?? [];
     list.push({
@@ -87,7 +102,7 @@ function buildIndex(): JdIndex {
     roleMatchers.set(normalizedRole, wholeWordPattern(normalizedRole));
   }
 
-  return { byRoleSeniority, normalizedRoles, roleMatchers };
+  return { byRoleSeniority, normalizedRoles, roleMatchers, skillVocabulary };
 }
 
 /**
@@ -101,7 +116,12 @@ function index(): JdIndex {
     cached = buildIndex();
   } catch (err) {
     console.warn(`[jd] seed index unavailable: ${err instanceof Error ? err.message : String(err)}`);
-    cached = { byRoleSeniority: new Map(), normalizedRoles: new Set(), roleMatchers: new Map() };
+    cached = {
+      byRoleSeniority: new Map(),
+      normalizedRoles: new Set(),
+      roleMatchers: new Map(),
+      skillVocabulary: [],
+    };
   }
   return cached;
 }
@@ -201,4 +221,15 @@ export function findJdRefs(role: string, seniority: string, companyType?: string
   if (lookupCache.size >= LOOKUP_CACHE_LIMIT) lookupCache.clear();
   lookupCache.set(cacheKey, result);
   return result;
+}
+
+/**
+ * Every technology label the seed dataset names in `requiredSkills`, in
+ * first-seen order. The fallback AI provider uses this as its vocabulary when
+ * reading a candidate's own pasted job description, so the terms it can
+ * recognize stay in sync with the dataset instead of drifting from a second
+ * hand-maintained keyword list. Returns [] when the dataset is unavailable.
+ */
+export function listKnownSkills(): string[] {
+  return index().skillVocabulary;
 }

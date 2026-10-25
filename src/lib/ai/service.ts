@@ -32,6 +32,35 @@ export function isAiConfigured(): boolean {
 }
 
 /**
+ * Fill a short live set up to the requested count from the deterministic
+ * provider, skipping anything the live set already asks. Keeps the promise of
+ * "10 questions" intact without a second paid call or visible duplicates.
+ */
+async function topUpQuestions(
+  questions: GenerationResult["questions"],
+  ctx: GenerationContext
+): Promise<GenerationResult["questions"]> {
+  const out = [...questions];
+  const seen = new Set(out.map((q) => q.question.trim().toLowerCase()));
+  const missing = ctx.count - out.length;
+  if (missing <= 0) return out.slice(0, ctx.count);
+
+  const filler = await new FallbackProvider().generateQuestions({
+    ...ctx,
+    count: missing,
+    avoidQuestions: [...(ctx.avoidQuestions ?? []), ...out.map((q) => q.question)],
+  });
+  for (const question of filler) {
+    if (out.length >= ctx.count) break;
+    const key = question.question.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(question);
+  }
+  return out;
+}
+
+/**
  * Prompt-injection guard. Resumes and job descriptions are untrusted input; a
  * malicious upload must not be able to smuggle instructions into the prompts
  * that generate questions or extract facts. Applied here (not in the provider)
@@ -100,7 +129,12 @@ export async function generateQuestions(ctx: GenerationContext): Promise<Generat
   if (primary instanceof OpenRouterProvider) {
     const questions = await withRetry(() => primary.generateQuestions(safeCtx), "question generation");
     if (questions && questions.length > 0) {
-      return { questions, provider: primary.name, model: primary.model };
+      // The model occasionally returns fewer questions than it was asked for
+      // (and the avoid-list can drop one). The setup promises an exact count,
+      // so top the set up deterministically rather than delivering a short set.
+      const complete =
+        questions.length >= safeCtx.count ? questions.slice(0, safeCtx.count) : await topUpQuestions(questions, safeCtx);
+      return { questions: complete, provider: primary.name, model: primary.model };
     }
   }
 

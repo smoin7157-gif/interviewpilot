@@ -59,6 +59,65 @@ describe("FallbackProvider JD grounding", () => {
     assert.equal(second.filter((q) => firstSet.has(q.question)).length, 0);
   });
 
+  it("asks about the candidate's own stack, never the seed variant's", async () => {
+    // Regression: a Node/Postgres/TypeScript posting for "Backend Engineer"
+    // used to be answered with Java and Python questions, because grounding
+    // read the seed variant's requiredSkills and ignored the pasted posting.
+    const questions = await provider.generateQuestions({
+      role: "Backend Engineer",
+      seniority: "3–5 years",
+      companyType: "Startup",
+      interviewType: "Technical",
+      jobDescription:
+        "Build APIs with Node, Postgres and TypeScript. Own reliability and on-call for the services you ship.",
+      count: 10,
+    });
+
+    assert.equal(questions.length, 10);
+    const text = questions.map((q) => q.question.toLowerCase()).join(" ");
+    assert.equal(/\b(java|python)\b/.test(text), false, `seed-only technologies leaked in:\n${text}`);
+    assert.match(text, /node|postgres|typescript/, "expected the pasted stack to be asked about");
+    assert.match(text, /apis|on-call/, "expected the posting's duties to be asked about");
+  });
+
+  it("does not anchor the whole set on one duty from the posting", async () => {
+    const questions = await provider.generateQuestions({
+      role: "Backend Engineer",
+      seniority: "3–5 years",
+      interviewType: "Technical",
+      jobDescription:
+        "Build APIs with Node, Postgres and TypeScript. Own reliability and on-call for the services you ship.",
+      count: 10,
+    });
+    const asking = (needle: string) =>
+      questions.filter((q) => q.question.toLowerCase().includes(needle)).length;
+
+    assert.ok(asking("build apis") >= 1, "the posting's first duty should be asked about");
+    assert.ok(asking("build apis") <= 2, `one duty anchored ${asking("build apis")} questions`);
+    assert.ok(asking("on-call") <= 2, `one duty anchored ${asking("on-call")} questions`);
+  });
+
+  it("still grounds a role outside the catalog when the posting names a stack", async () => {
+    const questions = await provider.generateQuestions({
+      role: "Staff Platform Engineer II",
+      seniority: "5+ years",
+      jobDescription: "Run our Kubernetes platform and own incident response.",
+      count: 6,
+    });
+    const text = questions.map((q) => q.question.toLowerCase()).join(" ");
+    assert.match(text, /kubernetes/, "a pasted stack should ground even an off-catalog role title");
+  });
+
+  it("keeps the seed grounding when no job description is pasted", async () => {
+    const questions = await provider.generateQuestions({
+      role: "Backend Engineer",
+      seniority: "3–5 years",
+      count: 8,
+    });
+    const text = questions.map((q) => q.question.toLowerCase()).join(" ");
+    assert.match(text, /java|python|go|postgres/, "seed grounding should still apply");
+  });
+
   it("leaves an unmatched role on the generic template bank", async () => {
     const questions = await provider.generateQuestions({ role: "Astronaut", seniority: "3–5 years", count: 5 });
     assert.equal(questions.length, 5);

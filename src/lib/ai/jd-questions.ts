@@ -1,4 +1,5 @@
 import type { JdSeedRef } from "@/lib/jd";
+import { extractJdFacts } from "./jd-text";
 import type { GenerationContext, QuestionCategory } from "./types";
 
 /**
@@ -9,6 +10,12 @@ import type { GenerationContext, QuestionCategory } from "./types";
  * about *that* role's real skills, responsibilities and interview focus areas
  * instead of generic ones. Everything here is composed from the seed data plus
  * the candidate's own setup — no I/O, no network, stable output.
+ *
+ * When the candidate pasted their own job description, the technologies and
+ * duties named in it take precedence over the seed variant's. The seed match
+ * only tells us which role the posting belongs to; asking a candidate who
+ * pasted a Node/Postgres/TypeScript posting about Java — because the seed
+ * Backend Engineer variant lists Java — is a question about the wrong job.
  *
  * The fallback keeps its template selection (category mix, difficulty quotas,
  * cross-session avoidance) and only swaps in the wording, so grounding can
@@ -89,12 +96,54 @@ function roleShape(refs: JdSeedRef[]): { designs: boolean; data: boolean } {
 export function buildJdGroundedPool(ctx: GenerationContext, refs: JdSeedRef[]): JdGroundedPool {
   const role = ctx.role;
   const company = ctx.company;
-  const skills = unique(refs.flatMap((ref) => ref.requiredSkills)).slice(0, MAX_SKILLS);
-  const responsibilities = unique(refs.flatMap((ref) => ref.responsibilities))
-    .slice(0, MAX_RESPONSIBILITIES)
-    .map(toClause);
+  const own = extractJdFacts(ctx.jobDescription);
+
+  // Nothing to ground on: neither a seed variant nor anything readable in the
+  // candidate's own posting. The caller then keeps the generic template bank.
+  if (refs.length === 0 && own.skills.length === 0 && own.responsibilities.length === 0) {
+    return new Map();
+  }
+
+  // The candidate's own posting wins: its technologies replace the seed
+  // variant's entirely (otherwise a stack that is not theirs sneaks back in),
+  // and its duties lead the responsibility list, with seed duties only filling
+  // the remaining slots so the grounding pool stays deep enough.
+  const seedSkills = unique(refs.flatMap((ref) => ref.requiredSkills)).slice(0, MAX_SKILLS);
+  const skills = own.skills.length > 0 ? own.skills.slice(0, MAX_SKILLS) : seedSkills;
+  const seedResponsibilities = unique(refs.flatMap((ref) => ref.responsibilities)).map(toClause);
+  const responsibilities = unique([...own.responsibilities.map(toClause), ...seedResponsibilities]).slice(
+    0,
+    MAX_RESPONSIBILITIES
+  );
+  /**
+   * Serve duties round-robin rather than giving every category the same first
+   * few. A posting that lists two duties used to anchor the project, JD,
+   * behavioral and design questions on those same two lines; now each duty
+   * grounds at most two candidates, in different categories, and a category
+   * never repeats one.
+   */
+  const dutyUses = new Map<string, number>();
+  const MAX_USES_PER_DUTY = 2;
+  let dutyCursor = 0;
+  const nextDuty = (usedHere: Set<string>): string | null => {
+    for (let step = 0; step < responsibilities.length; step++) {
+      const index = (dutyCursor + step) % responsibilities.length;
+      const duty = responsibilities[index];
+      if (usedHere.has(duty)) continue;
+      if ((dutyUses.get(duty) ?? 0) >= MAX_USES_PER_DUTY) continue;
+      dutyUses.set(duty, (dutyUses.get(duty) ?? 0) + 1);
+      dutyCursor = index + 1;
+      return duty;
+    }
+    return null;
+  };
+
   const focusAreas = unique(refs.flatMap((ref) => ref.interviewFocusAreas)).slice(0, MAX_FOCUS_AREAS);
-  const { designs, data } = roleShape(refs);
+  const seedShape = roleShape(refs);
+  // A posting that talks about scaling or pipelines can make design/data
+  // questions appropriate even when the seed variant for the role did not.
+  const designs = seedShape.designs || own.designs;
+  const data = seedShape.data || own.data;
 
   const pool: JdGroundedPool = new Map();
   const seen = new Set<string>();
@@ -164,7 +213,11 @@ export function buildJdGroundedPool(ctx: GenerationContext, refs: JdSeedRef[]): 
   }
 
   // Project — the candidate's own work, framed by the role's responsibilities.
-  for (const responsibility of responsibilities.slice(0, 4)) {
+  const usedInProject = new Set<string>();
+  for (let i = 0; i < 4; i++) {
+    const responsibility = nextDuty(usedInProject);
+    if (!responsibility) break;
+    usedInProject.add(responsibility);
     add(
       "project",
       `Walk me through a project where you had to ${responsibility}. What did you personally own, and what was the outcome?`,
@@ -210,7 +263,11 @@ export function buildJdGroundedPool(ctx: GenerationContext, refs: JdSeedRef[]): 
     );
   }
 
-  for (const responsibility of responsibilities.slice(0, 3)) {
+  const usedInJd = new Set<string>();
+  for (let i = 0; i < 3; i++) {
+    const responsibility = nextDuty(usedInJd);
+    if (!responsibility) break;
+    usedInJd.add(responsibility);
     add(
       "job_description",
       `A core responsibility here is to ${responsibility}. Where have you done that before, and what did you learn?`,
@@ -241,7 +298,11 @@ export function buildJdGroundedPool(ctx: GenerationContext, refs: JdSeedRef[]): 
   }
 
   // Behavioral — the role's responsibilities as STAR prompts.
-  for (const responsibility of responsibilities.slice(0, 3)) {
+  const usedInBehavioral = new Set<string>();
+  for (let i = 0; i < 3; i++) {
+    const responsibility = nextDuty(usedInBehavioral);
+    if (!responsibility) break;
+    usedInBehavioral.add(responsibility);
     add(
       "behavioral",
       `Tell me about a time you had to ${responsibility}. What did you do, and what was the result?`,
@@ -273,7 +334,11 @@ export function buildJdGroundedPool(ctx: GenerationContext, refs: JdSeedRef[]): 
 
   // System design — only when the role's own material is design-shaped.
   if (designs) {
-    for (const responsibility of responsibilities.slice(0, 3)) {
+    const usedInDesign = new Set<string>();
+    for (let i = 0; i < 3; i++) {
+      const responsibility = nextDuty(usedInDesign);
+      if (!responsibility) break;
+      usedInDesign.add(responsibility);
       add(
         "system_design",
         `How would you design the pieces needed to ${responsibility}? Walk me through the main components and the first bottleneck you would hit.`,

@@ -188,6 +188,35 @@ describe("service fallback routing (OpenRouter failure → FallbackProvider)", (
     assert.equal(result.result.score, 82);
   });
 
+  it("tops up a short live set to the requested count without duplicates", async () => {
+    const shortSet = [
+      {
+        question: "Walk me through how you improved p95 latency on a Node API.",
+        category: "technical" as const,
+        difficulty: "medium" as const,
+        reason: "Checks real performance work.",
+        suggested_answer: "I measured first, then optimized the hot path.",
+        follow_up_questions: ["What did you measure?", "What changed?", "What did it cost?"],
+        source_context: ["job_description"],
+      },
+    ];
+
+    const { questions, provider } = await withPatchedMethod("generateQuestions", async () => shortSet, () =>
+      service.generateQuestions({
+        role: "Backend Engineer",
+        seniority: "1–3 years",
+        jobDescription: "Build APIs with Node, Postgres and TypeScript.",
+        count: 4,
+      })
+    );
+
+    assert.equal(provider, "openrouter");
+    assert.equal(questions.length, 4, "the requested count must be delivered");
+    const texts = questions.map((q) => q.question.trim().toLowerCase());
+    assert.equal(new Set(texts).size, texts.length, "topping up must not duplicate the live question");
+    assert.ok(questions[0].question.includes("p95"), "the live question stays first");
+  });
+
   it("does not retry permanent failures — falls back immediately", async () => {
     let calls = 0;
     const { provider } = await withPatchedMethod(

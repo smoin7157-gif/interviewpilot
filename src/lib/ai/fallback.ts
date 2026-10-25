@@ -518,15 +518,16 @@ function pick(ctx: GenerationContext, isEligible: (t: Template) => boolean = () 
  * sessions stay fresh even though their rendered text is now role-specific.
  *
  * The template itself still decides category and difficulty, so grounding
- * cannot change the shape of a generated set. Returns an empty map when no
- * seed JD matches, leaving the template bank untouched.
+ * cannot change the shape of a generated set. Returns an empty map when there
+ * is nothing to ground on — no seed JD matches and the candidate's own posting
+ * names no recognisable technologies or duties — leaving the template bank
+ * untouched.
  */
 function planJdGrounding(ctx: GenerationContext): Map<Template, JdGroundedQuestion> {
   const plan = new Map<Template, JdGroundedQuestion>();
   const refs = findJdRefs(ctx.role, ctx.seniority, ctx.companyType);
-  if (refs.length === 0) return plan;
-
   const pool = buildJdGroundedPool(ctx, refs);
+  if (pool.size === 0) return plan;
   const cursor = new Map<QuestionCategory, number>();
   for (const template of TEMPLATES) {
     const candidates = pool.get(template.category);

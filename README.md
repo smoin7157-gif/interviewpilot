@@ -71,6 +71,9 @@ falls back to the built-in deterministic question bank and evaluator so every
 screen still works. When the target role matches a seed job description, that
 bank is grounded in the role's real skills, responsibilities and interview
 focus areas instead of generic templates (see the JD dataset section below).
+When you paste your own job description, the technologies and duties in it take
+precedence over that seed variant — a Node/Postgres/TypeScript posting is never
+asked about Java just because the catalog's Backend Engineer entry lists it.
 The UI tells you when the fallback is active.
 
 Create an account at `/signup` to start.

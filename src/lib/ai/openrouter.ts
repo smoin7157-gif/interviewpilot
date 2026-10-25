@@ -72,6 +72,29 @@ function timeoutSignal(ms: number): AbortSignal {
 // whole call, which silently degrades every live AI feature to fallback.
 const MAX_COMPLETION_TOKENS = 16_000;
 
+/**
+ * Output budget for question generation, scaled to the requested set size.
+ *
+ * Asking for the full 16k ceiling on every generation looks harmless, but
+ * OpenRouter refuses a request whose `max_tokens` exceeds what the account can
+ * currently afford (402 "requires more credits, or fewer max_tokens"). Because
+ * generation is a single call, one oversized ask means live generation NEVER
+ * runs and every candidate silently gets the offline bank — which is exactly
+ * the kind of failure the provider fallback is meant to hide, not cause. A
+ * question (with its answer and three follow-ups) needs roughly 250 output
+ * tokens, so 500 per question leaves 2x headroom while staying affordable.
+ */
+const GENERATION_TOKENS_PER_QUESTION = 500;
+const GENERATION_TOKENS_OVERHEAD = 500;
+
+export function generationTokenBudget(questionCount: number): number {
+  const count = Math.max(1, Math.floor(questionCount));
+  return Math.min(
+    MAX_COMPLETION_TOKENS,
+    GENERATION_TOKENS_OVERHEAD + GENERATION_TOKENS_PER_QUESTION * count
+  );
+}
+
 export class OpenRouterProvider implements AIProvider {
   readonly name = "openrouter";
   readonly model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
@@ -132,7 +155,7 @@ export class OpenRouterProvider implements AIProvider {
     const raw = await this.chatCompletion(
       GENERATION_SYSTEM_PROMPT,
       buildGenerationUserPrompt(ctx),
-      MAX_COMPLETION_TOKENS,
+      generationTokenBudget(ctx.count),
       this.model, // full model: candidate-facing generation
       TEMPERATURE.generation
     );
