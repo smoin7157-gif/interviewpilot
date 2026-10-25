@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import type { EvaluationFeedback, WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
-import { practiceSearch, type PracticePosition } from "@/lib/practice-position";
+import { mockHref, practiceSearch, type PracticePosition } from "@/lib/practice-position";
 import { saveAnswerDraftAction } from "@/lib/draft-actions";
 import {
   cn,
@@ -1026,12 +1026,16 @@ export function InterviewWorkspace({
     : mainIdx + 1 < questions.length
       ? { label: "Next question", onClick: () => selectMain(mainIdx + 1) }
       : // Last question: point at the spoken mock rather than dead-ending.
-        { label: "Practice aloud", onClick: () => router.push(`/mock/${session.id}`) };
+        { label: "Practice aloud", onClick: () => router.push(mockLink) };
 
   const goNext = () =>
     viewingFollowUp
       ? setFupIdx((i) => Math.min(i + 1, followUps.length - 1))
       : setMainIdx((i) => Math.min(i + 1, questions.length - 1));
+
+  // Every route into the mock names this question, so the mock's "Back to
+  // practice" links return here rather than to question 1.
+  const mockLink = mockHref(session.id, activeQuestion.id);
 
   // The bottom bar never dead-ends. The last follow-up goes back to its
   // question, and the last question hands off to the spoken mock instead of
@@ -1041,7 +1045,7 @@ export function InterviewWorkspace({
       ? { label: "Back to question", onClick: () => setTab("interview"), direction: "back" as const }
       : { label: "Next follow-up", onClick: goNext, direction: "forward" as const }
     : positionInTab >= totalInTab
-      ? { label: "Practice aloud", onClick: () => router.push(`/mock/${session.id}`), direction: "forward" as const }
+      ? { label: "Practice aloud", onClick: () => router.push(mockLink), direction: "forward" as const }
       : { label: "Next question", onClick: goNext, direction: "forward" as const };
   const goPrev = () =>
     viewingFollowUp
@@ -1119,7 +1123,7 @@ export function InterviewWorkspace({
             {practicedCount}/{questions.length} practiced
           </span>
           <Link
-            href={`/mock/${session.id}`}
+            href={mockLink}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-zinc-800 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <Mic className="size-3.5 text-indigo-600" aria-hidden />
@@ -1180,7 +1184,7 @@ export function InterviewWorkspace({
           <div ref={detailScrollRef} className="flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 sm:py-9">
               {practicedCount === questions.length && questions.length > 0 && (
-                <AllPracticedBanner onStartMock={() => router.push(`/mock/${session.id}`)} />
+                <AllPracticedBanner onStartMock={() => router.push(mockLink)} />
               )}
 
               {/* Top meta */}

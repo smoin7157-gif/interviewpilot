@@ -47,6 +47,7 @@ import {
   type SttSession,
 } from "@/lib/speech";
 import { cn } from "@/lib/utils";
+import { practiceHref } from "@/lib/practice-position";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
@@ -113,6 +114,7 @@ export function MockInterview({
   companyType,
   questionCount,
   targetCount,
+  returnQuestionId,
 }: {
   interviewId: string;
   role: string;
@@ -122,6 +124,8 @@ export function MockInterview({
   companyType: string | null;
   questionCount: number;
   targetCount: number;
+  /** Question to return to in the workspace — set when the mock was entered from one. */
+  returnQuestionId?: string;
 }) {
   /* ------------------------------ state ------------------------------ */
   const [stage, setStage] = useState<Stage>("preflight");
@@ -620,7 +624,7 @@ export function MockInterview({
 
   /* ------------------------------ rendering ------------------------------ */
 
-  const backHref = `/interviews/${interviewId}`;
+  const backHref = practiceHref(interviewId, returnQuestionId);
 
   if (stage === "done") {
     const asked = doneSummary?.questionsAsked ?? lines.filter((l) => l.speaker === "AI").length;

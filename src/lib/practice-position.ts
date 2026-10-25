@@ -77,3 +77,14 @@ export function practiceHref(
 ): string {
   return `/interviews/${sessionId}${practiceSearch(questionId, followUpIndex)}`;
 }
+
+/**
+ * The spoken mock for an interview, carrying the question to return to.
+ *
+ * A mock is an interruption of written practice, not an exit from it: the mock
+ * screen's own back links use the same question id, so finishing (or leaving)
+ * the session lands on the question the user stepped away from.
+ */
+export function mockHref(sessionId: string, questionId?: string): string {
+  return `/mock/${sessionId}${practiceSearch(questionId)}`;
+}

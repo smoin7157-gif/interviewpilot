@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  mockHref,
   practiceHref,
   practiceSearch,
   resolvePracticePosition,
@@ -103,5 +104,19 @@ describe("practiceSearch / practiceHref", () => {
   it("has no search string without a question", () => {
     assert.equal(practiceSearch(undefined), "");
     assert.equal(practiceHref("s1"), "/interviews/s1");
+  });
+});
+
+describe("mockHref", () => {
+  it("carries the question into the mock so its back links return there", () => {
+    assert.equal(mockHref("s1", "q2"), "/mock/s1?q=q2");
+    assert.equal(mockHref("s1"), "/mock/s1");
+  });
+
+  it("agrees with practiceHref on the question id", () => {
+    const intoMock = new URLSearchParams(mockHref("s1", "q2").split("?")[1]);
+    const back = new URLSearchParams(practiceHref("s1", "q2").split("?")[1]);
+    assert.equal(intoMock.get("q"), "q2");
+    assert.equal(back.get("q"), intoMock.get("q"));
   });
 });
