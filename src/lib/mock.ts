@@ -82,6 +82,37 @@ export function countMainQuestions(turns: Array<{ speaker: string; action: strin
   ).length;
 }
 
+/**
+ * Progress snapshot for an in-progress mock: how many main questions the
+ * interviewer has asked, and the last thing it said (so a resume can replay the
+ * current question instead of restarting the session).
+ *
+ * One definition for every caller — the resume response and the "is there an
+ * active mock?" lookup. Both used to derive it from a truncated turn list (the
+ * lookup only loaded the first four turns), which reported "1 of 10" forever
+ * once the session ran longer than two exchanges.
+ */
+export function summarizeMockProgress(
+  turns: Array<{
+    speaker: string;
+    transcript: string;
+    action: string | null;
+    category: string | null;
+    difficulty: string | null;
+  }>
+): {
+  questionsAsked: number;
+  lastQuestion: { text: string; category: string | null; difficulty: string | null } | null;
+} {
+  const lastAi = [...turns].reverse().find((turn) => turn.speaker === "AI") ?? null;
+  return {
+    questionsAsked: countMainQuestions(turns),
+    lastQuestion: lastAi
+      ? { text: lastAi.transcript, category: lastAi.category, difficulty: lastAi.difficulty }
+      : null,
+  };
+}
+
 const truncate = (value: string | null | undefined, max: number): string | undefined => {
   const text = (value ?? "").trim();
   if (!text) return undefined;

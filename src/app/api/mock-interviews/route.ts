@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { mockCreateSchema } from "@/lib/validation";
-import { getActiveMock, getOwnedInterviewSession, TERMINAL_STATUSES } from "@/lib/mock";
+import { getActiveMock, getOwnedInterviewSession, summarizeMockProgress } from "@/lib/mock";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -36,7 +36,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // Idempotent: resume an in-progress mock for this interview when one exists.
+  // Idempotent: resume an in-progress mock for this interview when one exists,
+  // reporting the progress it already has so the client can label the resume.
   const active = await getActiveMock(user.id, session.id);
   if (active) {
     return NextResponse.json({
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
       status: active.status,
       resumed: true,
       maxQuestions: active.maxQuestions,
-      questionsAsked: 0, // computed on first turn fetch if the client needs it
+      questionsAsked: summarizeMockProgress(active.turns).questionsAsked,
     });
   }
 
@@ -86,32 +87,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "interviewSessionId is required." }, { status: 422 });
   }
 
-  const active = await prisma.mockInterviewSession.findFirst({
-    where: {
-      userId: user.id,
-      interviewSessionId,
-      status: { notIn: [...TERMINAL_STATUSES] },
-    },
-    orderBy: { createdAt: "desc" },
-    include: {
-      turns: { orderBy: { turnIndex: "asc" as const }, take: 4 },
-    },
-  });
-
+  // The whole transcript, not a window of it: both the question count and the
+  // question to resume on are derived from it, and a `take` here reported
+  // stale progress once the session grew past a couple of exchanges.
+  const active = await getActiveMock(user.id, interviewSessionId);
   if (!active) return NextResponse.json({ active: null });
-
-  const aiTurns = active.turns.filter((t) => t.speaker === "AI");
-  const lastAi = aiTurns[aiTurns.length - 1] ?? null;
 
   return NextResponse.json({
     active: {
       mockSessionId: active.id,
       status: active.status,
       maxQuestions: active.maxQuestions,
-      questionsAsked: active.turns.filter(
-        (t) => t.speaker === "AI" && (t.action === "ask_question" || t.action === "move_topic")
-      ).length,
-      lastQuestion: lastAi ? { text: lastAi.transcript, category: lastAi.category, difficulty: lastAi.difficulty } : null,
+      ...summarizeMockProgress(active.turns),
     },
   });
 }
