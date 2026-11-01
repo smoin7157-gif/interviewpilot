@@ -24,7 +24,8 @@ Next.js App Router
         ▼
    lib/
   ├── auth.ts                session cookie (jose HS256) + bcrypt
-  ├── env.ts                 startup env contract (zod) + fail-fast assertion
+  ├── env.ts                 startup env contract (zod), fail-fast assertion, siteUrl
+  ├── db-errors.ts           unique-constraint detection (duplicate-email recovery)
   ├── data.ts                ownership-scoped Prisma queries
   ├── pagination.ts          shared keyset pagination (cursor slices + filter-aware list URLs)
   ├── mock.ts                mock-interview queries + interviewer context builder + history rows
@@ -115,8 +116,10 @@ production generation.
    `generateFollowUps`, `evaluateAnswer`, `extractResume`,
    `driveInterview` (the live mock-interviewer), and `generateDebrief`
    (Phase 4). OpenRouter is the primary provider; when it is unconfigured,
-   fails, or returns invalid output, the service retries once (on retryable
-   failures) and then falls back to the deterministic `FallbackProvider` —
+   fails, or returns invalid output, the service retries up to twice with
+   backoff (rate limits, timeouts, network errors and 5xx only — a 401/402/400
+   is permanent and falls through immediately) and then falls back to the
+   deterministic `FallbackProvider` —
    including a deterministic interviewer and a heuristic debrief scorer that
    is honest about which dimensions had evidence. Responses identify
    `provider`/`model` so the UI can note fallback mode.
@@ -130,7 +133,10 @@ production generation.
    session user, enforced in `data.ts` and every route handler. Deleting a
    session cascades to questions and attempts.
 6. **Cache-free workspace.** Question data is persisted at generation time and
-   reused; selecting questions never triggers AI calls. Follow-ups are
+   reused; selecting questions never triggers AI calls. The generation write
+   commits once per session: it claims the session row inside the transaction
+   (an `UPDATE` row lock) and re-counts before inserting, so two concurrent
+   requests can't leave a session with two question sets. Follow-ups are
    generated up-front with each question and served from the DB. Written
    answers are autosaved into `interview_questions.draftAnswer` ~2.5s behind the
    last keystroke (server action) and flushed on tab-hide/unload/unmount; a
@@ -270,8 +276,11 @@ instead of rephrases.
 **Reliability of the live path.** `chatCompletion` caps `max_tokens` at 16k
 (within every supported model's output limit — a larger request makes
 OpenRouter reject the call and silently degrade to fallback), and the service
-layer retries transient failures (429/5xx/timeout/network) once with backoff
-via `withRetry` before degrading to the deterministic provider.
+layer retries transient failures (429/5xx/timeout/network) with exponential
+backoff via `withRetry` — three attempts at most — before degrading to the
+deterministic provider. The retry decision reads the HTTP status the provider
+reported rather than pattern-matching digits in the message (`isRetryable`), so
+a permanent rejection is never retried.
 
 ## Mock interview (Phase 3)
 

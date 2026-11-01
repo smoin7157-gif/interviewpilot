@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/env";
 
-const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
+const baseUrl = siteUrl();
 
 /**
  * Only the public marketing/auth surfaces are crawlable — everything behind

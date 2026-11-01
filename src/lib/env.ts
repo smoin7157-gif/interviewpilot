@@ -116,6 +116,33 @@ export function formatEnvProblems(problems: string[]): string {
   ].join("\n");
 }
 
+const DEFAULT_SITE_URL = "http://localhost:3000";
+
+/**
+ * Canonical site URL, normalized once for every consumer (metadataBase, sitemap,
+ * robots, the OpenRouter referrer).
+ *
+ * Optional variables aren't part of the boot contract, so a bad `APP_URL` must
+ * never take the app down — but `new URL(process.env.APP_URL ?? …)` at module
+ * scope in the root layout does exactly that when the value can't be parsed
+ * (pasting a bare domain from the browser bar is the easy mistake), turning
+ * every page into a 500 before it renders. Normalize instead: assume `https` for
+ * a scheme-less host, drop a trailing slash so paths can be appended, and fall
+ * back to localhost when the value is unusable.
+ */
+export function siteUrl(source: EnvSource = process.env): string {
+  const raw = (source.APP_URL ?? "").trim();
+  if (!raw) return DEFAULT_SITE_URL;
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return DEFAULT_SITE_URL;
+    return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
 export class EnvValidationError extends Error {
   readonly problems: string[];
   /** Variable names parsed off the front of each problem message. */

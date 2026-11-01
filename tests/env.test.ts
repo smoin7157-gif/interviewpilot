@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { assertEnv, checkEnv, EnvValidationError, formatEnvProblems } from "../src/lib/env";
+import { assertEnv, checkEnv, EnvValidationError, formatEnvProblems, siteUrl } from "../src/lib/env";
 
 /** A fully configured production environment; each test perturbs one value. */
 function env(overrides: Record<string, string | undefined> = {}): Record<string, string | undefined> {
@@ -99,5 +99,41 @@ describe("formatEnvProblems", () => {
   it("pluralizes the headline", () => {
     assert.match(formatEnvProblems(["A is not set"]), /1 environment problem found/);
     assert.match(formatEnvProblems(["A is not set", "B is not set"]), /2 environment problems found/);
+  });
+});
+
+/**
+ * `siteUrl()` feeds `metadataBase`, the sitemap and the robots file. It is
+ * reachable from module scope of the root layout, so it must never throw —
+ * a bad optional variable would otherwise 500 every page.
+ */
+describe("siteUrl", () => {
+  it("falls back to localhost when APP_URL is unset, blank or whitespace", () => {
+    assert.equal(siteUrl({}), "http://localhost:3000");
+    assert.equal(siteUrl({ APP_URL: "" }), "http://localhost:3000");
+    assert.equal(siteUrl({ APP_URL: "   " }), "http://localhost:3000");
+  });
+
+  it("drops the trailing slash so callers can append paths", () => {
+    assert.equal(siteUrl({ APP_URL: "https://interviewos.example.com/" }), "https://interviewos.example.com");
+    assert.equal(siteUrl({ APP_URL: "https://interviewos.example.com" }), "https://interviewos.example.com");
+  });
+
+  it("assumes https for a bare host (the value pasted from a browser bar)", () => {
+    assert.equal(siteUrl({ APP_URL: "interviewos.example.com" }), "https://interviewos.example.com");
+  });
+
+  it("keeps a sub-path deployment intact", () => {
+    assert.equal(siteUrl({ APP_URL: "https://example.com/interviewos/" }), "https://example.com/interviewos");
+  });
+
+  it("never throws on an unusable value", () => {
+    assert.equal(siteUrl({ APP_URL: "http://" }), "http://localhost:3000");
+    assert.equal(siteUrl({ APP_URL: "not a url at all" }), "http://localhost:3000");
+  });
+
+  it("rejects non-http(s) schemes instead of handing back a javascript: base", () => {
+    assert.equal(siteUrl({ APP_URL: "javascript:alert(1)" }), "http://localhost:3000");
+    assert.equal(siteUrl({ APP_URL: "ftp://example.com" }), "http://localhost:3000");
   });
 });

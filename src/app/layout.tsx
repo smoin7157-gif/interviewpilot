@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { siteUrl } from "@/lib/env";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -23,8 +24,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   // Anchor for resolving relative OG/social URLs (from APP_URL when set, so
-  // deployed environments share correct absolute links).
-  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+  // deployed environments share correct absolute links). `siteUrl` normalizes
+  // it, so a scheme-less or malformed value can't throw at render time.
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "InterviewOS — Practice your interview before the real one.",
     template: "%s · InterviewOS",

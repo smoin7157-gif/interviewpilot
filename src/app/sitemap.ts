@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/env";
 
-const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
+const baseUrl = siteUrl();
 
 /** Public, crawlable routes only (everything else sits behind auth). */
 export default function sitemap(): MetadataRoute.Sitemap {

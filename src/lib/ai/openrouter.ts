@@ -13,6 +13,7 @@ import {
   RESUME_EXTRACTION_SYSTEM_PROMPT,
 } from "./prompts";
 import type { ResumeData } from "@/lib/candidate-context";
+import { siteUrl } from "@/lib/env";
 import type {
   AIProvider,
   DebriefContext,
@@ -117,7 +118,7 @@ export class OpenRouterProvider implements AIProvider {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_KEY}`,
-        "HTTP-Referer": process.env.APP_URL ?? "http://localhost:3000",
+        "HTTP-Referer": siteUrl(),
         "X-Title": "InterviewOS",
       },
       body: JSON.stringify({

@@ -96,6 +96,11 @@ response: a newline-delimited stream of events:
 checkmarks); `done` carries the final count + provider; `error` aborts the
 stream with a user-safe message. Returns 409 if questions already exist.
 
+A session's questions are committed exactly once: the write claims the session
+row first, so a concurrent request (double-clicked retry, second tab, another
+instance) waits, sees the stored set and reports its count instead of inserting
+a duplicate one. `done.questionCount` is always the stored total.
+
 ### `GET /api/interviews/{id}/questions` → 200
 Persisted questions in order, each with `category`, `difficulty`, `reason`,
 `suggestedAnswer`, `followUps`, `sourceContext`, `status`, and latest
@@ -152,14 +157,29 @@ in-progress one (`resumed: true`).
 { "interviewSessionId": "…", "maxQuestions": 10 }
 ```
 ```json
-{ "mockSessionId": "…", "status": "SESSION_STARTED", "resumed": false, "maxQuestions": 10 }
+{ "mockSessionId": "…", "status": "SESSION_STARTED", "resumed": false, "maxQuestions": 10, "questionsAsked": 0 }
 ```
 
 Rejects with 422 when the interview has no generated questions yet.
 
 ### `GET /api/mock-interviews?interviewSessionId=…` → 200
-Returns `{ "active": { …lastQuestion } | null }` — used by the mock screen to
-resume an unfinished session.
+Returns the unfinished session for an interview, or `null`:
+
+```json
+{
+  "active": {
+    "mockSessionId": "…",
+    "status": "QUESTION_COMPLETE",
+    "maxQuestions": 10,
+    "questionsAsked": 4,
+    "lastQuestion": { "text": "…", "category": "technical", "difficulty": "medium" }
+  }
+}
+```
+
+`questionsAsked` counts main questions (follow-ups excluded) across the whole
+transcript, and `lastQuestion` is the interviewer's most recent line — the two
+values a resume needs, so neither is derived from a truncated turn window.
 
 ### `GET /api/mock-interviews/{id}` → 200
 Session status, counts, and the full ordered transcript (`speaker`, `text`,
