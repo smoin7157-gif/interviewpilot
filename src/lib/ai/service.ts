@@ -94,11 +94,52 @@ function createBestProvider(): AIProvider {
   return new FallbackProvider();
 }
 
-const RETRYABLE_MESSAGES = ["429", "5", "timed out", "timeout", "ECONNRESET", "fetch failed", "network", "502", "503", "504", "overloaded", "rate limit"];
+/**
+ * Which provider failures are worth another attempt?
+ *
+ * Transient: rate limits, an upstream 5xx, and transport failures (timeout,
+ * reset connection, DNS). Permanent: a bad API key (401), missing credits
+ * (402), or a malformed request (400) — retrying those only delays the
+ * deterministic fallback and can spend the remaining budget on the same
+ * rejection.
+ *
+ * The status code is read from the provider's own message shape
+ * (`OpenRouter request failed (503): …`), so classification never depends on
+ * unrelated digits elsewhere in the text. (It used to also match a bare "5",
+ * which made any message containing a 5 — a 401 mentioning "5 requests left", a
+ * validation error citing an index — look transient.)
+ */
+const TRANSIENT_STATUS = new Set([408, 425, 429]);
+const TRANSIENT_MARKERS = [
+  "timed out",
+  "timeout",
+  "econnreset",
+  "econnrefused",
+  "etimedout",
+  "enotfound",
+  "fetch failed",
+  "network error",
+  "socket hang up",
+  "overloaded",
+  "rate limit",
+];
 
-function isRetryable(message: string): boolean {
+/** HTTP status named in a provider error message, or null when there isn't one. */
+function statusFromMessage(message: string): number | null {
+  const parenthesized = message.match(/\((\d{3})\)/);
+  if (parenthesized) return Number(parenthesized[1]);
+  const labelled = message.match(/\b(?:http|status(?: code)?)\D{0,3}(\d{3})\b/i);
+  return labelled ? Number(labelled[1]) : null;
+}
+
+/** Exported for tests: the retry policy in one place. */
+export function isRetryable(message: string): boolean {
+  const status = statusFromMessage(message);
+  if (status !== null) {
+    return TRANSIENT_STATUS.has(status) || (status >= 500 && status <= 599);
+  }
   const lower = message.toLowerCase();
-  return RETRYABLE_MESSAGES.some((token) => lower.includes(token.toLowerCase()));
+  return TRANSIENT_MARKERS.some((token) => lower.includes(token));
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

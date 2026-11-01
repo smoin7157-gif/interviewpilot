@@ -236,3 +236,49 @@ describe("service fallback routing (OpenRouter failure → FallbackProvider)", (
     assert.equal(provider, "fallback");
   });
 });
+
+/**
+ * The retry policy decides whether a failed call is worth another paid request.
+ * Getting this wrong in the retry direction delays the fallback the user is
+ * waiting on; getting it wrong in the fallback direction gives up on a blip.
+ */
+describe("isRetryable", () => {
+  it("retries rate limits, timeouts and upstream 5xx", () => {
+    for (const message of [
+      "OpenRouter request failed (429): rate limited",
+      "OpenRouter request failed (408): request timeout",
+      "OpenRouter request failed (500): internal error",
+      "OpenRouter request failed (503): overloaded",
+      "The operation was aborted due to timeout",
+      "fetch failed",
+    ]) {
+      assert.equal(service.isRetryable(message), true, message);
+    }
+  });
+
+  it("does not retry permanent rejections", () => {
+    for (const message of [
+      "OpenRouter request failed (401): invalid key",
+      "OpenRouter request failed (402): requires more credits",
+      "OpenRouter request failed (400): bad request",
+      "OpenRouter request failed (404): model not found",
+    ]) {
+      assert.equal(service.isRetryable(message), false, message);
+    }
+  });
+
+  it("ignores status-like digits that aren't the failure's status", () => {
+    // Regression: the old policy matched a bare "5" anywhere in the message,
+    // so these permanent failures were retried three times in a row.
+    assert.equal(
+      service.isRetryable("OpenRouter request failed (401): 5 requests remaining on this key"),
+      false
+    );
+    assert.equal(service.isRetryable("Invalid JSON at position 15: expected ']'"), false);
+  });
+
+  it("treats an unlabelled transport failure as transient", () => {
+    assert.equal(service.isRetryable("socket hang up"), true);
+    assert.equal(service.isRetryable("connect ECONNRESET 104.18.2.5:443"), true);
+  });
+});
