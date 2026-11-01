@@ -137,18 +137,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         // disconnect flag so the remaining sends skip cleanly.)
         if (clientGone) return;
 
-        await prisma.$transaction([
-          prisma.interviewQuestion.createMany({ data: rows }),
-          prisma.interviewSession.update({
+        // Commit exactly once. Two requests can both get past the
+        // "already generated" check above — a double-click on retry, a second
+        // tab, or two serverless instances racing the same session — and
+        // writing both sets would give the session 20 questions where the user
+        // asked for 10. The UPDATE claims the session row first: it takes a
+        // row lock, so the second transaction waits here, then sees the first
+        // one's questions and skips its own insert.
+        const savedCount = await prisma.$transaction(async (tx) => {
+          await tx.interviewSession.update({
+            where: { id: session.id },
+            data: { updatedAt: new Date() },
+          });
+          const existing = await tx.interviewQuestion.count({
+            where: { sessionId: session.id },
+          });
+          if (existing > 0) return existing;
+
+          await tx.interviewQuestion.createMany({ data: rows });
+          await tx.interviewSession.update({
             where: { id: session.id },
             data: { status: "READY" },
-          }),
-        ]);
+          });
+          return rows.length;
+        });
 
         send({ type: "stage", key: "saving" });
+        // `savedCount` is the stored total, so a request that lost the race
+        // still reports the interview it now has instead of failing.
         send({
           type: "done",
-          questionCount: rows.length,
+          questionCount: savedCount,
           provider: result.provider,
           model: result.model ?? null,
         });
