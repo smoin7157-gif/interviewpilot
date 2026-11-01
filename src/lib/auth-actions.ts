@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db-errors";
 import {
   clearSessionCookie,
   createSessionToken,
@@ -18,6 +19,18 @@ import { getClientKey } from "@/lib/rate-limit";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
+
+/** One message for both duplicate paths (pre-check and unique constraint). */
+const DUPLICATE_EMAIL_MESSAGE =
+  "An account with this email already exists. Try logging in instead.";
+
+/**
+ * A bcrypt hash of a password nobody knows, used to keep the failed-login path
+ * the same length whether or not the email exists. Comparing against a real
+ * hash is the expensive half of a login, so skipping it for unknown emails
+ * would make account enumeration measurable from response time alone.
+ */
+const DUMMY_PASSWORD_HASH = "$2b$10$PfbgdRX5B6a8ySaiFmNfDug/Y8PaNBfqhS6b6nRtJrEGs4Fkv9XGi";
 
 export async function signupAction(
   _prev: AuthActionState,
@@ -50,14 +63,23 @@ export async function signupAction(
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   if (existing) {
-    return { error: "An account with this email already exists. Try logging in instead." };
+    return { error: DUPLICATE_EMAIL_MESSAGE };
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { name, email: email.toLowerCase(), passwordHash },
-    select: { id: true },
-  });
+  let user: { id: string };
+  try {
+    user = await prisma.user.create({
+      data: { name, email: email.toLowerCase(), passwordHash },
+      select: { id: true },
+    });
+  } catch (error) {
+    // Two signups for the same address can both pass the check above; the
+    // unique constraint is the real arbiter. Report the duplicate the same way
+    // instead of letting it surface as a 500 on the signup form.
+    if (isUniqueViolation(error)) return { error: DUPLICATE_EMAIL_MESSAGE };
+    throw error;
+  }
 
   const token = await createSessionToken(user.id);
   await setSessionCookie(token);
@@ -92,7 +114,12 @@ export async function loginAction(
   // One generic message for both cases so errors don't reveal which emails
   // have accounts (account-enumeration resistance).
   const invalid = { error: "Incorrect email or password. Please try again." };
-  if (!user) return invalid;
+  if (!user) {
+    // Waste the same bcrypt comparison a real account would cost, so the
+    // unknown-email path isn't measurably faster than a wrong password.
+    await verifyPassword(password, DUMMY_PASSWORD_HASH);
+    return invalid;
+  }
 
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return invalid;
