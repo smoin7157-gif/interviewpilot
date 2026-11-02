@@ -202,4 +202,5 @@ before it ships.
 - [DATABASE.md](./DATABASE.md) — schema and ownership rules
 - [API.md](./API.md) — HTTP endpoints
 - [ROADMAP.md](./ROADMAP.md) — phase plan for V1
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — local setup, conventions, checks
 - `.env.example` — environment template
