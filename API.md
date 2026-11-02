@@ -22,6 +22,12 @@ Prisma error is logged server-side. A missing or blank `DATABASE_URL` never
 gets this far in practice: the startup env check refuses to boot the server
 (`src/lib/env.ts`).
 
+Every response is uncached (`Cache-Control: no-store`), so a monitor never sees
+a stored verdict — a cached `200` would keep reporting a dead database as
+healthy. The check also gives up after 5 seconds, so a connection that hangs
+returns a prompt `503` instead of holding the probe open until the platform
+kills the function.
+
 ## Auth
 
 Auth is handled by server actions (HTML forms): `/signup`, `/login`, logout and
