@@ -39,6 +39,11 @@ limiter (`src/lib/auth-rate-limit.ts`), separate from the AI-endpoint buckets:
 10 login attempts / 15 min and 10 signups / hour. Exceeding either returns a
 form error (the server action renders it in place, no `429` page).
 
+Authenticated account changes carry their own per-user buckets on the shared
+limiter: profile updates 20/hour and password changes 5 per 15 minutes, so a
+stolen session can't brute-force the current password through the settings
+form. Both report a form error rather than a `429` page.
+
 ## Interviews
 
 ### `POST /api/interviews` → 201

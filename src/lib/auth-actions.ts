@@ -15,7 +15,7 @@ import {
 } from "@/lib/auth";
 import { changePasswordSchema, loginSchema, signupSchema, updateProfileSchema } from "@/lib/validation";
 import { safeRedirectPath } from "@/lib/utils";
-import { getClientKey } from "@/lib/rate-limit";
+import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
@@ -23,6 +23,16 @@ export type AuthActionState = { error?: string; fieldErrors?: Record<string, str
 /** One message for both duplicate paths (pre-check and unique constraint). */
 const DUPLICATE_EMAIL_MESSAGE =
   "An account with this email already exists. Try logging in instead.";
+
+/**
+ * Account mutations are authenticated, but a session cookie can be stolen or
+ * left open on a shared machine. Throttling per user keeps a password change
+ * (which verifies the current password) from becoming an offline-speed
+ * guessing oracle, and stops a runaway client from hammering the profile row.
+ * Separate buckets per action so neither can starve the other.
+ */
+const PASSWORD_CHANGE_LIMIT = { limit: 5, windowMs: 15 * 60 * 1000 };
+const PROFILE_UPDATE_LIMIT = { limit: 20, windowMs: 60 * 60 * 1000 };
 
 /**
  * A bcrypt hash of a password nobody knows, used to keep the failed-login path
@@ -138,6 +148,11 @@ export async function updateProfileAction(_prev: AuthActionState, formData: Form
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
+  const rl = checkRateLimit(`profile-update:${user.id}`, PROFILE_UPDATE_LIMIT);
+  if (!rl.ok) {
+    return { error: "Too many profile updates. Please wait a moment and try again." };
+  }
+
   const parsed = updateProfileSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -155,6 +170,11 @@ export async function changePasswordAction(
 ): Promise<AuthActionState> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+
+  const rl = checkRateLimit(`password-change:${user.id}`, PASSWORD_CHANGE_LIMIT);
+  if (!rl.ok) {
+    return { error: "Too many password attempts. Please wait a few minutes and try again." };
+  }
 
   const parsed = changePasswordSchema.safeParse({
     currentPassword: formData.get("currentPassword"),
