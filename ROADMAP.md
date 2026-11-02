@@ -17,7 +17,7 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
   interview type, job description, question count (10/15/20) — all persisted
 - ✅ InterviewOS brand/identity pass (wordmark, metadata, copy)
 - ✅ Seed script (`prisma/seed.ts`, `npm run db:seed`) + automated test
-  suite (`npm test`, 137 tests — validation, file safety, rate limiter,
+  suite (`npm test`, 241 tests — validation, file safety, rate limiter,
   utils, fallback AI provider, JD seed dataset)
 
 ## Phase 2 — Written practice + candidate context 🟡
@@ -115,7 +115,7 @@ Remaining in Phase 3 (roadmap notes):
 - **Performance/cost:** cheap model routing for extraction tasks
   (`OPENROUTER_CHEAP_MODEL`), debrief transcript budget-capped at 30k
   chars, interviewer context already summarized to the last 10 turns
-- **Tests:** `npm test` — 137 unit tests (validation schemas, file-check,
+- **Tests:** `npm test` — 241 unit tests (validation schemas, file-check,
   rate limiter, utils, fallback AI provider, JD seed dataset)
 - **Seed:** `npm run db:seed` — atomic, idempotent demo account + sample
   interview (verified against Neon)

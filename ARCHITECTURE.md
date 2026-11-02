@@ -257,8 +257,8 @@ non-overlapping follow-ups), and `parseQuestions` enforces it server-side:
 near-duplicate rephrases are dropped via token-overlap fingerprints and
 `source_context` tags are normalized onto the documented vocabulary. The
 evaluation prompt anchors scores to a 5-band rubric and runs at low
-temperature (0.2) so the same answer scores consistently; debriefs run at
-0.3. The live interviewer prompt bounds follow-up pacing (one probe per
+temperature (0.1) so the same answer scores consistently; debriefs run at
+0.2. The live interviewer prompt bounds follow-up pacing (one probe per
 question) and forbids repeating bank questions. The deterministic fallback
 mirrors all of this: its bank covers every category (including coding,
 system_design, data_ml, job_description), selection honors the seniority
