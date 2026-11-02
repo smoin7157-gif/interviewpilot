@@ -27,6 +27,15 @@ const PROTECTED_PREFIXES = [
 /** Auth pages a logged-in user has no business seeing. */
 const AUTH_PAGES = ["/login", "/signup"];
 
+/**
+ * Set by `requireUser` when the session cookie exists but resolves to nobody
+ * (expired signature, or the account row is gone). Without this escape hatch
+ * the gate would see the cookie, redirect the login page to /dashboard, and
+ * the server would send it back to /login — an endless redirect that only
+ * clearing cookies could stop.
+ */
+const STALE_SESSION_PARAM = "stale";
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
@@ -43,7 +52,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (AUTH_PAGES.includes(pathname) && hasSession) {
+  if (
+    AUTH_PAGES.includes(pathname) &&
+    hasSession &&
+    !request.nextUrl.searchParams.has(STALE_SESSION_PARAM)
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

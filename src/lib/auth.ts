@@ -72,10 +72,21 @@ export const getSessionUser = cache(async () => {
   return user;
 });
 
-/** For protected server pages: redirects to /login when logged out. */
+/**
+ * For protected server pages: redirects to /login when logged out.
+ *
+ * The `stale=1` marker is load-bearing, not decoration. This function also runs
+ * when the cookie IS present but the server can't resolve it — an expired or
+ * tampered token, or a user row that no longer exists (deleted account, reset
+ * dev database). The edge gate only checks that a cookie exists, so a plain
+ * `/login` redirect would be bounced straight back to `/dashboard`, and the
+ * server would redirect again: an infinite loop that only clearing cookies
+ * could break. The marker tells the gate to render the login page so the user
+ * can sign in and replace the dead cookie.
+ */
 export async function requireUser() {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?stale=1");
   return user;
 }
 
