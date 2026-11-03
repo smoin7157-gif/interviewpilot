@@ -217,6 +217,7 @@ Guidelines:
 - 2-4 items per list, each 5-14 words, concrete and specific to their answer.
 - If a strong suggested answer exists, compare against it without parroting it.
 - For behavioral questions note STAR structure (situation/task/action/result).
+- Calibrate to the target experience level given in the request: a Fresher answer is judged on clear fundamentals, structure and honest scope; a 5+ years answer must show depth, trade-offs and measurable outcomes. Apply the bar for that level, but never inflate — score only what the answer actually demonstrates.
 
 Calibration set — match the answer to the nearest anchor BEFORE scoring, so similar-quality answers receive similar scores across runs:
 - ~15 (band 1): "I'm not sure. I'd just try things until it works." — no method, no specifics, no result.
@@ -232,10 +233,17 @@ export function buildEvaluationUserPrompt(ctx: {
   suggestedAnswer?: string;
   answer: string;
   role: string;
+  seniority?: string;
 }): string {
   const lines: string[] = [`Question: ${ctx.prompt}`, `Target role: ${ctx.role}`];
+  if (ctx.seniority) lines.push(`Experience level: ${ctx.seniority}`);
   if (ctx.suggestedAnswer) lines.push(`\nReference answer (do not echo it back; use it only to judge):\n${ctx.suggestedAnswer}`);
   lines.push(`\nCandidate's actual answer:\n${ctx.answer}`);
+  if (ctx.seniority) {
+    lines.push(
+      `\nJudge this at the ${ctx.seniority} bar. Do not reward senior-sounding words without substance, and do not penalize a ${ctx.seniority} candidate for lacking experience their level does not imply.`
+    );
+  }
   return lines.join("\n");
 }
 

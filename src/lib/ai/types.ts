@@ -59,6 +59,9 @@ export interface EvaluationContext {
   suggestedAnswer?: string;
   answer: string;
   role: string;
+  /** Experience level of the target role. Scores are calibrated to it, so a
+   *  Fresher answer is not judged against a 5+ years bar. */
+  seniority?: string;
 }
 
 export interface EvaluationResult {

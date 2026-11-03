@@ -49,6 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     suggestedAnswer,
     answer: parsed.data.answer,
     role: question.session.role,
+    seniority: question.session.seniority,
   });
 
   const attempt = await prisma.$transaction(async (tx) => {
