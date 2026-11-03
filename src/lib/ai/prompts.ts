@@ -343,6 +343,41 @@ export function buildInterviewerUserPrompt(ctx: {
       .join("\n");
     lines.push(`\nInterview transcript so far (most recent last):\n${transcript}`);
   }
+  // Performance signal. The interviewer is told to adapt difficulty, but the
+  // request never showed it what actually happened in the last answer, so the
+  // instruction had nothing to act on. Depth is measurable from the turn
+  // itself — the model only needs to be told which way to move.
+  let lastAnswer: string | undefined;
+  let answeredQuestion = "";
+  for (let i = ctx.history.length - 1; i >= 0; i -= 1) {
+    const turn = ctx.history[i];
+    if (turn.speaker !== "CANDIDATE" || turn.text.trim().length === 0) continue;
+    lastAnswer = turn.text.trim();
+    for (let j = i - 1; j >= 0; j -= 1) {
+      if (ctx.history[j].speaker === "AI") {
+        answeredQuestion = ctx.history[j].text.trim();
+        break;
+      }
+    }
+    break;
+  }
+  if (lastAnswer) {
+    const words = lastAnswer.split(/\s+/).filter(Boolean).length;
+    if (words < 15 || isShallowAnswer(answeredQuestion, lastAnswer)) {
+      lines.push(
+        `\nLast answer signal: thin — about ${words} words, and it does not clearly address what was asked. Do NOT escalate difficulty: ask one simple, concrete follow-up on the basics (the situation, what they personally did, the concrete outcome) or move to an easier question.`
+      );
+    } else if (words >= 60) {
+      lines.push(
+        `\nLast answer signal: detailed — about ${words} words. You may push one level deeper for the follow-up: a trade-off they weighed, a failure mode, or the alternative they rejected.`
+      );
+    } else {
+      lines.push(
+        `\nLast answer signal: adequate — about ${words} words. Ask one focused follow-up on a specific claim, then move on.`
+      );
+    }
+  }
+
   if (ctx.questionBank.length > 0) {
     const bank = ctx.questionBank
       .slice(0, 12)
