@@ -152,72 +152,128 @@ export class OpenRouterProvider implements AIProvider {
     return content;
   }
 
-  async generateQuestions(ctx: GenerationContext): Promise<GeneratedQuestion[]> {
+  /**
+   * One structured completion, with a single corrective retry.
+   *
+   * A model that answers with prose, a truncated object, or a renamed field is
+   * one hint away from a valid answer — discarding the whole call and sending
+   * the candidate to the deterministic bank wastes the request and loses the
+   * personalisation that was just paid for. The validator's own message is
+   * fed back verbatim so the second attempt knows exactly what was wrong.
+   *
+   * Only *validation* failures retry here: HTTP/transport failures still throw
+   * from `chatCompletion` and stay under the service layer's retry policy (a
+   * permanent 400 must not become two paid rejections).
+   */
+  private async structuredCompletion<T>(
+    params: { system: string; user: string; maxTokens: number; model?: string; temperature: number },
+    parse: (raw: string) => T
+  ): Promise<T> {
     const raw = await this.chatCompletion(
-      GENERATION_SYSTEM_PROMPT,
-      buildGenerationUserPrompt(ctx),
-      generationTokenBudget(ctx.count),
-      this.model, // full model: candidate-facing generation
-      TEMPERATURE.generation
+      params.system,
+      params.user,
+      params.maxTokens,
+      params.model ?? this.model,
+      params.temperature
     );
-    // Model drift or a saturated bank can still repeat a practiced question —
-    // enforce the avoid-list server-side so repeat sessions stay fresh.
-    return filterAvoidList(parseQuestions(raw), ctx.avoidQuestions ?? []);
+    try {
+      return parse(raw);
+    } catch (err) {
+      const problem = err instanceof Error ? err.message : String(err);
+      console.warn(`[ai] openrouter output failed validation, asking once more: ${problem}`);
+      const repairSystem =
+        `${params.system}\n\n` +
+        `IMPORTANT: your previous reply was rejected by the response validator: ${problem}\n` +
+        `Reply again with ONLY the corrected JSON object in the exact shape described — no markdown, no commentary.`;
+      const retried = await this.chatCompletion(
+        repairSystem,
+        params.user,
+        params.maxTokens,
+        params.model ?? this.model,
+        params.temperature
+      );
+      return parse(retried);
+    }
+  }
+
+  async generateQuestions(ctx: GenerationContext): Promise<GeneratedQuestion[]> {
+    return this.structuredCompletion(
+      {
+        system: GENERATION_SYSTEM_PROMPT,
+        user: buildGenerationUserPrompt(ctx),
+        maxTokens: generationTokenBudget(ctx.count),
+        model: this.model, // full model: candidate-facing generation
+        temperature: TEMPERATURE.generation,
+      },
+      // Model drift or a saturated bank can still repeat a practiced question —
+      // enforce the avoid-list server-side so repeat sessions stay fresh.
+      (raw) => filterAvoidList(parseQuestions(raw), ctx.avoidQuestions ?? [])
+    );
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {
-    const raw = await this.chatCompletion(
-      FOLLOWUP_SYSTEM_PROMPT,
-      buildFollowUpUserPrompt(ctx),
-      2_000,
-      this.model, // full model: candidate-facing generation
-      TEMPERATURE.followUp
+    return this.structuredCompletion(
+      {
+        system: FOLLOWUP_SYSTEM_PROMPT,
+        user: buildFollowUpUserPrompt(ctx),
+        maxTokens: 2_000,
+        model: this.model, // full model: candidate-facing generation
+        temperature: TEMPERATURE.followUp,
+      },
+      parseFollowUps
     );
-    return parseFollowUps(raw);
   }
 
   async evaluateAnswer(ctx: EvaluationContext): Promise<EvaluationResult> {
-    const raw = await this.chatCompletion(
-      EVALUATION_SYSTEM_PROMPT,
-      buildEvaluationUserPrompt(ctx),
-      2_000,
-      this.model, // full model: scoring quality drives the calibration promise
-      TEMPERATURE.scoring // scoring must be consistent, not creative
+    return this.structuredCompletion(
+      {
+        system: EVALUATION_SYSTEM_PROMPT,
+        user: buildEvaluationUserPrompt(ctx),
+        maxTokens: 2_000,
+        model: this.model, // full model: scoring quality drives the calibration promise
+        temperature: TEMPERATURE.scoring, // scoring must be consistent, not creative
+      },
+      parseEvaluation
     );
-    return parseEvaluation(raw);
   }
 
   async extractResume(text: string): Promise<ResumeData> {
-    const raw = await this.chatCompletion(
-      RESUME_EXTRACTION_SYSTEM_PROMPT,
-      buildResumeExtractionUserPrompt(text),
-      3_000,
-      CHEAP_MODEL, // cheap model: bulk extraction only
-      TEMPERATURE.extraction // extraction must be deterministic
+    return this.structuredCompletion(
+      {
+        system: RESUME_EXTRACTION_SYSTEM_PROMPT,
+        user: buildResumeExtractionUserPrompt(text),
+        maxTokens: 3_000,
+        model: CHEAP_MODEL, // cheap model: bulk extraction only
+        temperature: TEMPERATURE.extraction, // extraction must be deterministic
+      },
+      parseResume
     );
-    return parseResume(raw);
   }
 
   async driveInterview(ctx: InterviewerContext): Promise<InterviewerDecision> {
-    const raw = await this.chatCompletion(
-      INTERVIEWER_SYSTEM_PROMPT,
-      buildInterviewerUserPrompt(ctx),
-      700,
-      this.model, // full model: live interviewing
-      TEMPERATURE.interviewer // moderate-low: natural, never erratic
+    return this.structuredCompletion(
+      {
+        system: INTERVIEWER_SYSTEM_PROMPT,
+        user: buildInterviewerUserPrompt(ctx),
+        maxTokens: 700,
+        model: this.model, // full model: live interviewing
+        temperature: TEMPERATURE.interviewer, // moderate-low: natural, never erratic
+      },
+      parseInterviewerDecision
     );
-    return parseInterviewerDecision(raw);
   }
 
   async generateDebrief(ctx: DebriefContext): Promise<DebriefResult> {
-    const raw = await this.chatCompletion(
-      DEBRIEF_SYSTEM_PROMPT,
-      buildDebriefUserPrompt(ctx),
-      2_500,
-      this.model, // full model: candidate-facing debrief
-      TEMPERATURE.debrief // session scores must be stable across regenerations
+    const parsed = await this.structuredCompletion(
+      {
+        system: DEBRIEF_SYSTEM_PROMPT,
+        user: buildDebriefUserPrompt(ctx),
+        maxTokens: 2_500,
+        model: this.model, // full model: candidate-facing debrief
+        temperature: TEMPERATURE.debrief, // session scores must be stable across regenerations
+      },
+      parseDebrief
     );
-    const parsed = parseDebrief(raw);
     return {
       ...parsed,
       strongestAnswer: parsed.strongestAnswer ?? {
