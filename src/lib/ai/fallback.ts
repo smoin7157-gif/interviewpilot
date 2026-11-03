@@ -12,7 +12,7 @@ import type {
   InterviewerDecision,
   QuestionCategory,
 } from "./types";
-import { normalizeCategory, normalizeDifficulty } from "./validate";
+import { debriefOverallScore, normalizeCategory, normalizeDifficulty } from "./validate";
 import { isShallowAnswer } from "./prompts";
 import { buildJdGroundedPool, type JdGroundedQuestion } from "./jd-questions";
 import { findJdRefs } from "@/lib/jd";
@@ -887,14 +887,9 @@ export class FallbackProvider implements AIProvider {
       ),
     ];
 
-    const overallScore = clamp(
-      technicalScore * 0.2 +
-        communicationScore * 0.2 +
-        structureScore * 0.15 +
-        relevanceScore * 0.2 +
-        projectScore * 0.15 +
-        problemScore * 0.1
-    );
+    // Same weighted derivation as the live path, so a debrief means the same
+    // thing whichever provider produced it.
+    const overallScore = debriefOverallScore(breakdown);
 
     const strengths: string[] = [];
     if (avgWords >= 60) strengths.push(`Answers averaged ${Math.round(avgWords)} words — good depth`);

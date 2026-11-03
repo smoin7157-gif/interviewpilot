@@ -130,6 +130,20 @@ function isNearDuplicate(a: string[], b: string[]): boolean {
 }
 
 /**
+ * A question must ask one thing. The generation prompt forbids stacked asks,
+ * but models still emit "How would you X? And how would you Y?" — impossible
+ * to answer in one spoken response, and it hides which part was actually
+ * assessed. Detecting it here makes the contract enforceable server-side.
+ */
+export function isMultiPartQuestion(question: string): boolean {
+  if ((question.match(/\?/g) ?? []).length > 1) return true;
+  // A second ask inside one sentence, e.g. "…, and also describe …".
+  return /\b(?:and also|also,?\s+(?:describe|explain|walk|tell|how|what|why|which))\b/i.test(
+    question
+  );
+}
+
+/**
  * Filter out questions that repeat (near-rephrase) something the candidate
  * has already practiced. Same fingerprint logic as in-session dedupe, applied
  * across sessions so repeat generations stay fresh.
@@ -172,6 +186,10 @@ export function parseQuestions(raw: string, avoidQuestions: string[] = []): Gene
   const seenFingerprints: string[][] = [];
   for (const q of questions) {
     if (q.question.length < 10 || q.reason.length < 5 || q.suggested_answer.length < 20) continue;
+    // One idea per question: a stacked multi-part ask cannot be answered aloud
+    // in one turn. Dropping it keeps the set answerable (the service tops the
+    // count back up from the deterministic bank).
+    if (isMultiPartQuestion(q.question)) continue;
     // Near-duplicate suppression: drop rephrased repeats so the practice set
     // always covers distinct topics.
     const fp = questionFingerprint(q.question);
@@ -299,6 +317,33 @@ const debriefDimensions = [
   "problem_solving",
 ] as const;
 
+/** Weights behind the overall score — one definition shared by the validator
+ *  and the deterministic provider (the prompt states the same rubric). */
+export const DEBRIEF_WEIGHTS: Record<DebriefDimension, number> = {
+  technical: 0.2,
+  communication: 0.2,
+  structure: 0.15,
+  relevance: 0.2,
+  project_knowledge: 0.15,
+  problem_solving: 0.1,
+};
+
+/**
+ * Derive the session score from the six dimension scores rather than trusting
+ * the model's headline number. A stored debrief whose overall score disagrees
+ * with its own breakdown makes scores incomparable across sessions, so the
+ * validator is the single place that decides it.
+ */
+export function debriefOverallScore(
+  breakdown: Array<{ dimension: DebriefDimension; score: number }>
+): number {
+  const total = breakdown.reduce(
+    (sum, item) => sum + item.score * DEBRIEF_WEIGHTS[item.dimension],
+    0
+  );
+  return Math.min(100, Math.max(0, Math.round(total)));
+}
+
 const debriefShape = z.object({
   overallScore: z.union([z.number(), z.string()]),
   breakdown: z
@@ -370,6 +415,9 @@ export function parseDebrief(raw: string): {
 
   const overall = asInt(data.overallScore);
   if (Number.isNaN(overall)) throw new Error("Debrief output has a non-numeric overall score.");
+  // Keep the model's number only as a sanity check that it produced one: the
+  // value we store is always the weighted breakdown, so the headline can
+  // never contradict the six dimensions beside it.
 
   const highlight = (value: { question: string; why: string } | null | undefined) =>
     value && value.question.trim() && value.why.trim()
@@ -377,7 +425,7 @@ export function parseDebrief(raw: string): {
       : null;
 
   return {
-    overallScore: Math.min(100, Math.max(0, overall)),
+    overallScore: debriefOverallScore(breakdown),
     breakdown,
     strengths: cleanStrings(data.strengths, 6),
     weaknesses: cleanStrings(data.weaknesses, 6),
