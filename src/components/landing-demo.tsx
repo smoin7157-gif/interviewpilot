@@ -99,9 +99,8 @@ export function LandingDemo({ primaryHref = "/signup" }: { primaryHref?: string 
           Pick a role
         </p>
         <div
-          role="tablist"
+          role="group"
           aria-label="Sample roles"
-          aria-orientation="vertical"
           className="mt-3 flex flex-row gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
         >
           {SAMPLES.map((s) => {
@@ -110,8 +109,7 @@ export function LandingDemo({ primaryHref = "/signup" }: { primaryHref?: string 
               <button
                 key={s.id}
                 type="button"
-                role="tab"
-                aria-selected={active}
+                aria-pressed={active}
                 onClick={() => selectRole(s.id)}
                 className={cn(
                   "shrink-0 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
@@ -146,7 +144,7 @@ export function LandingDemo({ primaryHref = "/signup" }: { primaryHref?: string 
 
       {/* Question card */}
       <div
-        role="tabpanel"
+        role="region"
         aria-label={`${sample.role} sample question`}
         className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(16,21,40,.05),0_12px_32px_-20px_rgba(16,21,40,.2)] sm:p-8"
       >
@@ -168,14 +166,20 @@ export function LandingDemo({ primaryHref = "/signup" }: { primaryHref?: string 
           </div>
         </div>
 
-        <div className="mt-6">
+        <div id="sample-suggested-answer" className="mt-6">
           {revealed ? (
             <div>
               <div className="flex items-center justify-between gap-3">
                 <h4 className="text-[13px] font-semibold uppercase tracking-wide text-zinc-900">
                   Suggested answer
                 </h4>
-                <Button size="sm" variant="ghost" onClick={() => setRevealed(false)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setRevealed(false)}
+                  aria-expanded={revealed}
+                  aria-controls="sample-suggested-answer"
+                >
                   <EyeOff className="size-4" aria-hidden /> Hide
                 </Button>
               </div>
@@ -184,7 +188,12 @@ export function LandingDemo({ primaryHref = "/signup" }: { primaryHref?: string 
               </p>
             </div>
           ) : (
-            <Button variant="outline" onClick={() => setRevealed(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setRevealed(true)}
+              aria-expanded={revealed}
+              aria-controls="sample-suggested-answer"
+            >
               <Eye className="size-4" aria-hidden /> Reveal suggested answer
             </Button>
           )}
