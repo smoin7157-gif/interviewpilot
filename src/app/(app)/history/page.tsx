@@ -16,7 +16,11 @@ import { ListFilters, filterQuery, type FilterOption } from "@/components/list-f
 
 // The root layout's title template appends "· InterviewOS", so only the page
 // name belongs here — including it again produced a doubled suffix.
-export const metadata: Metadata = { title: "Mock History" };
+export const metadata: Metadata = {
+  title: "Mock History",
+  description:
+    "Every AI mock interview you have practiced aloud, with scores, debriefs, and transcripts.",
+};
 
 function statusInfo(status: string): { label: string; tone: "green" | "amber" | "zinc" | "red" } {
   switch (status) {

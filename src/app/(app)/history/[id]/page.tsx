@@ -14,7 +14,11 @@ import { DebriefPanel } from "@/components/debrief-panel";
 import { MockDeleteButton } from "@/components/mock-delete-button";
 
 // The root layout's title template appends "· InterviewOS" — see history/page.tsx.
-export const metadata: Metadata = { title: "Mock Debrief" };
+export const metadata: Metadata = {
+  title: "Mock Debrief",
+  description:
+    "Your six-dimension mock interview debrief, strengths, gaps, and recommended practice.",
+};
 
 export default async function MockDebriefPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();

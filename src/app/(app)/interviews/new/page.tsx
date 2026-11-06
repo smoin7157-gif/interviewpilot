@@ -3,7 +3,11 @@ import { requireUser } from "@/lib/auth";
 import { getInterviewSetupDefaults } from "@/lib/data";
 import { NewInterviewFlow } from "@/components/new-interview-flow";
 
-export const metadata: Metadata = { title: "New Interview" };
+export const metadata: Metadata = {
+  title: "New Interview",
+  description:
+    "Tell InterviewOS about the role you are targeting to generate a personalized interview question set.",
+};
 
 /**
  * The setup form, optionally prefilled from an existing interview.

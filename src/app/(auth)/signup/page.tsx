@@ -3,7 +3,11 @@ import Link from "next/link";
 import { SignupForm } from "@/components/auth-forms";
 import { safeRedirectPath } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Create your account" };
+export const metadata: Metadata = {
+  title: "Create your account",
+  description:
+    "Create a free InterviewOS account and start practicing realistic, role-specific interview questions.",
+};
 
 export default async function SignupPage({
   searchParams,

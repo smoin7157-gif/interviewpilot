@@ -3,7 +3,11 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth-forms";
 import { safeRedirectPath } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Log in" };
+export const metadata: Metadata = {
+  title: "Log in",
+  description:
+    "Log in to InterviewOS to pick up your interview practice, mock sessions, and saved debriefs.",
+};
 
 export default async function LoginPage({
   searchParams,

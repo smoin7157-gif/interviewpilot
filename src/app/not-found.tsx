@@ -2,8 +2,13 @@ import Link from "next/link";
 import { Compass } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { buttonClasses } from "@/components/ui/button";
+import { getSessionUser } from "@/lib/auth";
 
-export default function NotFound() {
+export default async function NotFound() {
+  // A signed-in visitor should land back in the app; a visitor who is logged
+  // out has no dashboard to return to, so offer the login screen instead.
+  const user = await getSessionUser();
+
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
       <header className="mx-auto flex h-16 w-full max-w-5xl items-center px-6">
@@ -27,9 +32,15 @@ export default function NotFound() {
             safe — pick up where you left off.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/dashboard" className={buttonClasses({ size: "lg" })}>
-              Go to dashboard
-            </Link>
+            {user ? (
+              <Link href="/dashboard" className={buttonClasses({ size: "lg" })}>
+                Go to dashboard
+              </Link>
+            ) : (
+              <Link href="/login" className={buttonClasses({ size: "lg" })}>
+                Log in to continue
+              </Link>
+            )}
             <Link href="/" className={buttonClasses({ size: "lg", variant: "outline" })}>
               Back to home
             </Link>

@@ -14,7 +14,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListFilters, filterQuery, type FilterOption } from "@/components/list-filters";
 
-export const metadata: Metadata = { title: "My Interviews" };
+export const metadata: Metadata = {
+  title: "My Interviews",
+  description:
+    "Every interview question set you have generated, with practice progress and quick links to resume.",
+};
 
 const STATUS_OPTIONS: readonly FilterOption[] = [
   { value: "all", label: "All" },

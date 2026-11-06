@@ -6,7 +6,11 @@ import { resolvePracticePosition } from "@/lib/practice-position";
 import type { WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
 import { InterviewWorkspace } from "@/components/interview-workspace";
 
-export const metadata: Metadata = { title: "Interview Practice" };
+export const metadata: Metadata = {
+  title: "Interview Practice",
+  description:
+    "Practice written answers with AI feedback, then rehearse the same questions aloud in a mock interview.",
+};
 
 export default async function InterviewWorkspacePage({
   params,

@@ -4,7 +4,11 @@ import { ArrowRight, ChevronDown } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 
-export const metadata: Metadata = { title: "FAQ" };
+export const metadata: Metadata = {
+  title: "FAQ",
+  description:
+    "How InterviewOS generates questions, scores written and spoken practice, and handles your data.",
+};
 
 const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
   {

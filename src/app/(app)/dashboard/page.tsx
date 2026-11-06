@@ -12,7 +12,11 @@ import { NextStepCard, PracticeStatsStrip } from "@/components/practice-overview
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Your practice streak, mock interview scores, recent sessions, and the next best thing to practice.",
+};
 
 function ProgressBar({ practiced, total }: { practiced: number; total: number }) {
   const pct = total === 0 ? 0 : Math.round((practiced / total) * 100);

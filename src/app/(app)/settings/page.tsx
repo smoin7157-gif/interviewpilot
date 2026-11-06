@@ -4,7 +4,10 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { PasswordForm, ProfileForm } from "@/components/settings-forms";
 
-export const metadata: Metadata = { title: "Settings" };
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Manage your InterviewOS profile name and password.",
+};
 
 export default async function SettingsPage() {
   const user = await requireUser();
