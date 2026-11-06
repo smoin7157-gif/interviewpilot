@@ -14,6 +14,7 @@ import {
 import { getSessionUser } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { LandingDemo } from "@/components/landing-demo";
+import { LandingNav } from "@/components/landing-nav";
 import { buttonClasses } from "@/components/ui/button";
 
 const features = [
@@ -98,43 +99,7 @@ export default async function Home() {
       <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-[#fbfcfe]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Logo href="/" />
-          <nav aria-label="Primary" className="flex items-center gap-1.5">
-            <Link
-              href="#sample"
-              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
-            >
-              See a sample
-            </Link>
-            <Link
-              href="#features"
-              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
-            >
-              Why InterviewOS
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:block"
-            >
-              How it works
-            </Link>
-            {user ? (
-              <Link
-                href="/dashboard"
-                className={buttonClasses({ variant: "outline", className: "ml-2" })}
-              >
-                Dashboard <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className={buttonClasses({ variant: "ghost" })}>
-                  Log in
-                </Link>
-                <Link href="/signup" className={buttonClasses({ className: "ml-1" })}>
-                  Start practicing
-                </Link>
-              </>
-            )}
-          </nav>
+          <LandingNav signedIn={Boolean(user)} />
         </div>
       </header>
 
