@@ -151,22 +151,22 @@ export default async function Home() {
             }}
           />
           <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pb-24 pt-20 text-center sm:pb-32 sm:pt-28">
-            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-[13px] font-semibold text-indigo-700">
+            <span className="rise-in inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-[13px] font-semibold text-indigo-700">
               <Sparkles className="size-3.5 text-indigo-500" aria-hidden />
               AI-powered interview practice
             </span>
-            <h1 className="mt-7 max-w-4xl text-balance text-5xl font-extrabold leading-[1.04] tracking-[-0.035em] text-zinc-950 sm:text-[64px]">
+            <h1 className="rise-in rise-in-1 mt-7 max-w-4xl text-balance text-5xl font-extrabold leading-[1.04] tracking-[-0.035em] text-zinc-950 sm:text-[64px]">
               Practice your interview{" "}
               <span className="bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
                 before the real one.
               </span>
             </h1>
-            <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-500">
+            <p className="rise-in rise-in-2 mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-500">
               Tell InterviewOS about the job you&rsquo;re targeting, then practice realistic questions —
               written or spoken aloud with an AI interviewer — with scored feedback and a debrief on
               every session.
             </p>
-            <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
+            <div className="rise-in rise-in-3 mt-10 flex flex-col items-center gap-3 sm:flex-row">
               <Link href={primaryHref} className={buttonClasses({ size: "lg" })}>
                 {primaryLabel} <ArrowRight className="size-4" aria-hidden />
               </Link>
@@ -177,7 +177,7 @@ export default async function Home() {
                 See how it works
               </Link>
             </div>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[13px] font-medium text-zinc-500">
+            <div className="rise-in rise-in-4 mt-8 flex flex-wrap items-center justify-center gap-2 text-[13px] font-medium text-zinc-500">
               <span className="rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-zinc-600 shadow-sm">
                 Free to start
               </span>
@@ -193,7 +193,7 @@ export default async function Home() {
 
         {/* Trust strip */}
         <section className="border-y border-zinc-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-4 px-6 py-5 sm:grid-cols-3">
+          <div className="mx-auto grid max-w-6xl gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
             {trust.map((item) => (
               <div key={item.title} className="flex items-center gap-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -201,7 +201,7 @@ export default async function Home() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-zinc-900">{item.title}</p>
-                  <p className="truncate text-[13px] text-zinc-500">{item.body}</p>
+                  <p className="text-[13px] leading-snug text-zinc-500">{item.body}</p>
                 </div>
               </div>
             ))}
@@ -254,9 +254,9 @@ export default async function Home() {
                 <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-400 text-white shadow-[0_8px_16px_-8px_rgba(61,78,224,.6)]">
                   <feature.icon className="size-5" aria-hidden />
                 </div>
-                <h2 className="mt-6 text-lg font-bold tracking-[-0.02em] text-zinc-950">
+                <h3 className="mt-6 text-lg font-bold tracking-[-0.02em] text-zinc-950">
                   {feature.title}
-                </h2>
+                </h3>
                 <p className="mt-2.5 text-[15px] leading-relaxed text-zinc-500">{feature.body}</p>
               </div>
             ))}
