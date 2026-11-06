@@ -23,6 +23,7 @@ export function ListFilters({
   status,
   statusOptions,
   placeholder = "Search by role or company…",
+  searchLabel = "Search interviews",
   className,
 }: {
   basePath: string;
@@ -32,6 +33,8 @@ export function ListFilters({
   status: string;
   statusOptions: readonly FilterOption[];
   placeholder?: string;
+  /** Accessible name for the search field — each list passes its own noun. */
+  searchLabel?: string;
   className?: string;
 }) {
   const hasFilters = query.length > 0 || status !== "all";
@@ -64,7 +67,7 @@ export function ListFilters({
           name="q"
           defaultValue={query}
           placeholder={placeholder}
-          aria-label="Search interviews"
+          aria-label={searchLabel}
           className="h-10 w-full rounded-full border border-zinc-300 bg-white pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm transition-[border-color,box-shadow] focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
         />
         <button type="submit" className="sr-only">

@@ -79,6 +79,7 @@ export default async function HistoryPage({
         query={q}
         status={status}
         statusOptions={STATUS_OPTIONS}
+        searchLabel="Search mock history"
       />
 
       {mocks.length === 0 ? (

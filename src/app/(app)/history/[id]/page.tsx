@@ -115,7 +115,7 @@ export default async function MockDebriefPage({ params }: { params: Promise<{ id
 
       {mock.turns.length > 0 && (
         <details className="mt-8 group">
-          <summary className="cursor-pointer select-none text-sm font-medium text-zinc-700 hover:text-zinc-950">
+          <summary className="cursor-pointer select-none rounded-md text-sm font-medium text-zinc-700 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
             View transcript ({mock.turns.length} {pluralize(mock.turns.length, "turn")})
           </summary>
           <div className="mt-4 max-h-96 space-y-3 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 pr-2">

@@ -110,7 +110,7 @@ export default function FaqPage() {
                   key={item.q}
                   className="group rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,21,40,.05),0_8px_24px_-16px_rgba(16,21,40,.14)] transition-colors open:border-indigo-200"
                 >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left select-none [&::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
                     <span className="text-[15px] font-semibold text-zinc-900">{item.q}</span>
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors group-open:bg-indigo-50 group-open:text-indigo-600">
                       <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />

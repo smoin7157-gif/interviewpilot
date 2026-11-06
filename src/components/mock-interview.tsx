@@ -725,7 +725,7 @@ export function MockInterview({
 
             {(doneSummary?.turns.length ?? 0) > 0 && (
               <details className="mt-6 group">
-                <summary className="cursor-pointer select-none text-sm font-medium text-zinc-300 hover:text-white">
+                <summary className="cursor-pointer select-none rounded-md text-sm font-medium text-zinc-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950">
                   View your transcript
                 </summary>
                 <div className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
