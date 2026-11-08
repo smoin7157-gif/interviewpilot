@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import {
@@ -35,15 +36,17 @@ export async function getOwnedMockSession(userId: string, mockId: string) {
   });
 }
 
-export async function getOwnedInterviewSession(userId: string, interviewSessionId: string) {
-  return prisma.interviewSession.findFirst({
-    where: { id: interviewSessionId, userId },
-    include: {
-      questions: { orderBy: { orderIndex: "asc" as const } },
-      projects: true,
-    },
-  });
-}
+export const getOwnedInterviewSession = cache(
+  async (userId: string, interviewSessionId: string) => {
+    return prisma.interviewSession.findFirst({
+      where: { id: interviewSessionId, userId },
+      include: {
+        questions: { orderBy: { orderIndex: "asc" as const } },
+        projects: true,
+      },
+    });
+  }
+);
 
 /** Any mock for this interview that is still in progress (resumable). */
 export async function getActiveMock(userId: string, interviewSessionId: string) {
@@ -368,7 +371,7 @@ export async function listRecentMocks(userId: string, limit = 3): Promise<MockHi
 }
 
 /** One owned mock with its full transcript + interview context (debrief page). */
-export async function getOwnedMockWithInterview(userId: string, mockId: string) {
+export const getOwnedMockWithInterview = cache(async (userId: string, mockId: string) => {
   return prisma.mockInterviewSession.findFirst({
     where: { id: mockId, userId },
     include: {
@@ -385,4 +388,4 @@ export async function getOwnedMockWithInterview(userId: string, mockId: string) 
       },
     },
   });
-}
+});

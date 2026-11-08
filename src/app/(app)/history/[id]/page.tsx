@@ -13,12 +13,27 @@ import { DebriefExport } from "@/components/debrief-export";
 import { DebriefPanel } from "@/components/debrief-panel";
 import { MockDeleteButton } from "@/components/mock-delete-button";
 
-// The root layout's title template appends "· InterviewOS" — see history/page.tsx.
-export const metadata: Metadata = {
-  title: "Mock Debrief",
-  description:
-    "Your six-dimension mock interview debrief, strengths, gaps, and recommended practice.",
-};
+/**
+ * Name the role in the tab; the read is cached with the page's own fetch. A
+ * static `metadata` export can't coexist with this in Next.js 16, so the
+ * fallback title and description are returned below.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const user = await requireUser();
+  const { id } = await params;
+  const mock = await getOwnedMockWithInterview(user.id, id);
+  if (!mock) return { title: "Mock Debrief" };
+
+  const atCompany = mock.session.company ? ` at ${mock.session.company}` : "";
+  return {
+    title: `Debrief: ${mock.session.role}${atCompany}`,
+    description: `Your ${mock.session.role}${atCompany} mock interview debrief: six-dimension scores, strengths, gaps, and recommended practice.`,
+  };
+}
 
 export default async function MockDebriefPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();

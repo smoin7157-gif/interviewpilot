@@ -6,11 +6,29 @@ import { resolvePracticePosition } from "@/lib/practice-position";
 import type { WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
 import { InterviewWorkspace } from "@/components/interview-workspace";
 
-export const metadata: Metadata = {
-  title: "Interview Practice",
-  description:
-    "Practice written answers with AI feedback, then rehearse the same questions aloud in a mock interview.",
-};
+/**
+ * Name the session in the tab instead of showing the same generic title for
+ * every interview. The data fetch is `cache`d, so this shares the page's read
+ * rather than querying the session twice. Next.js 16 rejects exporting a
+ * static `metadata` alongside this, so the fallback title lives here too.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const user = await requireUser();
+  const { id } = await params;
+  const owned = await getOwnedWorkspaceSession(user.id, id);
+  if (!owned) return { title: "Interview Practice" };
+
+  const { role, company, seniority, interviewType } = owned.session;
+  const atCompany = company ? ` at ${company}` : "";
+  return {
+    title: `${role}${atCompany}`,
+    description: `Practice ${role}${atCompany} interview questions for ${seniority}${interviewType ? ` (${interviewType})` : ""} with AI feedback on every answer.`,
+  };
+}
 
 export default async function InterviewWorkspacePage({
   params,

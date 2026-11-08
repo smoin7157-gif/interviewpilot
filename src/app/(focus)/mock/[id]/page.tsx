@@ -4,8 +4,27 @@ import { requireUser } from "@/lib/auth";
 import { getOwnedInterviewSession } from "@/lib/mock";
 import { MockInterview } from "@/components/mock-interview";
 
-// The root layout's title template appends "· InterviewOS" — see history/page.tsx.
-export const metadata: Metadata = { title: "AI Mock Interview" };
+/**
+ * Put the role being rehearsed in the tab; the read is cached with the page's.
+ * Next.js 16 allows either `metadata` or `generateMetadata`, not both, so the
+ * fallback title is returned below.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const user = await requireUser();
+  const { id } = await params;
+  const session = await getOwnedInterviewSession(user.id, id);
+  if (!session) return { title: "AI Mock Interview" };
+
+  const atCompany = session.company ? ` at ${session.company}` : "";
+  return {
+    title: `Mock interview: ${session.role}${atCompany}`,
+    description: `Rehearse ${session.role}${atCompany} aloud with an AI interviewer, then review a scored six-dimension debrief.`,
+  };
+}
 
 export default async function MockInterviewPage({
   params,

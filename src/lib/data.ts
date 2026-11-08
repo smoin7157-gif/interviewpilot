@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { listRecentMocks, listScoreTrend, type MockScorePoint } from "@/lib/mock";
@@ -33,7 +34,7 @@ type SessionWithQuestionStats = {
  * Full workspace payload for one owned session: the session, its questions,
  * and the latest scored attempt per question (for the "last score" chip).
  */
-export async function getOwnedWorkspaceSession(userId: string, sessionId: string) {
+export const getOwnedWorkspaceSession = cache(async (userId: string, sessionId: string) => {
   // Both reads key on (userId, sessionId), so they run as one parallel round
   // trip instead of fetching the session first and then its attempts.
   const [session, lastAttempts] = await Promise.all([
@@ -60,7 +61,7 @@ export async function getOwnedWorkspaceSession(userId: string, sessionId: string
   }
 
   return { session, lastScoreByQuestion };
-}
+});
 
 export interface InterviewSummary {
   id: string;
