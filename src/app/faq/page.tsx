@@ -99,6 +99,21 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
   },
 ];
 
+/**
+ * FAQPage structured data, built from the same source as the rendered copy so
+ * the two can never disagree. Escaping `<` keeps a literal `</script>` inside
+ * an answer from closing the tag early.
+ */
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_GROUPS.flatMap((group) => group.items).map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
 export default function FaqPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
@@ -121,6 +136,10 @@ export default function FaqPage() {
         tabIndex={-1}
         className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 outline-none sm:px-8 sm:py-16"
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD).replace(/</g, "\\u003c") }}
+        />
         <PageHeader
           align="center"
           eyebrow="Help center"
