@@ -20,7 +20,6 @@ const PROTECTED_PREFIXES = [
   "/interviews",
   "/history",
   "/settings",
-  "/faq",
   "/mock",
 ];
 

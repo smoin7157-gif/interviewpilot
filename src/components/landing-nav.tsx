@@ -56,6 +56,14 @@ export function LandingNav({ signedIn }: { signedIn: boolean }) {
           {section.label}
         </Link>
       ))}
+      {/* Hidden below `lg` to leave room for the two auth actions; the mobile
+          menu and the page footer both carry the same link. */}
+      <Link
+        href="/faq"
+        className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-950 lg:block"
+      >
+        FAQ
+      </Link>
 
       {signedIn ? (
         <Link href="/dashboard" className={buttonClasses({ variant: "outline", className: "ml-2" })}>
@@ -110,6 +118,15 @@ export function LandingNav({ signedIn }: { signedIn: boolean }) {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/faq"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  FAQ
+                </Link>
+              </li>
             </ul>
             <div className="mt-1 border-t border-zinc-100 pt-1">
               <Link

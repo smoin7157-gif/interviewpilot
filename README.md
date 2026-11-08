@@ -91,7 +91,7 @@ Create an account at `/signup` to start.
 | `/mock/[id]` | AI Mock Interview (preflight → live spoken interview → debrief) |
 | `/history` | Mock history — every spoken session, scores, re-practice, delete (10 per page; `?q=&status=complete|active|scored` search & filter) |
 | `/history/[id]` | Full debrief (6-dimension breakdown, strengths/weaknesses, transcript) |
-| `/faq` | Frequently asked questions |
+| `/faq` | Frequently asked questions (public) |
 | `/settings` | Profile name + password |
 
 `GET /api/health` reports whether the app can reach its database — the quickest

@@ -199,7 +199,7 @@ production generation.
 | Workspace | `src/app/(app)/interviews/[id]/page.tsx` + `interview-workspace.tsx` |
 | Mock interview | `src/app/(focus)/mock/[id]/page.tsx` + `mock-interview.tsx` |
 | Mock history | `src/app/(app)/history/page.tsx` + `history/[id]/page.tsx` + `debrief-view.tsx`, `debrief-panel.tsx` |
-| FAQ | `src/app/(app)/faq/page.tsx` |
+| FAQ | `src/app/faq/page.tsx` (public help centre) |
 | Settings | `src/app/(app)/settings/page.tsx` |
 | Mock API | `src/app/api/mock-interviews/**` (create/active, turn, end, detail, debrief, history, delete) |
 | API | `src/app/api/**` |

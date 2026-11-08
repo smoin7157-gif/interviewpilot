@@ -324,6 +324,12 @@ export default async function Home() {
             >
               How it works
             </Link>
+            <Link
+              href="/faq"
+              className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+            >
+              FAQ
+            </Link>
             {user ? (
               <Link
                 href="/dashboard"

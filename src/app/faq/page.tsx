@@ -1,13 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ChevronDown } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { buttonClasses } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+
+/**
+ * The help centre is deliberately public: it answers the questions a visitor
+ * has before signing up (what this is, how scoring works, what happens to
+ * their data), so gating it behind the app shell only hid the page from the
+ * people who needed it. It keeps the landing page's light chrome instead of
+ * the signed-in sidebar.
+ */
 
 export const metadata: Metadata = {
   title: "FAQ",
   description:
     "How InterviewOS generates questions, scores written and spoken practice, and handles your data.",
+  alternates: { canonical: "/faq" },
 };
 
 const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
@@ -91,58 +101,98 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
 
 export default function FaqPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-8">
-      <PageHeader
-        align="center"
-        eyebrow="Help center"
-        title="Frequently asked questions"
-        description="Everything you need to know about practicing, your history, and how your data is handled."
-      />
+    <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
+      <header className="border-b border-zinc-200/70 bg-[#fbfcfe]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-6">
+          <Logo href="/" />
+          <nav aria-label="Primary" className="flex items-center gap-2">
+            <Link href="/login" className={buttonClasses({ variant: "ghost" })}>
+              Log in
+            </Link>
+            <Link href="/signup" className={buttonClasses()}>
+              Start practicing
+            </Link>
+          </nav>
+        </div>
+      </header>
 
-      <div className="mt-10 space-y-8">
-        {FAQ_GROUPS.map((group) => (
-          <section key={group.heading} aria-labelledby={group.heading.replace(/\s+/g, "-").toLowerCase()}>
-            <h2
-              id={group.heading.replace(/\s+/g, "-").toLowerCase()}
-              className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400"
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 outline-none sm:px-8 sm:py-16"
+      >
+        <PageHeader
+          align="center"
+          eyebrow="Help center"
+          title="Frequently asked questions"
+          description="Everything you need to know about practicing, your history, and how your data is handled."
+        />
+
+        <div className="mt-10 space-y-8">
+          {FAQ_GROUPS.map((group) => (
+            <section
+              key={group.heading}
+              aria-labelledby={group.heading.replace(/\s+/g, "-").toLowerCase()}
             >
-              {group.heading}
-            </h2>
-            <div className="space-y-3">
-              {group.items.map((item) => (
-                <details
-                  key={item.q}
-                  className="group rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,21,40,.05),0_8px_24px_-16px_rgba(16,21,40,.14)] transition-colors open:border-indigo-200"
-                >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
-                    <span className="text-[15px] font-semibold text-zinc-900">{item.q}</span>
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors group-open:bg-indigo-50 group-open:text-indigo-600">
-                      <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
-                    </span>
-                  </summary>
-                  <div className="px-5 pb-5">
-                    <p className="text-[15px] leading-relaxed text-zinc-600">{item.a}</p>
-                  </div>
-                </details>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+              <h2
+                id={group.heading.replace(/\s+/g, "-").toLowerCase()}
+                className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400"
+              >
+                {group.heading}
+              </h2>
+              <div className="space-y-3">
+                {group.items.map((item) => (
+                  <details
+                    key={item.q}
+                    className="group rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,21,40,.05),0_8px_24px_-16px_rgba(16,21,40,.14)] transition-colors open:border-indigo-200"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
+                      <span className="text-[15px] font-semibold text-zinc-900">{item.q}</span>
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors group-open:bg-indigo-50 group-open:text-indigo-600">
+                        <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+                      </span>
+                    </summary>
+                    <div className="px-5 pb-5">
+                      <p className="text-[15px] leading-relaxed text-zinc-600">{item.a}</p>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
 
-      <div className="mt-12 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-6 text-center sm:p-8">
-        <h2 className="text-lg font-semibold text-zinc-950">Still have questions?</h2>
-        <p className="mx-auto mt-1.5 max-w-md text-[15px] leading-relaxed text-zinc-500">
-          The best way to see how it works is to try it — create an interview for the role you&rsquo;re
-          targeting and practice a question.
-        </p>
-        <Link
-          href="/interviews/new"
-          className={buttonClasses({ size: "lg", className: "mt-5" })}
-        >
-          Create an interview <ArrowRight className="size-4" aria-hidden />
-        </Link>
-      </div>
+        <div className="mt-12 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-6 text-center sm:p-8">
+          <h2 className="text-lg font-semibold text-zinc-950">Still have questions?</h2>
+          <p className="mx-auto mt-1.5 max-w-md text-[15px] leading-relaxed text-zinc-500">
+            The best way to see how it works is to try it — create an interview for the role you&rsquo;re
+            targeting and practice a question.
+          </p>
+          <Link href="/interviews/new" className={buttonClasses({ size: "lg", className: "mt-5" })}>
+            Create an interview <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+      </main>
+
+      <footer className="border-t border-zinc-200 bg-white">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-zinc-500 sm:flex-row">
+          <div className="flex flex-col items-center gap-2 sm:items-start">
+            <Logo href="/" />
+            <p>AI-powered interview practice built around the job you actually want.</p>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link href="/" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Home
+            </Link>
+            <Link href="/faq" className="font-medium text-indigo-600 transition-colors hover:text-indigo-500">
+              FAQ
+            </Link>
+            <Link href="/signup" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Start practicing
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
