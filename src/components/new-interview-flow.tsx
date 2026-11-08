@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -85,9 +91,46 @@ function ChipGroup({
   ariaLabel: string;
   optional?: boolean;
 }) {
+  // A radio group is one Tab stop, not one per option: arrow keys move and
+  // select, Home/End jump to the ends. Without this, keyboard users had to Tab
+  // through every chip and the role="radio" semantics were misleading.
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const current = options.indexOf(value);
+    let next: number;
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = current < 0 ? 0 : (current + 1) % options.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = current < 0 ? options.length - 1 : (current - 1 + options.length) % options.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = options.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const option = options[next];
+    if (!option) return;
+    onChange(option);
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
+  }
+
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {options.map((option) => {
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      aria-required={optional ? undefined : true}
+      onKeyDown={handleKeyDown}
+      className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+    >
+      {options.map((option, index) => {
         const selected = value === option;
         return (
           <button
@@ -95,6 +138,7 @@ function ChipGroup({
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected || (value === "" && index === 0) ? 0 : -1}
             onClick={() => onChange(selected && optional ? "" : option)}
             className={cn(
               "flex h-10 items-center justify-center rounded-lg border text-sm font-medium transition-colors",
