@@ -200,6 +200,8 @@ production generation.
 | Mock interview | `src/app/(focus)/mock/[id]/page.tsx` + `mock-interview.tsx` |
 | Mock history | `src/app/(app)/history/page.tsx` + `history/[id]/page.tsx` + `debrief-view.tsx`, `debrief-panel.tsx` |
 | FAQ | `src/app/faq/page.tsx` (public help centre) |
+| Legal | `src/app/(legal)/*` (public privacy policy and terms) |
+| Web manifest | `src/app/manifest.ts` + `src/app/pwa-icon/[size]/route.tsx` (generated install icons) |
 | Settings | `src/app/(app)/settings/page.tsx` |
 | Mock API | `src/app/api/mock-interviews/**` (create/active, turn, end, detail, debrief, history, delete) |
 | API | `src/app/api/**` |

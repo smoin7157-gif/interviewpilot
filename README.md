@@ -92,6 +92,7 @@ Create an account at `/signup` to start.
 | `/history` | Mock history — every spoken session, scores, re-practice, delete (10 per page; `?q=&status=complete|active|scored` search & filter) |
 | `/history/[id]` | Full debrief (6-dimension breakdown, strengths/weaknesses, transcript) |
 | `/faq` | Frequently asked questions (public) |
+| `/privacy`, `/terms` | Privacy policy and terms of service (public) |
 | `/settings` | Profile name + password |
 
 `GET /api/health` reports whether the app can reach its database — the quickest
@@ -192,9 +193,9 @@ the database.
 ## Continuous integration
 
 Every push to `main` and every pull request runs `.github/workflows/ci.yml`:
-`npm ci`, ESLint, `tsc --noEmit`, and the full unit test suite. All of it is
-offline — no database or API keys are needed — so a broken change is caught
-before it ships.
+`npm ci`, ESLint, `tsc --noEmit`, the full unit test suite, and a production
+`next build`. All of it is offline — no database or API keys are needed — so a
+broken change is caught before it ships.
 
 ## Docs
 

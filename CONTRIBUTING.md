@@ -35,6 +35,7 @@ npm run dev            # http://localhost:3000
    npm run lint
    npx tsc --noEmit
    npm test
+   npm run build
    ```
    These are the same checks CI runs on every push and pull request, all
    offline — no database or API key is needed.

@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify:
-    name: Lint, typecheck & test
+    name: Lint, typecheck, test & build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +31,11 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      # The build is the deploy gate: it catches route, metadata and bundling
+      # failures that lint/typecheck/tests cannot. No database or API key is
+      # needed — startup env validation is skipped during `next build`.
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
