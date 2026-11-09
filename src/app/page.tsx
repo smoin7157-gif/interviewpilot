@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -16,6 +17,11 @@ import { Logo } from "@/components/logo";
 import { LandingDemo } from "@/components/landing-demo";
 import { LandingNav } from "@/components/landing-nav";
 import { buttonClasses } from "@/components/ui/button";
+import { siteUrl } from "@/lib/env";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const features = [
   {
@@ -88,6 +94,28 @@ const trust = [
   },
 ];
 
+/**
+ * Structured data for the product itself. It is derived here rather than
+ * duplicated in the root layout so it only describes the page a crawler
+ * actually landed on. Escaping `<` keeps the JSON from closing the script tag.
+ */
+const PRODUCT_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "InterviewOS",
+  url: siteUrl(),
+  description:
+    "AI-powered interview practice with role-specific questions, written feedback, and spoken mock interviews.",
+  applicationCategory: "EducationalApplication",
+  operatingSystem: "Any",
+  isAccessibleForFree: true,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+};
+
 export default async function Home() {
   const user = await getSessionUser();
   const primaryHref = user ? "/dashboard" : "/signup";
@@ -95,6 +123,12 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(PRODUCT_JSON_LD).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-[#fbfcfe]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
@@ -329,6 +363,18 @@ export default async function Home() {
               className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
             >
               FAQ
+            </Link>
+            <Link
+              href="/privacy"
+              className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="font-medium text-zinc-600 transition-colors hover:text-zinc-950"
+            >
+              Terms
             </Link>
             {user ? (
               <Link

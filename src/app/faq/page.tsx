@@ -206,6 +206,12 @@ export default function FaqPage() {
             <Link href="/faq" className="font-medium text-indigo-600 transition-colors hover:text-indigo-500">
               FAQ
             </Link>
+            <Link href="/privacy" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Privacy
+            </Link>
+            <Link href="/terms" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Terms
+            </Link>
             <Link href="/signup" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
               Start practicing
             </Link>

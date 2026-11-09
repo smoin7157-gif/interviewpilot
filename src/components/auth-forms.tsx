@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import {
   loginAction,
@@ -88,7 +89,21 @@ export function SignupForm({ nextPath }: { nextPath?: string }) {
         {pending ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-center text-xs leading-relaxed text-zinc-400">
-        By continuing you agree to practice responsibly. No payment, no ads — just interview practice.
+        By creating an account you agree to our{" "}
+        <Link
+          href="/terms"
+          className="font-medium text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
+        >
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link
+          href="/privacy"
+          className="font-medium text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
+        >
+          Privacy Policy
+        </Link>
+        . Free to use — no payment, no ads.
       </p>
     </form>
   );

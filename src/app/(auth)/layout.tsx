@@ -28,6 +28,22 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       >
         {children}
       </main>
+      <footer className="relative border-t border-zinc-200/70 bg-white/60">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-6 py-5 text-xs text-zinc-500 sm:flex-row">
+          <p>&copy; {new Date().getFullYear()} InterviewOS</p>
+          <nav aria-label="Legal" className="flex items-center gap-5">
+            <Link href="/privacy" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Privacy
+            </Link>
+            <Link href="/terms" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Terms
+            </Link>
+            <Link href="/faq" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              FAQ
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
