@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Create your account",
   description:
     "Create a free InterviewOS account and start practicing realistic, role-specific interview questions.",
+  alternates: { canonical: "/signup" },
 };
 
 export default async function SignupPage({

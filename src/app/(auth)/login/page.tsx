@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Log in",
   description:
     "Log in to InterviewOS to pick up your interview practice, mock sessions, and saved debriefs.",
+  alternates: { canonical: "/login" },
 };
 
 export default async function LoginPage({
