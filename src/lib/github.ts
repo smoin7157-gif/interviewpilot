@@ -18,6 +18,61 @@ export function parseGithubUsername(input: string): string {
   return username;
 }
 
+/** How many top repos contribute a README excerpt (keeps API calls bounded). */
+const README_EXCERPT_TARGETS = 3;
+
+/**
+ * Reduce a README's Markdown to the short, human-readable gist used as prompt
+ * context: no badges, code blocks, headings, HTML or comments, and no excerpt
+ * cut off mid-word. Exported for tests.
+ */
+export function summarizeReadme(markdown: string, maxChars = 280): string {
+  const cleaned = markdown
+    .replace(/\r\n/g, "\n")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length <= maxChars) return cleaned;
+
+  const cut = cleaned.slice(0, maxChars + 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  const excerpt = lastSpace > maxChars * 0.6 ? cut.slice(0, lastSpace) : cut.slice(0, maxChars);
+  return `${excerpt.trimEnd()}…`;
+}
+
+/**
+ * Read one public repo's README and summarize it. Deliberately best-effort: a
+ * missing, private or rate-limited README yields no excerpt, so attaching a
+ * GitHub profile never fails because of it.
+ */
+async function fetchReadmeExcerpt(
+  username: string,
+  repo: string,
+  headers: Record<string, string>
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${API_ROOT}/repos/${encodeURIComponent(username)}/${encodeURIComponent(repo)}/readme`,
+      {
+        headers: { ...headers, Accept: "application/vnd.github.raw+json" },
+        signal: AbortSignal.timeout(8_000),
+      }
+    );
+    if (!res.ok) return null;
+    // Cap what is parsed — some READMEs are hundreds of KB of documentation.
+    const excerpt = summarizeReadme((await res.text()).slice(0, 20_000));
+    return excerpt.length >= 40 ? excerpt : null;
+  } catch {
+    return null;
+  }
+}
+
 interface GithubRepo {
   name: string;
   description: string | null;
@@ -98,7 +153,17 @@ export async function analyzeGithubProfile(input: string): Promise<GithubProfile
     stars: r.stargazers_count,
     htmlUrl: r.html_url,
     pushedAt: r.pushed_at,
+    readmeExcerpt: null as string | null,
   }));
+
+  // Ground the candidate context in what the top repos actually do, not just
+  // their one-line descriptions. Three extra requests per attach keeps the
+  // profile inside GitHub's per-IP budget; failures are silently skipped.
+  await Promise.all(
+    topRepos.slice(0, README_EXCERPT_TARGETS).map(async (repo) => {
+      repo.readmeExcerpt = await fetchReadmeExcerpt(username, repo.name, headers);
+    })
+  );
 
   return { username, repoCount: publicRepos.length, languages, topRepos };
 }

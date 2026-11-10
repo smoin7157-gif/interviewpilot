@@ -34,6 +34,9 @@ export interface GithubRepoSummary {
   stars: number;
   htmlUrl: string;
   pushedAt: string | null;
+  /** Short plain-text gist of the repo's public README, when one was readable.
+   *  Best-effort: older stored profiles and unreadable/missing READMEs omit it. */
+  readmeExcerpt?: string | null;
 }
 
 export interface GithubProfileData {
@@ -103,6 +106,14 @@ export function buildCandidateContextSummary(ctx: {
         (g.languages.length > 0 ? `; top languages: ${g.languages.slice(0, 8).join(", ")}` : "") +
         (top ? `; notable repos: ${top}` : "")
     );
+    // README gists say what a repo actually does; descriptions are often blank.
+    // Capped at three short excerpts to keep the prompt compact.
+    const readmeNotes = g.topRepos
+      .filter((r) => r.readmeExcerpt)
+      .slice(0, 3)
+      .map((r) => `  ${r.name}: ${r.readmeExcerpt}`)
+      .join("\n");
+    if (readmeNotes.length > 0) lines.push(`- Public repo README notes:\n${readmeNotes}`);
   }
 
   if (ctx.projects && ctx.projects.length > 0) {

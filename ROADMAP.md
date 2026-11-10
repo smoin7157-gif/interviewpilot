@@ -44,10 +44,15 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
   text for the same structured-facts pipeline as PDFs. Guarded by
   `tests/resume.test.ts` with a real generated DOCX container
 
+- ✅ **GitHub repo README depth** — the top three public repos contribute a
+  short plain-text README excerpt (badges, code blocks and headings stripped)
+  to the candidate summary, so project questions can reference what a repo
+  actually does. Fetching is best-effort and capped at three requests per
+  attach; a `summarizeReadme` unit test pins the prompt-safe output
+
 ⬜ Remaining in Phase 2:
 - Follow-up engine reacting to the candidate's actual answer (not
   pre-generated picks) — dynamic follow-up on evaluation
-- GitHub repo README/metadata depth
 
 ## Phase 3 — AI Mock Interview ✅ (this build)
 

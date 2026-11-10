@@ -235,7 +235,12 @@ Beyond the target job, setup can capture the candidate's actual background:
 - **GitHub** — a profile URL is validated and its **public** repositories are
   fetched (`src/lib/github.ts`, unauthenticated GitHub API). Private repos are
   never accessed; anonymous rate limits are respected and surfaced as
-  actionable errors with a "continue without GitHub" path.
+  actionable errors with a "continue without GitHub" path. For the top three
+  repos, the public README is reduced to a short plain-text excerpt (badges,
+  code blocks and headings stripped) and added to the candidate summary, so a
+  question can reference what a repo actually does instead of only its one-line
+  description. README fetching is best-effort and capped at three requests per
+  attach; a missing or rate-limited README is silently skipped.
 - **Projects** — manual entries (name, repo URL, description, tech stack,
   contribution) persisted in `candidate_projects`.
 

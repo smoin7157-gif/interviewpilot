@@ -120,7 +120,9 @@ Persisted questions in order, each with `category`, `difficulty`, `reason`,
 
 ### `POST /api/interviews/{id}/github` → 200
 Validates the URL, fetches the **public** GitHub profile, and stores a summary
-on the session.
+on the session. The top three repos also contribute a short README excerpt
+(best-effort; missing or rate-limited READMEs are skipped) so generated
+questions can reference what the repositories actually do.
 
 ```json
 { "url": "https://github.com/username" }
@@ -131,7 +133,14 @@ on the session.
   "username": "username",
   "repoCount": 23,
   "languages": ["TypeScript", "Python"],
-  "topRepos": [{ "name": "hireai", "language": "TypeScript", "stars": 12 }]
+  "topRepos": [
+    {
+      "name": "hireai",
+      "language": "TypeScript",
+      "stars": 12,
+      "readmeExcerpt": "A resume-to-interview coach built on Next.js and Postgres…"
+    }
+  ]
 }
 ```
 
