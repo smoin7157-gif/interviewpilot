@@ -272,6 +272,16 @@ system_design, data_ml, job_description), selection honors the seniority
 difficulty mix via quotas and the interview type via category emphasis, and
 its driver asks at most one stored follow-up per question.
 
+**Answer-reactive written follow-ups.** The stored follow-ups are prepared with
+ each question; `POST /api/questions/:id/follow-up` adds an on-demand probe that
+ reacts to the answer the candidate just wrote. It reuses
+ `generateFollowUps({ …, answer })`, so both providers share the same rules:
+ reference a specific claim/technology/result from the answer, and when the
+ answer is thin or off-topic (`isShallowAnswer`) probe for the missing basics
+ instead of assuming depth. The route has its own 60/hour rate-limit bucket and
+ never writes to the question row — the generated follow-up is client-session
+ practice material, not part of the generated set.
+
 **Cross-session variation.** Every generation request carries an avoid-list
 of the user's most recent 200 generated questions (`listGeneratedQuestions`).
 The prompt treats them as covered ground; `filterAvoidList` enforces it

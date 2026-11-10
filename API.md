@@ -330,6 +330,28 @@ marks the question `PRACTICED`.
 { "question": "…", "followUps": ["…"] }
 ```
 
+### `POST /api/questions/{id}/follow-up` → 200
+Generates one follow-up that reacts to the candidate's **actual written
+answer** (the Phase 2 answer-reactive follow-up). Used by the workspace's
+"Probe this answer" action; the result is practiced in the Follow Up tab and is
+kept in the client session — it is not added to the stored question set.
+
+```json
+{ "answer": "I profiled the endpoint, cached the hot reads in Redis, and re-measured p95." }
+```
+```json
+{
+  "followUp": "You mentioned caching in Redis — how did you keep those entries consistent when the underlying rows changed?",
+  "followUps": ["…", "…", "…"],
+  "provider": "openrouter",
+  "model": "openai/gpt-4o-mini"
+}
+```
+
+Rate limited at 60 requests/hour per user in its own bucket (separate from
+answer evaluation), `422` for a missing/short answer, `404` when the question
+isn't owned.
+
 ## Status codes recap
 
 | Code | Meaning |

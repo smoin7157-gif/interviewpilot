@@ -131,6 +131,15 @@ export const practiceStatusSchema = z.object({
 });
 
 /**
+ * A written follow-up request: the answer the candidate just submitted. The
+ * same length rules as evaluation apply (it is the same text), but no score is
+ * produced — this only asks for a probe that reacts to the answer.
+ */
+export const answerFollowUpSchema = z.object({
+  answer: z.string().trim().min(10, "Write a real answer first (at least a few sentences).").max(10_000),
+});
+
+/**
  * Autosaved written-practice draft. Deliberately permissive — a draft is a
  * work-in-progress, so short/partial answers are valid; only the same 10k cap
  * as `evaluateSchema` applies, so anything that can be saved can be evaluated.

@@ -31,6 +31,8 @@ security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
 - **Searchable sessions** — My Interviews and Mock History take a free-text
   search (role or company) plus a lifecycle filter, applied server-side and
   carried in the URL, so a filtered view is shareable and survives pagination.
+- **Answer-reactive follow-ups** — after written feedback, ask for a follow-up
+  that probes the answer you just wrote, then practice it in the Follow Up tab.
 
 ## Stack
 

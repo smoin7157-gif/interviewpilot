@@ -20,7 +20,7 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
   suite (`npm test`, 241 tests — validation, file safety, rate limiter,
   utils, fallback AI provider, JD seed dataset)
 
-## Phase 2 — Written practice + candidate context 🟡
+## Phase 2 — Written practice + candidate context ✅
 
 ✅ Shipped in this build:
 - Candidate context inputs: **resume upload (PDF) + server-side parse**
@@ -50,9 +50,12 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
   actually does. Fetching is best-effort and capped at three requests per
   attach; a `summarizeReadme` unit test pins the prompt-safe output
 
-⬜ Remaining in Phase 2:
-- Follow-up engine reacting to the candidate's actual answer (not
-  pre-generated picks) — dynamic follow-up on evaluation
+- ✅ **Answer-reactive written follow-ups** — after written feedback, "Probe
+  this answer" asks the provider for a follow-up that references the actual
+  answer (thin/off-topic answers are probed for basics instead of assumed
+  depth), then practices it in the Follow Up tab. `POST
+  /api/questions/:id/follow-up`, 60/hour in its own bucket; the generated
+  follow-up is session-local, not added to the stored set
 
 ## Phase 3 — AI Mock Interview ✅ (this build)
 

@@ -527,6 +527,7 @@ function PracticeSection({
   persistToServer,
   onDraftChange,
   onEvaluated,
+  onFollowUp,
   nextAction,
   className,
 }: {
@@ -537,6 +538,8 @@ function PracticeSection({
   persistToServer: boolean;
   onDraftChange?: (storageKey: string, text: string) => void;
   onEvaluated: (feedback: EvaluationFeedback) => void;
+  /** When provided, offers an AI follow-up that reacts to the written answer. */
+  onFollowUp?: (followUp: string) => void;
   /** Offered next to the feedback so practice loops answer → feedback → next. */
   nextAction?: { label: string; onClick: () => void } | null;
   className?: string;
@@ -717,6 +720,7 @@ function PracticeSection({
               />
             </div>
           </div>
+          {onFollowUp && <AnswerFollowUp questionId={questionId} answer={text.trim()} onPractice={onFollowUp} />}
           {nextAction && (
             <div className="mt-3 flex justify-end">
               <Button size="sm" onClick={nextAction.onClick}>
@@ -760,6 +764,110 @@ function AllPracticedBanner({ onStartMock }: { onStartMock: () => void }) {
       <Button onClick={onStartMock} className="shrink-0">
         <Mic className="size-4" aria-hidden /> Practice aloud
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Answer-reactive follow-up (Phase 2).
+ *
+ * The stored follow-ups are prepared with the question; this asks for one probe
+ * that references the answer the candidate actually wrote, then hands it to the
+ * workspace so it can be practiced in the Follow Up tab. Generated follow-ups
+ * live in client state only — they are a practice prompt, not part of the
+ * generated set, so a refresh starts a fresh probe.
+ */
+function AnswerFollowUp({
+  questionId,
+  answer,
+  onPractice,
+}: {
+  questionId: string;
+  answer: string;
+  onPractice: (followUp: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [followUp, setFollowUp] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const loadingRef = useRef(false);
+
+  async function generate() {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/questions/${questionId}/follow-up`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer }),
+      });
+      const data = (await res.json()) as { followUp?: string; error?: string };
+      if (!res.ok || !data.followUp) {
+        throw new Error(
+          data.error ?? "We couldn't generate a follow-up right now. Please try again in a moment."
+        );
+      }
+      setFollowUp(data.followUp);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We couldn't generate a follow-up right now. Please try again in a moment."
+      );
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+      {followUp ? (
+        <>
+          <p className="text-[13px] font-semibold text-indigo-900">A follow-up on your answer</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-zinc-700">{followUp}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={() => onPractice(followUp)}>
+              Practice this follow-up <ArrowRight className="size-4" aria-hidden />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={generate}
+              loading={loading}
+              disabled={answer.length < PRACTICE_MIN_LENGTH}
+            >
+              Ask another
+            </Button>
+            <span className="text-[11px] text-zinc-400">Added to the Follow Up tab for this session.</span>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[13px] font-semibold text-indigo-900">Want to go deeper?</p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Get a follow-up that reacts to the answer you just wrote.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={generate}
+            loading={loading}
+            disabled={answer.length < PRACTICE_MIN_LENGTH}
+            className="shrink-0"
+          >
+            <Sparkles className="size-4" aria-hidden /> Probe this answer
+          </Button>
+        </div>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -965,6 +1073,25 @@ export function InterviewWorkspace({
     setQuestions((prev) =>
       prev.map((q) => (q.id === questionId ? { ...q, status: "PRACTICED" as const } : q))
     );
+  }
+
+  /** Add a generated follow-up to this session and open it for practice. */
+  function handleGeneratedFollowUp(followUp: string) {
+    const question = questions[mainIdx];
+    if (!question) return;
+    const existing = question.followUps.indexOf(followUp);
+    if (existing >= 0) {
+      setFupIdx(existing);
+      setTab("followup");
+      return;
+    }
+    const nextIndex = question.followUps.length;
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === question.id ? { ...q, followUps: [...q.followUps, followUp] } : q))
+    );
+    setFupIdx(nextIndex);
+    setTab("followup");
+    setMobileListOpen(false);
   }
 
   if (questions.length === 0) {
@@ -1289,6 +1416,7 @@ export function InterviewWorkspace({
                   persistToServer={!viewingFollowUp}
                   onDraftChange={rememberDraft}
                   onEvaluated={() => handleEvaluated(activeQuestion.id)}
+                  onFollowUp={viewingFollowUp ? undefined : handleGeneratedFollowUp}
                   nextAction={nextAction}
                 />
               </section>
