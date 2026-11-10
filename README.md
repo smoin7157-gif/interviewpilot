@@ -90,6 +90,7 @@ Create an account at `/signup` to start.
 | `/interviews` | My Interviews (cards, progress, practice-again, delete; 10 per page; `?q=&status=ready|practiced|draft` search & filter) |
 | `/interviews/new` | Interview setup → streams AI generation (`?from=<sessionId>` prefills it) |
 | `/interviews/[id]` | Practice workspace (questions, follow-ups, answers, evaluation) |
+| `/interviews/[id]/edit` | Edit a draft's setup before questions exist (role, level, company, JD, count) |
 | `/mock/[id]` | AI Mock Interview (preflight → live spoken interview → debrief) |
 | `/history` | Mock history — every spoken session, scores, re-practice, delete (10 per page; `?q=&status=complete|active|scored` search & filter) |
 | `/history/[id]` | Full debrief (6-dimension breakdown, strengths/weaknesses, transcript) |

@@ -123,7 +123,7 @@ export default async function InterviewsPage({
                     <Badge tone="zinc">{session.seniority}</Badge>
                     {session.interviewType && <Badge tone="indigo">{session.interviewType}</Badge>}
                   </div>
-                  <SessionMenu sessionId={session.id} />
+                  <SessionMenu sessionId={session.id} canEdit={session.questionCount === 0} />
                 </div>
 
                 <h2 className="mt-3 text-[17px] font-semibold leading-snug text-zinc-950">{session.role}</h2>

@@ -266,6 +266,54 @@ export async function getInterviewSetupDefaults(
 }
 
 /**
+ * Setup values plus the generated-question count, for the edit form.
+ *
+ * Returns null when the session isn't the caller's (or is gone), so the page
+ * can 404 without leaking another user's setup. `generatedQuestions` decides
+ * whether editing is still safe (the route enforces the same rule).
+ */
+export interface EditableInterview {
+  id: string;
+  setup: InterviewSetupDefaults;
+  generatedQuestions: number;
+}
+
+export async function getEditableInterview(
+  userId: string,
+  sessionId: string
+): Promise<EditableInterview | null> {
+  const session = await prisma.interviewSession.findFirst({
+    where: { id: sessionId, userId },
+    select: {
+      id: true,
+      role: true,
+      seniority: true,
+      company: true,
+      companyType: true,
+      interviewType: true,
+      jobDescription: true,
+      questionCountTarget: true,
+      _count: { select: { questions: true } },
+    },
+  });
+  if (!session) return null;
+
+  return {
+    id: session.id,
+    generatedQuestions: session._count.questions,
+    setup: {
+      role: session.role,
+      seniority: session.seniority,
+      company: session.company ?? "",
+      companyType: session.companyType ?? "",
+      interviewType: session.interviewType ?? "",
+      jobDescription: session.jobDescription ?? "",
+      questionCount: session.questionCountTarget,
+    },
+  };
+}
+
+/**
  * Every owned session as a summary, newest activity first — the backing query
  * for the unpaginated `GET /api/interviews`.
  *

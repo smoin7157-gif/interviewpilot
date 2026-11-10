@@ -220,6 +220,15 @@ through, without touching the AI pipeline.
   runs and that it can be ended early, and the dashboard links into the new
   filtered views
 
+## Phase 9 — Setup corrections ✅ (this build)
+
+- ✅ **Edit setup before generation** — `/interviews/[id]/edit` and `PATCH
+  /api/interviews/{id}` correct role, experience level, company, company type,
+  interview type, job description and question count on a draft. The My
+  Interviews menu links to it only for sessions without questions, and the API
+  answers `409` once questions exist so a generated set never silently
+  contradicts its setup. `updateInterviewSchema` is unit-tested
+
 ## Explicitly out of scope (do not build)
 
 Real-interview copilot, stealth assistance, screen capture, employer tools,

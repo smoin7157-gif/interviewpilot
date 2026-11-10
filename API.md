@@ -88,8 +88,20 @@ List the caller's sessions, newest activity first, with `questionCount`,
 ### `GET /api/interviews/{id}` → 200
 Full session incl. questions. 404 when not owned.
 
-### `DELETE /api/interviews/{id}` → `{ "ok": true }`
-Deletes the session; questions and attempts cascade.
+### `PATCH /api/interviews/{id}` → 200
+Edits the setup of an interview that has **no generated questions yet**. Any
+subset of `role`, `seniority`, `company`, `companyType`, `interviewType`,
+`jobDescription`, `questionCount` (10/15/20) may be sent; an empty body is
+`422`, and optional strings can be cleared with `""`.
+
+```json
+{ "company": "Stripe", "interviewType": "System Design", "questionCount": 15 }
+```
+
+Returns `409` once questions exist: they were generated from the old setup, and
+editing it afterward would leave the stored questions answering a different
+interview. The honest path at that point is a new session (`?from=<id>`
+prefills the setup). Rate limited at 60 edits/hour per user.
 
 ### `POST /api/interviews/{id}/generate` → NDJSON stream
 Generates and persists questions for a `DRAFT` session. **Not** a JSON
@@ -364,8 +376,6 @@ isn't owned.
 | 422 | validation failure (Zod) |
 | 429 | rate limit exceeded (AI/expensive endpoints; `Retry-After` header) |
 
-## Planned endpoints (not implemented — see ROADMAP.md)
+## Planned endpoints
 
-```text
-PATCH  /api/interviews/:id                       (edit setup)
-```
+None — every endpoint listed above is implemented.

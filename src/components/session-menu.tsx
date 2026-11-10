@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Ellipsis, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/dialog";
 
-export function SessionMenu({ sessionId }: { sessionId: string }) {
+export function SessionMenu({
+  sessionId,
+  canEdit = false,
+}: {
+  sessionId: string;
+  /** Setup is only editable before questions exist (see PATCH /api/interviews/:id). */
+  canEdit?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,6 +77,16 @@ export function SessionMenu({ sessionId }: { sessionId: string }) {
           role="menu"
           className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white p-1.5 shadow-lg"
         >
+          {canEdit && (
+            <Link
+              href={`/interviews/${sessionId}/edit`}
+              role="menuitem"
+              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <Pencil className="size-4" aria-hidden />
+              Edit setup
+            </Link>
+          )}
           <button
             type="button"
             role="menuitem"

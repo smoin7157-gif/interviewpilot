@@ -197,6 +197,7 @@ production generation.
 | Create flow | `src/app/(app)/interviews/new/page.tsx` + `new-interview-flow.tsx` (setup → sync → generate) |
 | Resume/GitHub attach | `src/app/api/interviews/[id]/resume/route.ts`, `src/app/api/interviews/[id]/github/route.ts` |
 | Workspace | `src/app/(app)/interviews/[id]/page.tsx` + `interview-workspace.tsx` |
+| Setup edit | `src/app/(app)/interviews/[id]/edit/page.tsx` + `edit-interview-form.tsx` (draft-only; `PATCH /api/interviews/:id`) |
 | Mock interview | `src/app/(focus)/mock/[id]/page.tsx` + `mock-interview.tsx` |
 | Mock history | `src/app/(app)/history/page.tsx` + `history/[id]/page.tsx` + `debrief-view.tsx`, `debrief-panel.tsx` |
 | FAQ | `src/app/faq/page.tsx` (public help centre) |
@@ -432,6 +433,17 @@ lifecycle filter instead of scanning the page client-side:
 - **`Skeleton` + route loading files** — the app and mock routes stream in
   page-shaped skeletons (the old lone spinner gave no sense of what was
   loading), and the layout no longer jumps when content arrives.
+
+## Setup corrections
+
+A draft interview can be corrected before generation at
+`/interviews/[id]/edit` (`PATCH /api/interviews/{id}`): role, experience level,
+company, company type, interview type, job description and question count. The
+My Interviews menu offers the link only while a session has no questions, and
+the route enforces the same rule with `409` — generated questions are grounded
+in the setup they were built from, so changing the role or JD afterward would
+silently make them answer a different interview. The edit page redirects a
+session with questions back to practice, and a foreign/unknown id 404s.
 
 ## Future modules (extension points)
 

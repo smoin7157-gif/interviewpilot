@@ -59,6 +59,14 @@ export const candidateProjectSchema = z.object({
   contribution: z.string().trim().max(2_000, "Contribution is too long.").optional().or(z.literal("")),
 });
 
+/** Question-count rule shared by create and edit (10 / 15 / 20 only). */
+const questionCountField = z.coerce
+  .number()
+  .int()
+  .refine((n) => (QUESTION_COUNT_OPTIONS as readonly number[]).includes(n), {
+    message: "Pick 10, 15, or 20 questions.",
+  });
+
 export const createInterviewSchema = z.object({
   role: z.string().trim().min(2, "Enter a job role.").max(120, "Role is too long."),
   seniority: z.enum(EXPERIENCE_OPTIONS),
@@ -68,14 +76,28 @@ export const createInterviewSchema = z.object({
   jobDescription: z.string().trim().max(12_000, "Job description is too long.").optional().or(z.literal("")),
   githubUrl: z.string().trim().max(300, "GitHub URL is too long.").optional().or(z.literal("")),
   projects: z.array(candidateProjectSchema).max(8, "Add at most 8 projects.").optional().default([]),
-  questionCount: z.coerce
-    .number()
-    .int()
-    .refine((n) => (QUESTION_COUNT_OPTIONS as readonly number[]).includes(n), {
-      message: "Pick 10, 15, or 20 questions.",
-    })
-    .default(10),
+  questionCount: questionCountField.default(10),
 });
+
+/**
+ * Setup edits for an interview that has not generated questions yet. Every
+ * field is optional (the edit form can change one thing), but an empty body is
+ * not a valid request — there is nothing to write.
+ */
+export const updateInterviewSchema = z
+  .object({
+    role: createInterviewSchema.shape.role,
+    seniority: createInterviewSchema.shape.seniority,
+    company: createInterviewSchema.shape.company,
+    companyType: createInterviewSchema.shape.companyType,
+    interviewType: createInterviewSchema.shape.interviewType,
+    jobDescription: createInterviewSchema.shape.jobDescription,
+    // The create schema's `.default(10)` must not survive here: it would turn
+    // an empty patch into `{ questionCount: 10 }` and defeat the check below.
+    questionCount: questionCountField,
+  })
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, { message: "Nothing to update." });
 
 /**
  * Password policy: length is checked by `.min()`, this adds a mild complexity
