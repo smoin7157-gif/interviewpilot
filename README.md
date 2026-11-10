@@ -33,6 +33,8 @@ security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
   carried in the URL, so a filtered view is shareable and survives pagination.
 - **Answer-reactive follow-ups** — after written feedback, ask for a follow-up
   that probes the answer you just wrote, then practice it in the Follow Up tab.
+- **Attempt history** — see your last five written attempts on a question, with
+  scores and relative timing, instead of only the latest score.
 
 ## Stack
 

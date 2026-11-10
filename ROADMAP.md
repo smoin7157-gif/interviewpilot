@@ -228,6 +228,10 @@ through, without touching the AI pipeline.
   Interviews menu links to it only for sessions without questions, and the API
   answers `409` once questions exist so a generated set never silently
   contradicts its setup. `updateInterviewSchema` is unit-tested
+- ✅ **Attempt history** — the workspace shows the newest written attempts for
+  the open question (score, main/follow-up prompt, relative time). The read is
+  bounded to the latest 200 rows and grouping keeps five per question
+  (`src/lib/attempt-history.ts`, unit-tested)
 
 ## Explicitly out of scope (do not build)
 

@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { listRecentMocks, listScoreTrend, type MockScorePoint } from "@/lib/mock";
 import { currentStreak, dayKey, type PracticeStats } from "@/lib/stats";
+import { groupAttemptsByQuestion } from "@/lib/attempt-history";
 import type { InterviewSetupDefaults } from "@/lib/types";
 import {
   buildCursorPage,
@@ -37,7 +38,7 @@ type SessionWithQuestionStats = {
 export const getOwnedWorkspaceSession = cache(async (userId: string, sessionId: string) => {
   // Both reads key on (userId, sessionId), so they run as one parallel round
   // trip instead of fetching the session first and then its attempts.
-  const [session, lastAttempts] = await Promise.all([
+  const [session, lastAttempts, recentAttempts] = await Promise.all([
     prisma.interviewSession.findFirst({
       where: { id: sessionId, userId },
       include: { questions: { orderBy: { orderIndex: "asc" as const } } },
@@ -50,6 +51,14 @@ export const getOwnedWorkspaceSession = cache(async (userId: string, sessionId: 
       distinct: ["questionId"],
       select: { questionId: true, score: true },
     }),
+    prisma.questionAttempt.findMany({
+      where: { userId, question: { sessionId } },
+      orderBy: { createdAt: "desc" },
+      // Bounded: the workspace shows only the newest few attempts per question,
+      // so this never grows with the user's total attempt history.
+      take: 200,
+      select: { questionId: true, score: true, prompt: true, createdAt: true },
+    }),
   ]);
   if (!session) return null;
 
@@ -60,7 +69,7 @@ export const getOwnedWorkspaceSession = cache(async (userId: string, sessionId: 
     }
   }
 
-  return { session, lastScoreByQuestion };
+  return { session, lastScoreByQuestion, attemptsByQuestion: groupAttemptsByQuestion(recentAttempts) };
 });
 
 export interface InterviewSummary {

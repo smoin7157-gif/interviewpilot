@@ -43,7 +43,7 @@ export default async function InterviewWorkspacePage({
 
   const owned = await getOwnedWorkspaceSession(user.id, id);
   if (!owned) notFound();
-  const { session, lastScoreByQuestion } = owned;
+  const { session, lastScoreByQuestion, attemptsByQuestion } = owned;
 
   const sessionDto: WorkspaceSession = {
     id: session.id,
@@ -71,6 +71,11 @@ export default async function InterviewWorkspacePage({
     orderIndex: q.orderIndex,
     status: q.status as WorkspaceQuestion["status"],
     lastScore: lastScoreByQuestion.get(q.id) ?? null,
+    attempts: (attemptsByQuestion.get(q.id) ?? []).map((attempt) => ({
+      score: attempt.score,
+      prompt: attempt.prompt,
+      createdAt: attempt.createdAt.toISOString(),
+    })),
     draftAnswer: q.draftAnswer,
   }));
 

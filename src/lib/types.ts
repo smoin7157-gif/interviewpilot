@@ -1,5 +1,13 @@
 export type QuestionStatus = "NOT_STARTED" | "PRACTICED" | "SKIPPED";
 
+/** One stored written-practice attempt, as shown in the workspace history. */
+export interface WorkspaceAttempt {
+  score: number | null;
+  /** The exact prompt practiced — the main question or a follow-up. */
+  prompt: string | null;
+  createdAt: string;
+}
+
 export interface WorkspaceQuestion {
   id: string;
   question: string;
@@ -12,6 +20,8 @@ export interface WorkspaceQuestion {
   orderIndex: number;
   status: QuestionStatus;
   lastScore: number | null;
+  /** Newest written attempts first, capped per question (see attempt-history). */
+  attempts: WorkspaceAttempt[];
   /** Autosaved written-practice draft, or null when there is none. */
   draftAnswer: string | null;
 }

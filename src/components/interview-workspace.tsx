@@ -33,6 +33,7 @@ import {
   formatClock,
   formatQuestionCategory,
   formatQuestionDifficulty,
+  formatRelativeTime,
   pluralize,
 } from "@/lib/utils";
 import { AnswerTimer } from "@/components/answer-timer";
@@ -246,6 +247,7 @@ function QuestionList({
                 orderIndex: idx,
                 status: "NOT_STARTED",
                 lastScore: null,
+                attempts: [],
                 draftAnswer: null,
               };
               return (
@@ -1401,6 +1403,50 @@ export function InterviewWorkspace({
                     <SuggestedAnswer answer={main.suggestedAnswer} />
                   </section>
                 </>
+              )}
+
+              {!viewingFollowUp && main.attempts.length > 0 && (
+                <section className="mt-8">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-wide text-zinc-900">
+                    Attempt history
+                  </h3>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Your most recent written attempts on this question, newest first.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {main.attempts.map((attempt, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-zinc-700">
+                            {attempt.prompt && attempt.prompt !== main.question
+                              ? `Follow-up: ${attempt.prompt}`
+                              : "Main question"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-zinc-400">
+                            {formatRelativeTime(attempt.createdAt)}
+                          </p>
+                        </div>
+                        <Badge
+                          tone={
+                            attempt.score == null
+                              ? "zinc"
+                              : attempt.score >= 80
+                                ? "green"
+                                : attempt.score >= 60
+                                  ? "amber"
+                                  : "red"
+                          }
+                          className="shrink-0 tabular-nums"
+                        >
+                          {attempt.score ?? "—"}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               )}
 
               {/* Practice */}

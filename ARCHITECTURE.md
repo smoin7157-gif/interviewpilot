@@ -445,6 +445,16 @@ in the setup they were built from, so changing the role or JD afterward would
 silently make them answer a different interview. The edit page redirects a
 session with questions back to practice, and a foreign/unknown id 404s.
 
+## Attempt history
+
+Written practice is append-only in `question_attempts`, but the workspace only
+needs the newest few per question. `getOwnedWorkspaceSession` loads a bounded
+slice (the latest 200 attempts for the session) and `groupAttemptsByQuestion`
+(`src/lib/attempt-history.ts`, unit-tested) keeps five per question in
+newest-first order. The question view renders them as an attempt history —
+score, whether the prompt was the main question or a follow-up, and relative
+time — so a re-practice shows real progress instead of only the latest score.
+
 ## Future modules (extension points)
 
 Remaining Phase 2 items (answer-reactive written follow-ups, DOCX resumes)
