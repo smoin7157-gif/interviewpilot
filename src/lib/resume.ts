@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
+import mammoth from "mammoth";
 
 // Point pdf.js at the real worker file on disk (anchored at the project root)
 // so the worker dynamic import resolves even when the package is bundled.
@@ -168,6 +169,37 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
   if (cleaned.length < MIN_TEXT_CHARS) {
     throw new Error(
       "We couldn't extract enough text from that PDF. It may be a scanned image — try a text-based PDF or another file."
+    );
+  }
+  return cleaned;
+}
+
+/**
+ * Extracts raw text from a .docx (Office Open XML) resume. Word documents are
+ * ZIP containers; mammoth reads `word/document.xml` and returns plain text with
+ * paragraph breaks, so headings like Experience/Skills stay on their own lines
+ * for the same section heuristic the PDF path uses. Throws a friendly error
+ * when unreadable.
+ */
+export async function extractDocxText(buffer: Buffer): Promise<string> {
+  let text = "";
+  try {
+    const result = await mammoth.extractRawText({ buffer });
+    text = result.value;
+  } catch (err) {
+    console.error(
+      "[resume] docx parse failed:",
+      err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+    );
+    throw new Error(
+      "We couldn't read that Word document. It may be corrupted or password-protected — try re-saving it from Word or Google Docs."
+    );
+  }
+
+  const cleaned = sanitizeResumeText(text);
+  if (cleaned.length < MIN_TEXT_CHARS) {
+    throw new Error(
+      "We couldn't extract enough text from that Word document. It may contain only images — try a text-based PDF or DOCX."
     );
   }
   return cleaned;

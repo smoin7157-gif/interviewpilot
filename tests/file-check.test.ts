@@ -1,6 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { isPdfBuffer, looksLikePdfName, sanitizeFilename } from "../src/lib/file-check";
+import {
+  isPdfBuffer,
+  isZipBuffer,
+  looksLikeDocxName,
+  looksLikePdfName,
+  sanitizeFilename,
+} from "../src/lib/file-check";
 
 describe("isPdfBuffer", () => {
   it("detects a real PDF header", () => {
@@ -24,6 +30,28 @@ describe("looksLikePdfName", () => {
     assert.equal(looksLikePdfName("resume.pdf"), true);
     assert.equal(looksLikePdfName("RESUME.PDF"), true);
     assert.equal(looksLikePdfName("resume.docx"), false);
+  });
+});
+
+describe("isZipBuffer", () => {
+  it("detects the ZIP local-file header used by .docx", () => {
+    const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00]);
+    assert.equal(isZipBuffer(bytes), true);
+  });
+
+  it("rejects PDFs, HTML and short buffers", () => {
+    assert.equal(isZipBuffer(new TextEncoder().encode("%PDF-1.7")), false);
+    assert.equal(isZipBuffer(new TextEncoder().encode("PK")), false);
+    assert.equal(isZipBuffer(new Uint8Array(0)), false);
+  });
+});
+
+describe("looksLikeDocxName", () => {
+  it("matches .docx extensions case-insensitively only", () => {
+    assert.equal(looksLikeDocxName("resume.docx"), true);
+    assert.equal(looksLikeDocxName("RESUME.DOCX"), true);
+    assert.equal(looksLikeDocxName("resume.pdf"), false);
+    assert.equal(looksLikeDocxName("resume.doc"), false);
   });
 });
 

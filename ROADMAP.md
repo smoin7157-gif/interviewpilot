@@ -38,10 +38,16 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
 - Question list/detail, suggested answers, typed answers, AI evaluation,
   follow-ups, history (shipped in earlier builds, now on the new schema)
 
+- ✅ **DOCX resumes** — Word documents are accepted alongside PDFs; the upload
+  route picks the parser from the file's magic bytes (PDF header vs ZIP
+  container), so a renamed file still reads, and mammoth extracts paragraph
+  text for the same structured-facts pipeline as PDFs. Guarded by
+  `tests/resume.test.ts` with a real generated DOCX container
+
 ⬜ Remaining in Phase 2:
 - Follow-up engine reacting to the candidate's actual answer (not
   pre-generated picks) — dynamic follow-up on evaluation
-- DOCX resume support if clean; GitHub repo README/metadata depth
+- GitHub repo README/metadata depth
 
 ## Phase 3 — AI Mock Interview ✅ (this build)
 

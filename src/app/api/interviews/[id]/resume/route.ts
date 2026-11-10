@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { extractPdfText } from "@/lib/resume";
+import { extractDocxText, extractPdfText } from "@/lib/resume";
 import { extractResumeData } from "@/lib/ai/service";
-import { isPdfBuffer, looksLikePdfName, sanitizeFilename } from "@/lib/file-check";
+import {
+  isPdfBuffer,
+  isZipBuffer,
+  looksLikeDocxName,
+  looksLikePdfName,
+  sanitizeFilename,
+} from "@/lib/file-check";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -12,6 +18,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 90;
 
 const MAX_FILE_BYTES = 3 * 1024 * 1024; // 3 MB
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireApiUser();
@@ -38,9 +46,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No resume file was uploaded." }, { status: 400 });
   }
-  if (!looksLikePdfName(file.name) && file.type !== "application/pdf") {
+  const isDocxName = looksLikeDocxName(file.name) || file.type === DOCX_MIME;
+  if (!looksLikePdfName(file.name) && file.type !== "application/pdf" && !isDocxName) {
     return NextResponse.json(
-      { error: "Please upload a PDF resume (text-based PDFs work best)." },
+      { error: "Please upload a PDF or Word (.docx) resume — text-based files work best." },
       { status: 415 }
     );
   }
@@ -52,21 +61,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     // Magic-byte check: the extension/MIME can be spoofed, the content cannot.
-    if (!isPdfBuffer(buffer)) {
+    // The parser is chosen from the content, so a .docx rename still reads.
+    if (isPdfBuffer(buffer)) {
+      text = await extractPdfText(buffer);
+    } else if (isZipBuffer(buffer)) {
+      text = await extractDocxText(buffer);
+    } else {
       return NextResponse.json(
-        { error: "That file is not a valid PDF (missing the PDF header)." },
+        { error: "That file is not a valid PDF or Word document." },
         { status: 415 }
       );
     }
-    text = await extractPdfText(buffer);
-  } catch {
-    // Never surface parser internals (they can leak paths/versions); the
-    // details go to the server log instead.
+  } catch (err) {
+    // Parser failures throw our own user-facing messages; anything unexpected
+    // (paths, versions) is logged server-side and replaced with a generic one.
     console.error("Resume parse failed for interview", session.id);
-    return NextResponse.json(
-      { error: "We couldn't read that PDF. Please upload a valid text-based PDF." },
-      { status: 422 }
-    );
+    const message =
+      err instanceof Error && err.message.startsWith("We couldn't")
+        ? err.message
+        : "We couldn't read that file. Please upload a text-based PDF or Word document.";
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 
   const { result, provider, model } = await extractResumeData(text);

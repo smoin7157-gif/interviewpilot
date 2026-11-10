@@ -32,7 +32,7 @@ Next.js App Router
   ├── debrief.ts             debrief context assembly + transcript budget (Phase 4)
   ├── validation.ts          zod schemas (shared by UI + API)
   ├── candidate-context.ts   normalized candidate-context types + summary
-  ├── resume.ts              PDF → text extraction
+  ├── resume.ts              PDF / DOCX → text extraction
   ├── github.ts              public GitHub profile analysis
   ├── speech.ts              client-only replaceable speech layer (STT/TTS/media)
   ├── ai/
@@ -226,7 +226,7 @@ Interview setup captures the candidate's **target job**:
 
 Beyond the target job, setup can capture the candidate's actual background:
 
-- **Resume** — PDF upload, text extracted server-side (`src/lib/resume.ts`), then
+- **Resume** — PDF or DOCX upload, text extracted server-side (`src/lib/resume.ts`), then
   structured into `{ skills, experience, education, projects, achievements,
   certifications, technologies }` by the AI provider abstraction (live
   extraction with a deterministic offline extractor as fallback). Only facts

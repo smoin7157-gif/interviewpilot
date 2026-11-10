@@ -136,12 +136,13 @@ on the session.
 ```
 
 ### `POST /api/interviews/{id}/resume` → 200 (`multipart/form-data`)
-Uploads a **PDF** resume (≤ 3 MB), extracts its text server-side, runs
+Uploads a **PDF or Word (.docx)** resume (≤ 3 MB), extracts its text server-side,
+runs
 structured extraction (live AI with a deterministic fallback — never invents
 facts), and stores the parsed sections on the session.
 
 ```text
-form-data: resume=@resume.pdf
+form-data: resume=@resume.pdf        # or resume=@resume.docx
 ```
 ```json
 {

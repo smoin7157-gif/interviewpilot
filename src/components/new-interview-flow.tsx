@@ -292,8 +292,12 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
 
   function validateResumeFile(file: File | null): string {
     if (!file) return "";
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) return "That file isn't a PDF. Choose a PDF resume.";
+    const name = file.name.toLowerCase();
+    const isPdf = file.type === "application/pdf" || name.endsWith(".pdf");
+    const isDocx =
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      name.endsWith(".docx");
+    if (!isPdf && !isDocx) return "That file isn't a PDF or Word document. Choose a .pdf or .docx resume.";
     if (file.size > RESUME_MAX_BYTES) return "That resume is larger than 3 MB. Choose a smaller file.";
     return "";
   }
@@ -688,7 +692,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
 
               <div className="space-y-1.5">
                 <p className="flex items-center gap-1.5 text-sm font-medium text-zinc-800">
-                  <UploadCloud className="size-4 text-zinc-400" aria-hidden /> Resume (PDF)
+                  <UploadCloud className="size-4 text-zinc-400" aria-hidden /> Resume (PDF or DOCX)
                 </p>
                 <label
                   className={cn(
@@ -700,7 +704,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                 >
                   <input
                     type="file"
-                    accept="application/pdf,.pdf"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     className="sr-only"
                     onChange={(e) => {
                       // Validate the picked file itself: `resumeFile` is still the
@@ -719,7 +723,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                     </span>
                   ) : (
                     <span className="text-sm font-medium text-zinc-600">
-                      <UploadCloud className="mr-1.5 inline size-4" aria-hidden /> Choose a PDF resume
+                      <UploadCloud className="mr-1.5 inline size-4" aria-hidden /> Choose a PDF or DOCX resume
                     </span>
                   )}
                 </label>

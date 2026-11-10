@@ -39,7 +39,9 @@ const nextConfig: NextConfig = {
   // pdf.js resolves its worker through a dynamic import that bundlers rewrite
   // to a non-existent virtual module; loading the real package at runtime
   // (like plain Node) keeps resume parsing working.
-  serverExternalPackages: ["pdfjs-dist"],
+  // mammoth (DOCX text extraction) is a CommonJS package that reads its own
+  // files at runtime; keep both parsers out of the server bundle.
+  serverExternalPackages: ["pdfjs-dist", "mammoth"],
   // The offline JD index reads its seed dataset from disk at runtime. Without
   // tracing the JSON into the serverless bundle, the index would silently
   // degrade to its generic template bank on Vercel.

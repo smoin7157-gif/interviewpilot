@@ -39,7 +39,7 @@ security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
 - **Prisma ORM** on **PostgreSQL** (Neon serverless Postgres — works on Vercel and locally)
 - **Auth**: email + password (bcrypt), signed httpOnly session cookies (jose)
 - **AI**: OpenRouter with a provider abstraction and a deterministic offline fallback
-- **Resume parsing**: pdfjs-dist (server-side PDF text extraction; facts are structured by the AI provider)
+- **Resume parsing**: pdfjs-dist + mammoth (server-side PDF and DOCX text extraction; facts are structured by the AI provider)
 - **Mock interview voice**: browser-native (Web Speech API STT + speechSynthesis TTS + getUserMedia) through a swappable speech layer — no API keys, audio never stored
 
 ## Getting started
