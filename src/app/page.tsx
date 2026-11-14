@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { Logo } from "@/components/logo";
-import { LandingDemo } from "@/components/landing-demo";
+import { LandingDemoLazy as LandingDemo } from "@/components/client-loaders";
 import { LandingNav } from "@/components/landing-nav";
 import { buttonClasses } from "@/components/ui/button";
 import { siteUrl } from "@/lib/env";

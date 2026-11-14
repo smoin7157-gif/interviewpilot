@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getOwnedInterviewSession } from "@/lib/mock";
-import { MockInterview } from "@/components/mock-interview";
+import { MockInterviewLazy as MockInterview } from "@/components/client-loaders";
 
 /**
  * Put the role being rehearsed in the tab; the read is cached with the page's.

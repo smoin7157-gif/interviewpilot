@@ -166,12 +166,89 @@ export function pickEnglishVoice(): SpeechSynthesisVoice | null {
 
 /* --------------------------------- Media --------------------------------- */
 
-export async function requestMicrophone(): Promise<MediaStream> {
-  return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+export type MediaInputDevice = {
+  deviceId: string;
+  label: string;
+  kind: "audioinput" | "videoinput";
+};
+
+/** Empty string means the browser/OS default device. */
+export const DEFAULT_MEDIA_DEVICE_ID = "";
+
+/**
+ * Human label for a media input — browsers hide names until permission is granted,
+ * so fall back to numbered placeholders instead of raw deviceIds.
+ */
+export function displayDeviceLabel(
+  rawLabel: string,
+  kind: "audio" | "video",
+  oneBasedIndex: number
+): string {
+  const trimmed = rawLabel.trim();
+  if (trimmed.length > 0) return trimmed;
+  const noun = kind === "audio" ? "Microphone" : "Camera";
+  return `${noun} ${oneBasedIndex}`;
 }
 
-export async function requestCamera(): Promise<MediaStream> {
-  return navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+export function filterMediaInputDevices(
+  devices: ReadonlyArray<{ deviceId: string; label: string; kind: string }>
+): { audio: MediaInputDevice[]; video: MediaInputDevice[] } {
+  const audio: MediaInputDevice[] = [];
+  const video: MediaInputDevice[] = [];
+  let audioIndex = 0;
+  let videoIndex = 0;
+  for (const device of devices) {
+    if (!device.deviceId || device.deviceId === "default") continue;
+    if (device.kind === "audioinput") {
+      audioIndex += 1;
+      audio.push({
+        deviceId: device.deviceId,
+        label: displayDeviceLabel(device.label, "audio", audioIndex),
+        kind: "audioinput",
+      });
+    } else if (device.kind === "videoinput") {
+      videoIndex += 1;
+      video.push({
+        deviceId: device.deviceId,
+        label: displayDeviceLabel(device.label, "video", videoIndex),
+        kind: "videoinput",
+      });
+    }
+  }
+  return { audio, video };
+}
+
+export function mediaDeviceConstraint(
+  deviceId: string | undefined
+): boolean | MediaTrackConstraints {
+  if (!deviceId) return true;
+  return { deviceId: { exact: deviceId } };
+}
+
+/** List microphones and cameras available to the page (labels may be blank until permission). */
+export async function listMediaInputDevices(): Promise<{
+  audio: MediaInputDevice[];
+  video: MediaInputDevice[];
+}> {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+    return { audio: [], video: [] };
+  }
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return filterMediaInputDevices(devices);
+}
+
+export async function requestMicrophone(deviceId?: string): Promise<MediaStream> {
+  return navigator.mediaDevices.getUserMedia({
+    audio: mediaDeviceConstraint(deviceId),
+    video: false,
+  });
+}
+
+export async function requestCamera(deviceId?: string): Promise<MediaStream> {
+  return navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: mediaDeviceConstraint(deviceId),
+  });
 }
 
 export function stopMediaStream(stream: MediaStream | null): void {
@@ -189,21 +266,27 @@ export function setTrackEnabled(
 }
 
 /** Describe a getUserMedia failure for the UI (never raw error strings). */
-export function describeMediaError(error: unknown): string {
+export function describeMediaError(
+  error: unknown,
+  kind: "microphone" | "camera" = "microphone"
+): string {
   const name = error instanceof DOMException ? error.name : "";
+  const device = kind === "camera" ? "camera" : "microphone";
   switch (name) {
     case "NotAllowedError":
     case "PermissionDeniedError":
-      return "Permission was denied. Allow microphone access in your browser and try again.";
+      return `Permission was denied. Allow ${device} access in your browser and try again.`;
     case "NotFoundError":
     case "DevicesNotFoundError":
-      return "No microphone was found. Connect one and try again.";
+      return `No ${device} was found. Connect one and try again.`;
     case "NotReadableError":
     case "TrackStartError":
-      return "Your microphone is busy in another app. Close it and try again.";
+      return `Your ${device} is busy in another app. Close it and try again.`;
+    case "OverconstrainedError":
+      return `That ${device} is unavailable. Try the system default or another device.`;
     case "SecurityError":
-      return "Microphone access requires a secure connection (HTTPS or localhost).";
+      return `${device.charAt(0).toUpperCase()}${device.slice(1)} access requires a secure connection (HTTPS or localhost).`;
     default:
-      return "Couldn't access your microphone. Check your device settings and try again.";
+      return `Couldn't access your ${device}. Check your device settings and try again.`;
   }
 }

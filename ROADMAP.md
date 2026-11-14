@@ -85,8 +85,10 @@ Status legend: ✅ shipped · 🟡 in progress · ⬜ planned
 Remaining in Phase 3 (roadmap notes):
 - Cloud STT/TTS provider option behind the speech interface (browser voice is
   default; Chrome/Edge recommended)
-- Device picker for multiple mics/cameras; answer-reactive difficulty already
-  partial via the interviewer prompt
+- ✅ **Device picker** — mock preflight lists microphones/cameras (with system
+  default), passes explicit `deviceId` constraints through `src/lib/speech.ts`,
+  and refreshes labels after permission; guarded by `tests/speech.test.ts`
+- Answer-reactive difficulty already partial via the interviewer prompt
 
 
 ## Phase 4 — Debrief & History ✅ (this build)
@@ -114,6 +116,10 @@ Remaining in Phase 3 (roadmap notes):
 
 ## Phase 5 — Polish ✅ (this build)
 
+- **Performance:** `optimizePackageImports` for lucide, long-cache `/_next/static`,
+  `display: swap` fonts, lazy-loaded landing demo + workspace + mock shells
+  (`client-loaders.tsx`), leaner interview list aggregates in `buildSummaries`,
+  React `cache` on `getPracticeOverview`
 - **Accessibility:** skip-to-content link, focusable main anchors across
   layouts, mobile drawer closes on Escape, visible focus rings, aria-live
   interviewer status, reduced-motion CSS

@@ -111,8 +111,7 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
   if (sessions.length === 0) return [];
   const sessionIds = sessions.map((s) => s.id);
 
-  // All three aggregates are independent — one parallel round trip.
-  const [practicedBySession, latestByQuestion, questionOwners] = await Promise.all([
+  const [practicedBySession, latestByQuestion] = await Promise.all([
     prisma.interviewQuestion.groupBy({
       by: ["sessionId"],
       where: { sessionId: { in: sessionIds }, status: "PRACTICED" },
@@ -125,16 +124,21 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
       },
       _max: { createdAt: true },
     }),
-    prisma.interviewQuestion.findMany({
-      where: { sessionId: { in: sessionIds }, attempts: { some: {} } },
-      select: { id: true, sessionId: true },
-    }),
   ]);
 
   const practicedMap = new Map<string, number>();
   for (const row of practicedBySession) {
     practicedMap.set(row.sessionId, row._count._all);
   }
+
+  const attemptQuestionIds = latestByQuestion.map((row) => row.questionId);
+  const questionOwners =
+    attemptQuestionIds.length > 0
+      ? await prisma.interviewQuestion.findMany({
+          where: { id: { in: attemptQuestionIds } },
+          select: { id: true, sessionId: true },
+        })
+      : [];
 
   // Resolve questionId -> sessionId for the last-activity mapping.
   const sessionOfQuestion = new Map<string, string>();
@@ -377,7 +381,7 @@ export interface PracticeOverview extends PracticeStats {
   latestMock: { id: string; hasDebrief: boolean } | null;
 }
 
-export async function getPracticeOverview(userId: string): Promise<PracticeOverview> {
+export const getPracticeOverview = cache(async (userId: string): Promise<PracticeOverview> => {
   const since = new Date();
   since.setDate(since.getDate() - 60);
 
@@ -435,7 +439,7 @@ export async function getPracticeOverview(userId: string): Promise<PracticeOverv
       ? { id: latestMockRow.id, hasDebrief: Boolean(latestMockRow.debrief && latestMockRow.overallScore != null) }
       : null,
   };
-}
+});
 
 /**
  * Persist (or clear, with an empty answer) the written-practice draft for one

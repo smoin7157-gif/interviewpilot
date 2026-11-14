@@ -37,13 +37,16 @@ import {
   browserSttSupported,
   cancelSpeech,
   createBrowserStt,
+  DEFAULT_MEDIA_DEVICE_ID,
   describeMediaError,
+  listMediaInputDevices,
   requestCamera,
   requestMicrophone,
   setTrackEnabled,
   speak,
   stopMediaStream,
   warmVoices,
+  type MediaInputDevice,
   type SttSession,
 } from "@/lib/speech";
 import { cn } from "@/lib/utils";
@@ -132,6 +135,11 @@ export function MockInterview({
   const [micError, setMicError] = useState<string | null>(null);
   const [camNote, setCamNote] = useState<string | null>(null);
   const [wantCamera, setWantCamera] = useState(true);
+  const [audioDevices, setAudioDevices] = useState<MediaInputDevice[]>([]);
+  const [videoDevices, setVideoDevices] = useState<MediaInputDevice[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState(DEFAULT_MEDIA_DEVICE_ID);
+  const [selectedCamId, setSelectedCamId] = useState(DEFAULT_MEDIA_DEVICE_ID);
+  const [mediaDevicesLoading, setMediaDevicesLoading] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
   const [muted, setMuted] = useState(false);
   const [hasCam, setHasCam] = useState(false);
@@ -185,6 +193,36 @@ export function MockInterview({
       stopMediaStream(camStreamRef.current);
     };
   }, []);
+
+  async function refreshMediaDevices() {
+    setMediaDevicesLoading(true);
+    try {
+      const { audio, video } = await listMediaInputDevices();
+      if (!aliveRef.current) return;
+      setAudioDevices(audio);
+      setVideoDevices(video);
+      setSelectedMicId((prev) =>
+        prev && audio.some((d) => d.deviceId === prev) ? prev : DEFAULT_MEDIA_DEVICE_ID
+      );
+      setSelectedCamId((prev) =>
+        prev && video.some((d) => d.deviceId === prev) ? prev : DEFAULT_MEDIA_DEVICE_ID
+      );
+    } finally {
+      if (aliveRef.current) setMediaDevicesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshMediaDevices();
+  }, []);
+
+  function micDeviceId(): string | undefined {
+    return selectedMicId || undefined;
+  }
+
+  function camDeviceId(): string | undefined {
+    return selectedCamId || undefined;
+  }
 
   /* ---------------------------- helpers ----------------------------- */
 
@@ -425,10 +463,12 @@ export function MockInterview({
     // 1) Microphone is required only for a voice interview.
     if (sttOk) {
       try {
-        micStreamRef.current = await requestMicrophone();
+        stopMediaStream(micStreamRef.current);
+        micStreamRef.current = await requestMicrophone(micDeviceId());
         setTrackEnabled(micStreamRef.current, "audio", true);
+        void refreshMediaDevices();
       } catch (err) {
-        const message = describeMediaError(err);
+        const message = describeMediaError(err, "microphone");
         setMicError(message);
         setStage("preflight");
         startingRef.current = false;
@@ -439,7 +479,8 @@ export function MockInterview({
     // 2) Camera is optional — continue voice-only when unavailable.
     if (wantCamera && !typingOnly) {
       try {
-        camStreamRef.current = await requestCamera();
+        stopMediaStream(camStreamRef.current);
+        camStreamRef.current = await requestCamera(camDeviceId());
         setCameraOn(true);
         setHasCam(true);
         setTimeout(() => bindVideo(camStreamRef.current), 0);
@@ -1131,6 +1172,68 @@ export function MockInterview({
                 {wantCamera && <CheckCircle2 className="size-3.5" />}
               </span>
             </button>
+
+            {(sttSupported !== false && audioDevices.length > 0) || (wantCamera && videoDevices.length > 0) ? (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-zinc-100">Input devices</p>
+                  <button
+                    type="button"
+                    onClick={() => void refreshMediaDevices()}
+                    disabled={mediaDevicesLoading || starting}
+                    className="inline-flex items-center gap-1 rounded-full border border-zinc-700 px-2.5 py-1 text-[11px] font-semibold text-zinc-300 transition-colors hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <RotateCcw className={cn("size-3", mediaDevicesLoading && "animate-spin")} aria-hidden />
+                    Refresh
+                  </button>
+                </div>
+                {sttSupported !== false && audioDevices.length > 0 && (
+                  <div className="mt-3">
+                    <label htmlFor="mock-mic-device" className="text-xs font-medium text-zinc-500">
+                      Microphone
+                    </label>
+                    <select
+                      id="mock-mic-device"
+                      value={selectedMicId}
+                      disabled={starting}
+                      onChange={(e) => setSelectedMicId(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      <option value={DEFAULT_MEDIA_DEVICE_ID}>System default</option>
+                      {audioDevices.map((device) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {wantCamera && videoDevices.length > 0 && (
+                  <div className="mt-3">
+                    <label htmlFor="mock-cam-device" className="text-xs font-medium text-zinc-500">
+                      Camera
+                    </label>
+                    <select
+                      id="mock-cam-device"
+                      value={selectedCamId}
+                      disabled={starting}
+                      onChange={(e) => setSelectedCamId(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      <option value={DEFAULT_MEDIA_DEVICE_ID}>System default</option>
+                      {videoDevices.map((device) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
+                  Device names may stay hidden until you allow access — refresh after granting permission.
+                </p>
+              </div>
+            ) : null}
 
             <div className="flex items-start gap-2 rounded-xl border border-zinc-800/70 bg-zinc-950/60 px-4 py-3 text-xs leading-relaxed text-zinc-500">
               <Headphones className="mt-0.5 size-4 shrink-0 text-zinc-600" aria-hidden />

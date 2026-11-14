@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { getOwnedWorkspaceSession } from "@/lib/data";
 import { resolvePracticePosition } from "@/lib/practice-position";
 import type { WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
-import { InterviewWorkspace } from "@/components/interview-workspace";
+import { InterviewWorkspaceLazy as InterviewWorkspace } from "@/components/client-loaders";
 
 /**
  * Name the session in the tab instead of showing the same generic title for
