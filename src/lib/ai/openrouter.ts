@@ -68,6 +68,16 @@ function timeoutSignal(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
 }
 
+/** Shorter ceilings on fast paths so a hung call fails over to fallback sooner. */
+const REQUEST_TIMEOUT_MS = {
+  generation: 120_000,
+  followUp: 90_000,
+  scoring: 90_000,
+  extraction: 75_000,
+  interviewer: 60_000,
+  debrief: 120_000,
+} as const;
+
 // Hard ceiling for completion output. Must stay within every model's output
 // cap (gpt-4o-mini: 16,384) — a larger request makes OpenRouter reject the
 // whole call, which silently degrades every live AI feature to fallback.
@@ -111,7 +121,8 @@ export class OpenRouterProvider implements AIProvider {
     user: string,
     maxTokens: number,
     model: string = this.model,
-    temperature = 0.7
+    temperature = 0.7,
+    timeoutMs = REQUEST_TIMEOUT_MS.generation
   ): Promise<string> {
     const res = await fetch(`${BASE_URL}/chat/completions`, {
       method: "POST",
@@ -130,7 +141,7 @@ export class OpenRouterProvider implements AIProvider {
         temperature,
         max_tokens: maxTokens,
       }),
-      signal: timeoutSignal(120_000),
+      signal: timeoutSignal(timeoutMs),
     });
 
     if (!res.ok) {
@@ -166,15 +177,24 @@ export class OpenRouterProvider implements AIProvider {
    * permanent 400 must not become two paid rejections).
    */
   private async structuredCompletion<T>(
-    params: { system: string; user: string; maxTokens: number; model?: string; temperature: number },
+    params: {
+      system: string;
+      user: string;
+      maxTokens: number;
+      model?: string;
+      temperature: number;
+      timeoutMs?: number;
+    },
     parse: (raw: string) => T
   ): Promise<T> {
+    const timeoutMs = params.timeoutMs ?? REQUEST_TIMEOUT_MS.generation;
     const raw = await this.chatCompletion(
       params.system,
       params.user,
       params.maxTokens,
       params.model ?? this.model,
-      params.temperature
+      params.temperature,
+      timeoutMs
     );
     try {
       return parse(raw);
@@ -190,9 +210,15 @@ export class OpenRouterProvider implements AIProvider {
         params.user,
         params.maxTokens,
         params.model ?? this.model,
-        params.temperature
+        params.temperature,
+        timeoutMs
       );
-      return parse(retried);
+      try {
+        return parse(retried);
+      } catch (repairErr) {
+        const detail = repairErr instanceof Error ? repairErr.message : String(repairErr);
+        throw new Error(`OpenRouter repair completion failed validation: ${detail}`);
+      }
     }
   }
 
@@ -204,6 +230,7 @@ export class OpenRouterProvider implements AIProvider {
         maxTokens: generationTokenBudget(ctx.count),
         model: this.model, // full model: candidate-facing generation
         temperature: TEMPERATURE.generation,
+        timeoutMs: REQUEST_TIMEOUT_MS.generation,
       },
       // Model drift or a saturated bank can still repeat a practiced question —
       // enforce the avoid-list server-side so repeat sessions stay fresh.
@@ -219,6 +246,7 @@ export class OpenRouterProvider implements AIProvider {
         maxTokens: 2_000,
         model: this.model, // full model: candidate-facing generation
         temperature: TEMPERATURE.followUp,
+        timeoutMs: REQUEST_TIMEOUT_MS.followUp,
       },
       parseFollowUps
     );
@@ -232,6 +260,7 @@ export class OpenRouterProvider implements AIProvider {
         maxTokens: 2_000,
         model: this.model, // full model: scoring quality drives the calibration promise
         temperature: TEMPERATURE.scoring, // scoring must be consistent, not creative
+        timeoutMs: REQUEST_TIMEOUT_MS.scoring,
       },
       parseEvaluation
     );
@@ -245,6 +274,7 @@ export class OpenRouterProvider implements AIProvider {
         maxTokens: 3_000,
         model: CHEAP_MODEL, // cheap model: bulk extraction only
         temperature: TEMPERATURE.extraction, // extraction must be deterministic
+        timeoutMs: REQUEST_TIMEOUT_MS.extraction,
       },
       parseResume
     );
@@ -258,6 +288,7 @@ export class OpenRouterProvider implements AIProvider {
         maxTokens: 700,
         model: this.model, // full model: live interviewing
         temperature: TEMPERATURE.interviewer, // moderate-low: natural, never erratic
+        timeoutMs: REQUEST_TIMEOUT_MS.interviewer,
       },
       parseInterviewerDecision
     );
@@ -271,6 +302,7 @@ export class OpenRouterProvider implements AIProvider {
         maxTokens: 2_500,
         model: this.model, // full model: candidate-facing debrief
         temperature: TEMPERATURE.debrief, // session scores must be stable across regenerations
+        timeoutMs: REQUEST_TIMEOUT_MS.debrief,
       },
       parseDebrief
     );

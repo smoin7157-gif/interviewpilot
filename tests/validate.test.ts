@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseQuestions } from "../src/lib/ai/validate";
+import { parseFollowUps, parseQuestions } from "../src/lib/ai/validate";
 
 const questionJson = (questions: unknown[]) =>
   JSON.stringify({ interview: { title: "t", questions } });
@@ -61,5 +61,20 @@ describe("parseQuestions", () => {
   it("throws when nothing usable remains", () => {
     const raw = questionJson([{ ...baseQuestion, question: "Hi" }]);
     assert.throws(() => parseQuestions(raw), /no usable questions/);
+  });
+});
+
+describe("parseFollowUps", () => {
+  it("drops multi-part follow-ups that cannot be answered in one turn", () => {
+    const raw = JSON.stringify({
+      follow_up_questions: [
+        "How would you size the cache?",
+        "What trade-off did you choose? And how would you validate it?",
+        "What metric proved it worked?",
+      ],
+    });
+    const followUps = parseFollowUps(raw);
+    assert.equal(followUps.length, 2);
+    assert.doesNotMatch(followUps.join(" "), /And how would you validate/);
   });
 });

@@ -208,6 +208,7 @@ export function parseFollowUps(raw: string): string[] {
     .filter((f): f is string => typeof f === "string")
     .map((f) => f.trim())
     .filter((f) => f.length >= 5)
+    .filter((f) => !isMultiPartQuestion(f))
     .slice(0, 5);
   if (followUps.length === 0) throw new Error("Model returned no follow-up questions.");
   return followUps;

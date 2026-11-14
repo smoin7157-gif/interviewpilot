@@ -102,7 +102,7 @@ describe("OpenRouter structured output repair", () => {
           answer: "REST is an architectural style for APIs.",
           role: "Backend Engineer",
         }),
-      /No JSON object found|failed validation/
+      /OpenRouter repair completion failed validation|No JSON object found|failed validation/
     );
     assert.equal(requests.length, 2, "repair is attempted exactly once");
   });
