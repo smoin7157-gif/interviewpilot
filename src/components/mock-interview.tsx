@@ -194,26 +194,46 @@ export function MockInterview({
     };
   }, []);
 
+  function applyMediaDevices(audio: MediaInputDevice[], video: MediaInputDevice[]) {
+    setAudioDevices(audio);
+    setVideoDevices(video);
+    setSelectedMicId((prev) =>
+      prev && audio.some((d) => d.deviceId === prev) ? prev : DEFAULT_MEDIA_DEVICE_ID
+    );
+    setSelectedCamId((prev) =>
+      prev && video.some((d) => d.deviceId === prev) ? prev : DEFAULT_MEDIA_DEVICE_ID
+    );
+  }
+
   async function refreshMediaDevices() {
     setMediaDevicesLoading(true);
     try {
       const { audio, video } = await listMediaInputDevices();
       if (!aliveRef.current) return;
-      setAudioDevices(audio);
-      setVideoDevices(video);
-      setSelectedMicId((prev) =>
-        prev && audio.some((d) => d.deviceId === prev) ? prev : DEFAULT_MEDIA_DEVICE_ID
-      );
-      setSelectedCamId((prev) =>
-        prev && video.some((d) => d.deviceId === prev) ? prev : DEFAULT_MEDIA_DEVICE_ID
-      );
+      applyMediaDevices(audio, video);
     } finally {
       if (aliveRef.current) setMediaDevicesLoading(false);
     }
   }
 
   useEffect(() => {
-    void refreshMediaDevices();
+    let cancelled = false;
+    void listMediaInputDevices().then(({ audio, video }) => {
+      if (cancelled || !aliveRef.current) return;
+      applyMediaDevices(audio, video);
+    });
+    const md = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
+    const onDeviceChange = () => {
+      void listMediaInputDevices().then(({ audio, video }) => {
+        if (!aliveRef.current) return;
+        applyMediaDevices(audio, video);
+      });
+    };
+    md?.addEventListener?.("devicechange", onDeviceChange);
+    return () => {
+      cancelled = true;
+      md?.removeEventListener?.("devicechange", onDeviceChange);
+    };
   }, []);
 
   function micDeviceId(): string | undefined {
