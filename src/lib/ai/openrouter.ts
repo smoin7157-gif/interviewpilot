@@ -122,7 +122,7 @@ export class OpenRouterProvider implements AIProvider {
     maxTokens: number,
     model: string = this.model,
     temperature = 0.7,
-    timeoutMs = REQUEST_TIMEOUT_MS.generation
+    timeoutMs: number = REQUEST_TIMEOUT_MS.generation
   ): Promise<string> {
     const res = await fetch(`${BASE_URL}/chat/completions`, {
       method: "POST",
