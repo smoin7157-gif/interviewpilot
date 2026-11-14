@@ -15,6 +15,9 @@
 
 const PLACEHOLDER = "[instruction-like text removed]";
 
+/** Cap untrusted embed size so prompts stay bounded and models cannot be flooded. */
+export const MAX_UNTRUSTED_TEXT_CHARS = 120_000;
+
 export interface SanitizeResult {
   /** The input with instruction-like spans neutralized. */
   text: string;
@@ -93,6 +96,10 @@ export function sanitizeUntrustedText(input: string): SanitizeResult {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ");
 
   const flags: string[] = [];
+  if (text.length > MAX_UNTRUSTED_TEXT_CHARS) {
+    text = text.slice(0, MAX_UNTRUSTED_TEXT_CHARS);
+    flags.push("truncated");
+  }
   for (const rule of RULES) {
     // RegExp objects are module-level and carry lastIndex state with /g.
     rule.pattern.lastIndex = 0;

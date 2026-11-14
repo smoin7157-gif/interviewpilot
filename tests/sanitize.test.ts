@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeUntrustedText } from "../src/lib/ai/sanitize";
+import { MAX_UNTRUSTED_TEXT_CHARS, sanitizeUntrustedText } from "../src/lib/ai/sanitize";
 
 describe("sanitizeUntrustedText", () => {
   it("leaves ordinary resume text untouched", () => {
@@ -57,5 +57,13 @@ describe("sanitizeUntrustedText", () => {
   it("handles empty input safely", () => {
     const result = sanitizeUntrustedText("");
     assert.deepEqual(result, { text: "", flags: [], flagged: false });
+  });
+
+  it("truncates oversized untrusted text before prompting", () => {
+    const huge = "a".repeat(MAX_UNTRUSTED_TEXT_CHARS + 50_000);
+    const result = sanitizeUntrustedText(huge);
+    assert.equal(result.text.length, MAX_UNTRUSTED_TEXT_CHARS);
+    assert.ok(result.flags.includes("truncated"));
+    assert.equal(result.flagged, true);
   });
 });
