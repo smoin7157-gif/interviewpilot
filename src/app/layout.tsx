@@ -6,11 +6,13 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const grotesk = Space_Grotesk({
   variable: "--font-grotesk",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const DESCRIPTION =

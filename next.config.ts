@@ -36,6 +36,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  experimental: {
+    // Tree-shake lucide icon imports so routes only ship the glyphs they render.
+    optimizePackageImports: ["lucide-react"],
+  },
   // pdf.js resolves its worker through a dynamic import that bundlers rewrite
   // to a non-existent virtual module; loading the real package at runtime
   // (like plain Node) keeps resume parsing working.
@@ -50,6 +55,15 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       {
         source: "/:path*",
         headers: securityHeaders,
