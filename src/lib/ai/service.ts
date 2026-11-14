@@ -185,9 +185,16 @@ export async function generateQuestions(ctx: GenerationContext): Promise<Generat
   return { questions, provider: fallback.name };
 }
 
+function sanitizeFollowUpContext(ctx: FollowUpContext): FollowUpContext {
+  const base = sanitizeContext(ctx, "follow-up generation");
+  return base.answer
+    ? { ...base, answer: guardText(base.answer, "follow-up generation:answer") }
+    : base;
+}
+
 export async function generateFollowUps(ctx: FollowUpContext): Promise<{ followUps: string[]; provider: string; model?: string }> {
   const primary = createBestProvider();
-  const safeCtx = sanitizeContext(ctx, "follow-up generation");
+  const safeCtx = sanitizeFollowUpContext(ctx);
   if (primary instanceof OpenRouterProvider) {
     const followUps = await withRetry(() => primary.generateFollowUps(safeCtx), "follow-up generation");
     if (followUps) {
