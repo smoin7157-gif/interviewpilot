@@ -238,9 +238,21 @@ export async function extractResumeData(
   return { result, provider: fallback.name };
 }
 
+function sanitizeInterviewerContext(ctx: InterviewerContext): InterviewerContext {
+  const safe = sanitizeContext(ctx, "interviewer decision");
+  return {
+    ...safe,
+    history: safe.history.map((turn) =>
+      turn.speaker === "CANDIDATE"
+        ? { ...turn, text: guardText(turn.text, "interviewer decision:candidate answer") }
+        : turn
+    ),
+  };
+}
+
 export async function driveInterview(ctx: InterviewerContext): Promise<InterviewerResult> {
   const primary = createBestProvider();
-  const safeCtx = sanitizeContext(ctx, "interviewer decision");
+  const safeCtx = sanitizeInterviewerContext(ctx);
   if (primary instanceof OpenRouterProvider) {
     const decision = await withRetry(() => primary.driveInterview(safeCtx), "interviewer decision");
     if (decision) {
