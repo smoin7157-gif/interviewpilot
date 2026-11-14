@@ -11,6 +11,7 @@ import {
   type CursorPage,
   type PageParams,
 } from "@/lib/pagination";
+import { computeLastActivityBySession } from "@/lib/session-activity";
 
 export type { InterviewSetupDefaults };
 
@@ -144,16 +145,13 @@ async function buildSummaries(sessions: SessionWithQuestionStats[]): Promise<Int
   const sessionOfQuestion = new Map<string, string>();
   for (const q of questionOwners) sessionOfQuestion.set(q.id, q.sessionId);
 
-  const lastActivityBySession = new Map<string, Date>();
-  for (const row of latestByQuestion) {
-    if (row._max.createdAt == null) continue;
-    const sessionId = sessionOfQuestion.get(row.questionId);
-    if (!sessionId) continue;
-    const existing = lastActivityBySession.get(sessionId);
-    if (!existing || row._max.createdAt > existing) {
-      lastActivityBySession.set(sessionId, row._max.createdAt);
-    }
-  }
+  const lastActivityBySession = computeLastActivityBySession(
+    latestByQuestion.map((row) => ({
+      questionId: row.questionId,
+      latestAt: row._max.createdAt,
+    })),
+    sessionOfQuestion
+  );
 
   return sessions.map((session) => ({
     id: session.id,
@@ -472,7 +470,7 @@ export async function saveQuestionDraft(
  * newest first. Passed to generation as an avoid-list so repeat sessions
  * surface fresh questions instead of near-identical rephrases.
  */
-export async function listGeneratedQuestions(userId: string, limit = 200): Promise<string[]> {
+export const listGeneratedQuestions = cache(async (userId: string, limit = 200): Promise<string[]> => {
   const rows = await prisma.interviewQuestion.findMany({
     where: { session: { userId } },
     orderBy: { createdAt: "desc" },
@@ -480,4 +478,4 @@ export async function listGeneratedQuestions(userId: string, limit = 200): Promi
     take: limit,
   });
   return rows.map((r) => r.question);
-}
+});
