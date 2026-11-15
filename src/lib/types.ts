@@ -45,6 +45,8 @@ export interface EvaluationFeedback {
   strengths: string[];
   missing: string[];
   improvements: string[];
+  /** Present when the client just evaluated an answer (not persisted on attempts). */
+  provider?: string;
 }
 
 /**

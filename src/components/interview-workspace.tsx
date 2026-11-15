@@ -25,6 +25,7 @@ import {
 import type { EvaluationFeedback, WorkspaceQuestion, WorkspaceSession } from "@/lib/types";
 import { mockHref, practiceSearch, type PracticePosition } from "@/lib/practice-position";
 import { saveAnswerDraftAction } from "@/lib/draft-actions";
+import { apiFailureMessage } from "@/lib/api-client";
 import {
   cn,
   countWords,
@@ -576,25 +577,23 @@ function PracticeSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answer: text.trim(), prompt }),
       });
-      const data = (await res.json()) as EvaluationFeedback & { error?: string };
+      const data = (await res.json()) as EvaluationFeedback & { error?: string; provider?: string };
       if (!res.ok) {
-        if (res.status === 429) {
-          // Honor the server's Retry-After like the debrief panel does.
-          const retryAfter = Number(res.headers.get("Retry-After"));
-          const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : null;
-          throw new Error(
-            wait
-              ? `You're evaluating quickly — try again in about ${wait < 90 ? `${wait}s` : `${Math.ceil(wait / 60)} min`}.`
-              : "You're evaluating quickly — please wait a minute and try again."
-          );
-        }
-        throw new Error(data.error ?? "We couldn't get feedback on that answer. Please try again in a moment.");
+        throw new Error(
+          apiFailureMessage(
+            res.status,
+            res.headers.get("Retry-After"),
+            data.error,
+            "We couldn't get feedback on that answer. Please try again in a moment."
+          )
+        );
       }
       const fb: EvaluationFeedback = {
         score: data.score,
         strengths: data.strengths ?? [],
         missing: data.missing ?? [],
         improvements: data.improvements ?? [],
+        provider: typeof data.provider === "string" ? data.provider : undefined,
       };
       setFeedback(fb);
       onEvaluated(fb);
@@ -678,9 +677,16 @@ function PracticeSection({
                 </>
               )}
             </p>
-            <Button onClick={handleEvaluate} loading={evaluating} disabled={text.trim().length < PRACTICE_MIN_LENGTH}>
-              {evaluating ? "Evaluating…" : "Evaluate My Answer"}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              {text.trim().length > 0 && text.trim().length < PRACTICE_MIN_LENGTH && (
+                <p className="text-xs text-zinc-500">
+                  Write a bit more ({PRACTICE_MIN_LENGTH - text.trim().length} characters left) so feedback is meaningful.
+                </p>
+              )}
+              <Button onClick={handleEvaluate} loading={evaluating} disabled={text.trim().length < PRACTICE_MIN_LENGTH}>
+                {evaluating ? "Evaluating…" : "Evaluate My Answer"}
+              </Button>
+            </div>
           </div>
           {error && (
             <p role="alert" className="text-sm text-red-600">
@@ -705,6 +711,12 @@ function PracticeSection({
               <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">/ 100</span>
             </div>
             <div className="min-w-0 flex-1 space-y-4">
+              {feedback.provider === "fallback" && (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-800">
+                  Scored with InterviewOS&rsquo;s built-in rubric (live AI was unavailable). Feedback still reflects your
+                  answer — configure OPENROUTER_API_KEY for model-driven scoring.
+                </p>
+              )}
               <FeedbackList
                 title="What you did well"
                 items={feedback.strengths}
@@ -807,7 +819,12 @@ function AnswerFollowUp({
       const data = (await res.json()) as { followUp?: string; error?: string };
       if (!res.ok || !data.followUp) {
         throw new Error(
-          data.error ?? "We couldn't generate a follow-up right now. Please try again in a moment."
+          apiFailureMessage(
+            res.status,
+            res.headers.get("Retry-After"),
+            data.error,
+            "We couldn't generate a follow-up right now. Please try again in a moment."
+          )
         );
       }
       setFollowUp(data.followUp);
