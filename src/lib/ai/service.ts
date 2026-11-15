@@ -1,5 +1,7 @@
+import { evaluateAnswerHeuristically } from "./evaluation-heuristic";
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
+import { clampResumeToSource } from "./resume-grounding";
 import { sanitizeUntrustedText } from "./sanitize";
 import type { ResumeData } from "@/lib/candidate-context";
 import type {
@@ -206,6 +208,20 @@ export async function generateFollowUps(ctx: FollowUpContext): Promise<{ followU
   return { followUps, provider: fallback.name };
 }
 
+/** Fill empty feedback from the deterministic scorer without changing the headline score. */
+function ensureEvaluationFeedback(result: EvaluationResult, ctx: EvaluationContext): EvaluationResult {
+  if (result.strengths.length > 0 || result.missing.length > 0 || result.improvements.length > 0) {
+    return result;
+  }
+  const baseline = evaluateAnswerHeuristically(ctx);
+  return {
+    score: result.score,
+    strengths: baseline.strengths,
+    missing: baseline.missing,
+    improvements: baseline.improvements,
+  };
+}
+
 export async function evaluateAnswer(ctx: EvaluationContext): Promise<{ result: EvaluationResult; provider: string; model?: string }> {
   const primary = createBestProvider();
   // The candidate's own answer is free text too — strip attempts to steer the
@@ -214,7 +230,11 @@ export async function evaluateAnswer(ctx: EvaluationContext): Promise<{ result: 
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.evaluateAnswer(safeCtx), "answer evaluation");
     if (result) {
-      return { result, provider: primary.name, model: primary.model };
+      return {
+        result: ensureEvaluationFeedback(result, safeCtx),
+        provider: primary.name,
+        model: primary.model,
+      };
     }
   }
   const fallback = new FallbackProvider();
@@ -230,12 +250,12 @@ export async function extractResumeData(
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.extractResume(safeText), "resume extraction");
     if (result) {
-      return { result, provider: primary.name, model: primary.model };
+      return { result: clampResumeToSource(safeText, result), provider: primary.name, model: primary.model };
     }
   }
   const fallback = new FallbackProvider();
   const result = await fallback.extractResume(safeText);
-  return { result, provider: fallback.name };
+  return { result: clampResumeToSource(safeText, result), provider: fallback.name };
 }
 
 function sanitizeInterviewerContext(ctx: InterviewerContext): InterviewerContext {
