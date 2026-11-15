@@ -332,14 +332,14 @@ export async function getEditableInterview(
  * (see `buildSummaries`), so this never loads per-question rows: the payload
  * stays O(sessions) instead of O(sessions + questions).
  */
-export async function listInterviewSummaries(userId: string): Promise<InterviewSummary[]> {
+export const listInterviewSummaries = cache(async (userId: string): Promise<InterviewSummary[]> => {
   const sessions = await prisma.interviewSession.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
     select: summarySelect,
   });
   return buildSummaries(sessions);
-}
+});
 
 /** Dashboard greeting data: recent sessions (latest first) capped at `limit`. */
 export async function getRecentSessions(userId: string, limit = 3): Promise<InterviewSummary[]> {
