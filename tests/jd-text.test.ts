@@ -4,6 +4,7 @@ import {
   extractJdFacts,
   extractJdResponsibilities,
   extractJdSkills,
+  partitionJdSkillZones,
 } from "../src/lib/ai/jd-text";
 import { listKnownSkills } from "../src/lib/jd";
 
@@ -72,6 +73,14 @@ describe("extractJdSkills", () => {
     for (const label of ["postgresql", "typescript", "kubernetes"]) {
       assert.equal(known.has(label), true, `seed vocabulary is missing ${label}`);
     }
+  });
+});
+
+describe("partitionJdSkillZones", () => {
+  it("treats nice-to-have skills as optional, not core requirements", () => {
+    const { requiredSkills, niceToHaveSkills } = partitionJdSkillZones(BACKEND_JD);
+    assert.deepEqual(requiredSkills, ["Node.js", "PostgreSQL", "TypeScript"]);
+    assert.deepEqual(niceToHaveSkills, ["Kafka", "Docker"]);
   });
 });
 

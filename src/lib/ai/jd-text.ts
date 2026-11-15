@@ -287,6 +287,30 @@ function skillMatchers(): SkillMatcher[] {
   return matchers;
 }
 
+const NICE_TO_HAVE_HEADER =
+  /\n\s*(?:nice\s+to\s+have|preferred\s+qualifications?|bonus(?:\s+skills?)?|optional)\s*[:\-]?\s*/i;
+
+/**
+ * Split skills into must-have (main body) vs nice-to-have (trailing optional
+ * sections). Mentions only under a "Nice to have" heading are not treated as
+ * core requirements for question prioritization.
+ */
+export function partitionJdSkillZones(jobDescription?: string): {
+  requiredSkills: string[];
+  niceToHaveSkills: string[];
+} {
+  const text = jobDescription?.trim();
+  if (!text) return { requiredSkills: [], niceToHaveSkills: [] };
+
+  const header = NICE_TO_HAVE_HEADER.exec(text);
+  const niceText = header ? text.slice(header.index + header[0].length) : "";
+  const all = extractJdSkills(text);
+  const niceOnly = niceText ? extractJdSkills(niceText) : [];
+  const niceSet = new Set(niceOnly.map((s) => s.toLowerCase()));
+  const requiredSkills = all.filter((s) => !niceSet.has(s.toLowerCase()));
+  return { requiredSkills, niceToHaveSkills: niceOnly };
+}
+
 /** Technologies named in a posting, in order of first mention. */
 export function extractJdSkills(jobDescription?: string): string[] {
   const text = jobDescription?.trim();
