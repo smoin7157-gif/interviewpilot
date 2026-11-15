@@ -264,9 +264,21 @@ export async function driveInterview(ctx: InterviewerContext): Promise<Interview
   return { decision, provider: fallback.name };
 }
 
+function sanitizeDebriefContext(ctx: DebriefContext): DebriefContext {
+  const safe = sanitizeContext(ctx, "debrief generation");
+  return {
+    ...safe,
+    transcript: safe.transcript.map((turn) =>
+      turn.speaker === "CANDIDATE"
+        ? { ...turn, text: guardText(turn.text, "debrief generation:candidate answer") }
+        : turn
+    ),
+  };
+}
+
 export async function generateDebrief(ctx: DebriefContext): Promise<{ result: DebriefResult; provider: string; model?: string }> {
   const primary = createBestProvider();
-  const safeCtx = sanitizeContext(ctx, "debrief generation");
+  const safeCtx = sanitizeDebriefContext(ctx);
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.generateDebrief(safeCtx), "debrief generation");
     if (result) {
