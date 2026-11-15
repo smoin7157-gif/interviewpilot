@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, CircleAlert, Loader2, PartyPopper } from "lucide-react";
+import { apiFailureMessage } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Button, buttonClasses } from "@/components/ui/button";
 
@@ -41,14 +42,21 @@ async function streamGenerate(
   });
 
   if (!res.ok || !res.body) {
-    let message = "We couldn't generate your interview.";
+    let bodyError: string | undefined;
     try {
       const body = (await res.json()) as { error?: string };
-      if (body.error) message = body.error;
+      bodyError = body.error;
     } catch {
       // keep default
     }
-    throw new Error(message);
+    throw new Error(
+      apiFailureMessage(
+        res.status,
+        res.headers.get("Retry-After"),
+        bodyError,
+        "We couldn't generate your interview."
+      )
+    );
   }
 
   const reader = res.body.getReader();
