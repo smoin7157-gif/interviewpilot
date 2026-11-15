@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseFollowUps, parseQuestions } from "../src/lib/ai/validate";
+import { parseEvaluation, parseFollowUps, parseQuestions } from "../src/lib/ai/validate";
 
 const questionJson = (questions: unknown[]) =>
   JSON.stringify({ interview: { title: "t", questions } });
@@ -61,6 +61,25 @@ describe("parseQuestions", () => {
   it("throws when nothing usable remains", () => {
     const raw = questionJson([{ ...baseQuestion, question: "Hi" }]);
     assert.throws(() => parseQuestions(raw), /no usable questions/);
+  });
+});
+
+describe("parseEvaluation", () => {
+  it("parses a valid evaluation payload and clamps the score", () => {
+    const raw = JSON.stringify({
+      score: 105,
+      strengths: ["Clear structure"],
+      missing: ["More metrics"],
+      improvements: ["Add numbers"],
+    });
+    const parsed = parseEvaluation(raw);
+    assert.equal(parsed.score, 100);
+    assert.deepEqual(parsed.strengths, ["Clear structure"]);
+  });
+
+  it("rejects malformed evaluation JSON", () => {
+    assert.throws(() => parseEvaluation(JSON.stringify({ strengths: [] })), /validation|numeric score/);
+    assert.throws(() => parseEvaluation("not json at all"), /JSON|validation/);
   });
 });
 

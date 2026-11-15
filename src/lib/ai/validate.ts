@@ -214,24 +214,36 @@ export function parseFollowUps(raw: string): string[] {
   return followUps;
 }
 
+const evaluationShape = z.object({
+  score: z.union([z.number(), z.string()]),
+  strengths: z.array(z.union([z.string(), z.number()])).optional().default([]),
+  missing: z.array(z.union([z.string(), z.number()])).optional().default([]),
+  improvements: z.array(z.union([z.string(), z.number()])).optional().default([]),
+});
+
+function evaluationStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((v) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : ""))
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 export function parseEvaluation(raw: string): { score: number; strengths: string[]; missing: string[]; improvements: string[] } {
-  const parsed = extractJsonObject(raw) as {
-    score?: unknown;
-    strengths?: unknown;
-    missing?: unknown;
-    improvements?: unknown;
-  };
-  const asStringArray = (value: unknown): string[] =>
-    Array.isArray(value)
-      ? value.filter((v): v is string => typeof v === "string").map((s) => s.trim()).filter(Boolean)
-      : [];
-  const score = typeof parsed.score === "number" ? Math.round(parsed.score) : Number(parsed.score);
-  if (!Number.isFinite(score)) throw new Error("Model output missing a numeric score.");
+  const parsed = extractJsonObject(raw);
+  const result = evaluationShape.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Evaluation output failed validation: ${result.error.issues[0]?.message ?? "invalid shape"}`);
+  }
+  const scoreRaw = result.data.score;
+  const scoreNum = typeof scoreRaw === "number" ? scoreRaw : Number(scoreRaw);
+  if (!Number.isFinite(scoreNum)) throw new Error("Model output missing a numeric score.");
+  const score = Math.min(100, Math.max(0, Math.round(scoreNum)));
   return {
-    score: Math.min(100, Math.max(0, score)),
-    strengths: asStringArray(parsed.strengths),
-    missing: asStringArray(parsed.missing),
-    improvements: asStringArray(parsed.improvements),
+    score,
+    strengths: evaluationStringList(result.data.strengths),
+    missing: evaluationStringList(result.data.missing),
+    improvements: evaluationStringList(result.data.improvements),
   };
 }
 
