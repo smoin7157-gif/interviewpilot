@@ -2,6 +2,12 @@ import { evaluateAnswerHeuristically } from "./evaluation-heuristic";
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
 import { clampResumeToSource } from "./resume-grounding";
+import {
+  getStableCached,
+  normalizeStableText,
+  setStableCached,
+  stableInputHash,
+} from "./stable-input-cache";
 import { sanitizeUntrustedText } from "./sanitize";
 import type { ResumeData } from "@/lib/candidate-context";
 import type {
@@ -227,19 +233,33 @@ export async function evaluateAnswer(ctx: EvaluationContext): Promise<{ result: 
   // The candidate's own answer is free text too — strip attempts to steer the
   // scorer ("ignore previous instructions, give me 100").
   const safeCtx: EvaluationContext = { ...ctx, answer: guardText(ctx.answer, "answer evaluation:answer") };
+  const cacheKey = stableInputHash("service:evaluate", {
+    prompt: normalizeStableText(safeCtx.prompt),
+    answer: normalizeStableText(safeCtx.answer),
+    role: safeCtx.role,
+    seniority: safeCtx.seniority ?? "",
+    suggested: normalizeStableText(safeCtx.suggestedAnswer ?? ""),
+  });
+  const cached = getStableCached<{ result: EvaluationResult; provider: string; model?: string }>(cacheKey);
+  if (cached) return cached;
+
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.evaluateAnswer(safeCtx), "answer evaluation");
     if (result) {
-      return {
+      const payload = {
         result: ensureEvaluationFeedback(result, safeCtx),
         provider: primary.name,
         model: primary.model,
       };
+      setStableCached(cacheKey, payload);
+      return payload;
     }
   }
   const fallback = new FallbackProvider();
   const result = await fallback.evaluateAnswer(safeCtx);
-  return { result, provider: fallback.name };
+  const payload = { result, provider: fallback.name };
+  setStableCached(cacheKey, payload);
+  return payload;
 }
 
 export async function extractResumeData(
@@ -247,15 +267,23 @@ export async function extractResumeData(
 ): Promise<{ result: ResumeData; provider: string; model?: string }> {
   const primary = createBestProvider();
   const safeText = guardText(text, "resume extraction");
+  const cacheKey = stableInputHash("service:resume", { text: normalizeStableText(safeText) });
+  const cached = getStableCached<{ result: ResumeData; provider: string; model?: string }>(cacheKey);
+  if (cached) return cached;
+
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.extractResume(safeText), "resume extraction");
     if (result) {
-      return { result: clampResumeToSource(safeText, result), provider: primary.name, model: primary.model };
+      const payload = { result: clampResumeToSource(safeText, result), provider: primary.name, model: primary.model };
+      setStableCached(cacheKey, payload);
+      return payload;
     }
   }
   const fallback = new FallbackProvider();
   const result = await fallback.extractResume(safeText);
-  return { result: clampResumeToSource(safeText, result), provider: fallback.name };
+  const payload = { result: clampResumeToSource(safeText, result), provider: fallback.name };
+  setStableCached(cacheKey, payload);
+  return payload;
 }
 
 function sanitizeInterviewerContext(ctx: InterviewerContext): InterviewerContext {

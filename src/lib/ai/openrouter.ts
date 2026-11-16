@@ -35,6 +35,7 @@ import {
   parseQuestions,
   parseResume,
 } from "./validate";
+import { seedFromStableHash, stableInputHash } from "./stable-input-cache";
 
 const DEFAULT_MODEL = "openai/gpt-4o";
 
@@ -122,7 +123,8 @@ export class OpenRouterProvider implements AIProvider {
     maxTokens: number,
     model: string = this.model,
     temperature = 0.7,
-    timeoutMs: number = REQUEST_TIMEOUT_MS.generation
+    timeoutMs: number = REQUEST_TIMEOUT_MS.generation,
+    seed?: number
   ): Promise<string> {
     const res = await fetch(`${BASE_URL}/chat/completions`, {
       method: "POST",
@@ -140,6 +142,7 @@ export class OpenRouterProvider implements AIProvider {
         ],
         temperature,
         max_tokens: maxTokens,
+        ...(seed !== undefined ? { seed } : {}),
       }),
       signal: timeoutSignal(timeoutMs),
     });
@@ -184,6 +187,7 @@ export class OpenRouterProvider implements AIProvider {
       model?: string;
       temperature: number;
       timeoutMs?: number;
+      seed?: number;
     },
     parse: (raw: string) => T
   ): Promise<T> {
@@ -194,7 +198,8 @@ export class OpenRouterProvider implements AIProvider {
       params.maxTokens,
       params.model ?? this.model,
       params.temperature,
-      timeoutMs
+      timeoutMs,
+      params.seed
     );
     try {
       return parse(raw);
@@ -211,7 +216,8 @@ export class OpenRouterProvider implements AIProvider {
         params.maxTokens,
         params.model ?? this.model,
         params.temperature,
-        timeoutMs
+        timeoutMs,
+        params.seed
       );
       try {
         return parse(retried);
@@ -253,28 +259,34 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async evaluateAnswer(ctx: EvaluationContext): Promise<EvaluationResult> {
+    const user = buildEvaluationUserPrompt(ctx);
+    const seed = seedFromStableHash(stableInputHash("openrouter:evaluate", { s: EVALUATION_SYSTEM_PROMPT, u: user }));
     return this.structuredCompletion(
       {
         system: EVALUATION_SYSTEM_PROMPT,
-        user: buildEvaluationUserPrompt(ctx),
+        user,
         maxTokens: 2_000,
         model: this.model, // full model: scoring quality drives the calibration promise
         temperature: TEMPERATURE.scoring, // scoring must be consistent, not creative
         timeoutMs: REQUEST_TIMEOUT_MS.scoring,
+        seed,
       },
       parseEvaluation
     );
   }
 
   async extractResume(text: string): Promise<ResumeData> {
+    const user = buildResumeExtractionUserPrompt(text);
+    const seed = seedFromStableHash(stableInputHash("openrouter:resume", { s: RESUME_EXTRACTION_SYSTEM_PROMPT, u: user }));
     return this.structuredCompletion(
       {
         system: RESUME_EXTRACTION_SYSTEM_PROMPT,
-        user: buildResumeExtractionUserPrompt(text),
+        user,
         maxTokens: 3_000,
         model: CHEAP_MODEL, // cheap model: bulk extraction only
         temperature: TEMPERATURE.extraction, // extraction must be deterministic
         timeoutMs: REQUEST_TIMEOUT_MS.extraction,
+        seed,
       },
       parseResume
     );
