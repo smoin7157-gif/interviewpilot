@@ -1,4 +1,5 @@
 import { evaluateAnswerHeuristically } from "./evaluation-heuristic";
+import { logOperation } from "@/lib/ops-log";
 import { sanitizeAiLogMessage } from "./safe-log";
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
@@ -164,14 +165,32 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Returns null when every attempt fails so the caller can degrade to the fallback provider.
  */
 async function withRetry<T>(task: () => Promise<T>, label: string): Promise<T | null> {
+  const started = Date.now();
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      return await task();
+      const value = await task();
+      logOperation({
+        operation: `ai:${label}`,
+        outcome: "ok",
+        durationMs: Date.now() - started,
+        provider: "openrouter",
+      });
+      return value;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[ai] ${label} attempt ${attempt}/${maxAttempts} failed: ${sanitizeAiLogMessage(message)}`);
-      if (attempt === maxAttempts || !isRetryable(message)) return null;
+      if (attempt === maxAttempts || !isRetryable(message)) {
+        logOperation({
+          operation: `ai:${label}`,
+          outcome: isRetryable(message) ? "degraded" : "error",
+          durationMs: Date.now() - started,
+          provider: "openrouter",
+          errorType: err instanceof Error ? err.name : "Error",
+          detail: message,
+        });
+        return null;
+      }
       const backoff = Math.min(2000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 200;
       await sleep(backoff);
     }
