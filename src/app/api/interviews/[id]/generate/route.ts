@@ -1,6 +1,7 @@
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateQuestions } from "@/lib/ai/service";
+import { API_RATE_LIMITS } from "@/lib/ai-rate-limits";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 import {
   buildCandidateContextSummary,
@@ -22,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rl = checkRateLimit(`generate:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  const rl = checkRateLimit(`generate:${user.id}`, API_RATE_LIMITS.generate);
   if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;

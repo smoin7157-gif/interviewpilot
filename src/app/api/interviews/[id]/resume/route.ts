@@ -11,6 +11,8 @@ import {
   looksLikePdfName,
   sanitizeFilename,
 } from "@/lib/file-check";
+import { API_RATE_LIMITS } from "@/lib/ai-rate-limits";
+import { isResumeUploadTextUsable } from "@/lib/input-bounds";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -25,7 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rl = checkRateLimit(`resume:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  const rl = checkRateLimit(`resume:${user.id}`, API_RATE_LIMITS.resume);
   if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
@@ -81,6 +83,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         ? err.message
         : "We couldn't read that file. Please upload a text-based PDF or Word document.";
     return NextResponse.json({ error: message }, { status: 422 });
+  }
+
+  if (!isResumeUploadTextUsable(text)) {
+    return NextResponse.json(
+      { error: "That file does not contain enough readable text. Upload a text-based PDF or Word document." },
+      { status: 422 }
+    );
   }
 
   const { result, provider, model } = await extractResumeData(text);
