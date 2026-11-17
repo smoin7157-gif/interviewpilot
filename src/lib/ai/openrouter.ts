@@ -245,14 +245,17 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async generateFollowUps(ctx: FollowUpContext): Promise<string[]> {
+    const user = buildFollowUpUserPrompt(ctx);
+    const seed = seedFromStableHash(stableInputHash("openrouter:followup", { s: FOLLOWUP_SYSTEM_PROMPT, u: user }));
     return this.structuredCompletion(
       {
         system: FOLLOWUP_SYSTEM_PROMPT,
-        user: buildFollowUpUserPrompt(ctx),
+        user,
         maxTokens: 2_000,
         model: this.model, // full model: candidate-facing generation
         temperature: TEMPERATURE.followUp,
         timeoutMs: REQUEST_TIMEOUT_MS.followUp,
+        seed,
       },
       parseFollowUps
     );

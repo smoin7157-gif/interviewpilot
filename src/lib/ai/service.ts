@@ -3,8 +3,10 @@ import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
 import { clampResumeToSource } from "./resume-grounding";
 import { isResumeDataEmpty } from "./resume-empty";
+import { groundGeneratedQuestions } from "./question-grounding";
 import {
   debriefStablePayload,
+  followUpStablePayload,
   getStableCached,
   normalizeStableText,
   setStableCached,
@@ -185,13 +187,17 @@ export async function generateQuestions(ctx: GenerationContext): Promise<Generat
       // so top the set up deterministically rather than delivering a short set.
       const complete =
         questions.length >= safeCtx.count ? questions.slice(0, safeCtx.count) : await topUpQuestions(questions, safeCtx);
-      return { questions: complete, provider: primary.name, model: primary.model };
+      return {
+        questions: groundGeneratedQuestions(complete, safeCtx),
+        provider: primary.name,
+        model: primary.model,
+      };
     }
   }
 
   // Deterministic fallback keeps the product usable even when the AI is down.
   const fallback = new FallbackProvider();
-  const questions = await fallback.generateQuestions(safeCtx);
+  const questions = groundGeneratedQuestions(await fallback.generateQuestions(safeCtx), safeCtx);
   return { questions, provider: fallback.name };
 }
 
@@ -205,15 +211,23 @@ function sanitizeFollowUpContext(ctx: FollowUpContext): FollowUpContext {
 export async function generateFollowUps(ctx: FollowUpContext): Promise<{ followUps: string[]; provider: string; model?: string }> {
   const primary = createBestProvider();
   const safeCtx = sanitizeFollowUpContext(ctx);
+  const cacheKey = stableInputHash("service:followup", followUpStablePayload(safeCtx));
+  const cached = getStableCached<{ followUps: string[]; provider: string; model?: string }>(cacheKey);
+  if (cached) return cached;
+
   if (primary instanceof OpenRouterProvider) {
     const followUps = await withRetry(() => primary.generateFollowUps(safeCtx), "follow-up generation");
     if (followUps) {
-      return { followUps, provider: primary.name, model: primary.model };
+      const payload = { followUps, provider: primary.name, model: primary.model };
+      setStableCached(cacheKey, payload);
+      return payload;
     }
   }
   const fallback = new FallbackProvider();
   const followUps = await fallback.generateFollowUps(safeCtx);
-  return { followUps, provider: fallback.name };
+  const payload = { followUps, provider: fallback.name };
+  setStableCached(cacheKey, payload);
+  return payload;
 }
 
 /** Fill empty feedback from the deterministic scorer without changing the headline score. */

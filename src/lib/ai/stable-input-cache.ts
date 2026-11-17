@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { DebriefContext } from "./types";
+import type { DebriefContext, FollowUpContext } from "./types";
 
 const MAX_ENTRIES = 128;
 const TTL_MS = 10 * 60 * 1000;
@@ -39,6 +39,19 @@ export function setStableCached<T>(key: string, value: T): void {
     if (oldest) store.delete(oldest);
   }
   store.set(key, { value, expiresAt: Date.now() + TTL_MS });
+}
+
+export function followUpStablePayload(ctx: FollowUpContext): unknown {
+  return {
+    question: normalizeStableText(ctx.question),
+    role: ctx.role,
+    seniority: ctx.seniority,
+    company: ctx.company ?? "",
+    companyType: ctx.companyType ?? "",
+    interviewType: ctx.interviewType ?? "",
+    jobDescription: normalizeStableText(ctx.jobDescription ?? ""),
+    answer: normalizeStableText(ctx.answer ?? ""),
+  };
 }
 
 /** Normalized debrief inputs for hashing — identical transcripts → identical keys. */

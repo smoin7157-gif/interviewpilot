@@ -201,11 +201,18 @@ export function parseQuestions(raw: string, avoidQuestions: string[] = []): Gene
   return filterAvoidList(cleaned, avoidQuestions).slice(0, 24);
 }
 
+const followUpShape = z.object({
+  follow_up_questions: z.array(z.union([z.string(), z.number()])).min(1),
+});
+
 export function parseFollowUps(raw: string): string[] {
-  const parsed = extractJsonObject(raw) as { follow_up_questions?: unknown };
-  const list = Array.isArray(parsed?.follow_up_questions) ? parsed.follow_up_questions : [];
-  const followUps = list
-    .filter((f): f is string => typeof f === "string")
+  const parsed = extractJsonObject(raw);
+  const result = followUpShape.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Follow-up output failed validation: ${result.error.issues[0]?.message ?? "invalid shape"}`);
+  }
+  const followUps = result.data.follow_up_questions
+    .map((f) => (typeof f === "string" ? f : String(f)))
     .map((f) => f.trim())
     .filter((f) => f.length >= 5)
     .filter((f) => !isMultiPartQuestion(f))

@@ -84,6 +84,10 @@ describe("parseEvaluation", () => {
 });
 
 describe("parseFollowUps", () => {
+  it("rejects malformed follow-up JSON", () => {
+    assert.throws(() => parseFollowUps(JSON.stringify({})), /validation/);
+  });
+
   it("drops multi-part follow-ups that cannot be answered in one turn", () => {
     const raw = JSON.stringify({
       follow_up_questions: [
