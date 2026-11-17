@@ -37,9 +37,10 @@ const baseResult: DebriefResult = {
   strengths: [],
   weaknesses: [],
   missedOpportunities: [],
-  strongestAnswer: null,
-  weakestAnswer: null,
+  strongestAnswer: { question: "(not identified)", why: "n/a" },
+  weakestAnswer: { question: "(not identified)", why: "n/a" },
   recommendedPractice: [],
+  provider: "fallback",
 };
 
 describe("clampDebriefToTranscript", () => {

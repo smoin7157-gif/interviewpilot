@@ -1,4 +1,5 @@
 import { evaluateAnswerHeuristically } from "./evaluation-heuristic";
+import { sanitizeAiLogMessage } from "./safe-log";
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
 import { clampResumeToSource } from "./resume-grounding";
@@ -169,7 +170,7 @@ async function withRetry<T>(task: () => Promise<T>, label: string): Promise<T | 
       return await task();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] ${label} attempt ${attempt}/${maxAttempts} failed: ${message}`);
+      console.error(`[ai] ${label} attempt ${attempt}/${maxAttempts} failed: ${sanitizeAiLogMessage(message)}`);
       if (attempt === maxAttempts || !isRetryable(message)) return null;
       const backoff = Math.min(2000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 200;
       await sleep(backoff);
