@@ -697,13 +697,14 @@ function PracticeSection({
       )}
 
       {feedback && (
-        <div ref={resultRef} className="mt-5">
-          <div className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 sm:flex-row sm:items-start">
+        <div ref={resultRef} className="result-reveal mt-5">
+          <div className="card-polish flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 sm:flex-row sm:items-start">
             <div
               className={cn(
-                "flex size-16 shrink-0 flex-col items-center justify-center rounded-full border-2",
+                "score-ring-glow flex size-16 shrink-0 flex-col items-center justify-center rounded-full border-2",
                 scoreColor(feedback.score).ring
               )}
+              data-strong={feedback.score >= 80 ? "true" : "false"}
             >
               <span className={cn("text-xl font-bold tabular-nums", scoreColor(feedback.score).text)}>
                 {feedback.score}

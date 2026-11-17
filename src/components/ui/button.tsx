@@ -13,7 +13,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-indigo-600 text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(61,78,224,.45)] hover:bg-indigo-700 active:bg-indigo-800 disabled:hover:bg-indigo-600",
+    "btn-shine bg-indigo-600 text-white shadow-[0_1px_2px_rgba(16,21,40,.06),0_8px_20px_-10px_rgba(61,78,224,.45)] hover:bg-indigo-700 active:bg-indigo-800 disabled:hover:bg-indigo-600",
   secondary:
     "bg-zinc-950 text-white hover:bg-zinc-800 active:bg-zinc-900 shadow-sm disabled:hover:bg-zinc-950",
   outline:
@@ -62,8 +62,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       className={buttonClasses({ variant, size, className })}
       {...props}
     >
-      {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
-      {children}
+      {loading && <Loader2 className="relative z-[1] size-4 animate-spin" aria-hidden />}
+      <span className="relative z-[1] inline-flex items-center gap-[inherit]">{children}</span>
     </button>
   );
 });
