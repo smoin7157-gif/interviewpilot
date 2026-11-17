@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { isAiConfigured } from "@/lib/ai/service";
 import { prisma } from "@/lib/db";
+import { checkEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,12 +68,17 @@ export async function GET() {
     );
   }
 
+  const env = checkEnv();
   return NextResponse.json(
     {
       status: "ok",
       database: "reachable",
       latencyMs: Date.now() - startedAt,
       checkedAt,
+      readiness: {
+        configOk: env.ok,
+        ai: isAiConfigured() ? "live" : "fallback",
+      },
     },
     { headers: NO_STORE }
   );
