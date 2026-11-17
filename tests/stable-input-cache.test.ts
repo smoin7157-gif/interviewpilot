@@ -19,6 +19,14 @@ describe("stable-input-cache", () => {
     );
   });
 
+  it("serves identical payloads from cache without recomputation", () => {
+    clearStableInputCache();
+    const key = stableInputHash("service:evaluate", { answer: "same answer text here" });
+    setStableCached(key, { score: 80 });
+    assert.deepEqual(getStableCached<{ score: number }>(key), { score: 80 });
+    assert.deepEqual(getStableCached<{ score: number }>(key), { score: 80 });
+  });
+
   it("returns cached values until cleared", () => {
     clearStableInputCache();
     const key = stableInputHash("test", { id: 1 });
