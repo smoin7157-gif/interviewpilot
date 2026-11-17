@@ -1,6 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseEvaluation, parseFollowUps, parseQuestions } from "../src/lib/ai/validate";
+import {
+  parseEvaluation,
+  parseFollowUps,
+  parseInterviewerDecision,
+  parseQuestions,
+} from "../src/lib/ai/validate";
 
 const questionJson = (questions: unknown[]) =>
   JSON.stringify({ interview: { title: "t", questions } });
@@ -99,5 +104,17 @@ describe("parseFollowUps", () => {
     const followUps = parseFollowUps(raw);
     assert.equal(followUps.length, 2);
     assert.doesNotMatch(followUps.join(" "), /And how would you validate/);
+  });
+});
+
+describe("parseInterviewerDecision", () => {
+  it("rejects interviewer output without a valid action", () => {
+    assert.throws(
+      () =>
+        parseInterviewerDecision(
+          JSON.stringify({ action: "invalid", text: "Tell me about your experience with APIs." })
+        ),
+      /validation/
+    );
   });
 });

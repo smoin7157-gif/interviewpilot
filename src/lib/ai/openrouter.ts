@@ -229,14 +229,17 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async generateQuestions(ctx: GenerationContext): Promise<GeneratedQuestion[]> {
+    const user = buildGenerationUserPrompt(ctx);
+    const seed = seedFromStableHash(stableInputHash("openrouter:generation", { s: GENERATION_SYSTEM_PROMPT, u: user }));
     return this.structuredCompletion(
       {
         system: GENERATION_SYSTEM_PROMPT,
-        user: buildGenerationUserPrompt(ctx),
+        user,
         maxTokens: generationTokenBudget(ctx.count),
         model: this.model, // full model: candidate-facing generation
         temperature: TEMPERATURE.generation,
         timeoutMs: REQUEST_TIMEOUT_MS.generation,
+        seed,
       },
       // Model drift or a saturated bank can still repeat a practiced question —
       // enforce the avoid-list server-side so repeat sessions stay fresh.
@@ -296,14 +299,17 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async driveInterview(ctx: InterviewerContext): Promise<InterviewerDecision> {
+    const user = buildInterviewerUserPrompt(ctx);
+    const seed = seedFromStableHash(stableInputHash("openrouter:interviewer", { s: INTERVIEWER_SYSTEM_PROMPT, u: user }));
     return this.structuredCompletion(
       {
         system: INTERVIEWER_SYSTEM_PROMPT,
-        user: buildInterviewerUserPrompt(ctx),
+        user,
         maxTokens: 700,
         model: this.model, // full model: live interviewing
         temperature: TEMPERATURE.interviewer, // moderate-low: natural, never erratic
         timeoutMs: REQUEST_TIMEOUT_MS.interviewer,
+        seed,
       },
       parseInterviewerDecision
     );

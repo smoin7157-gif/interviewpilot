@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { DebriefContext, FollowUpContext } from "./types";
+import type { DebriefContext, FollowUpContext, InterviewerContext } from "./types";
 
 const MAX_ENTRIES = 128;
 const TTL_MS = 10 * 60 * 1000;
@@ -39,6 +39,29 @@ export function setStableCached<T>(key: string, value: T): void {
     if (oldest) store.delete(oldest);
   }
   store.set(key, { value, expiresAt: Date.now() + TTL_MS });
+}
+
+export function interviewerStablePayload(ctx: InterviewerContext): unknown {
+  return {
+    role: ctx.role,
+    seniority: ctx.seniority,
+    company: ctx.company ?? "",
+    companyType: ctx.companyType ?? "",
+    interviewType: ctx.interviewType ?? "",
+    questionsAsked: ctx.questionsAsked,
+    maxQuestions: ctx.maxQuestions,
+    jobDescription: normalizeStableText(ctx.jobDescription ?? ""),
+    candidateContext: normalizeStableText(ctx.candidateContext ?? ""),
+    history: ctx.history.map((t) => ({
+      speaker: t.speaker,
+      text: normalizeStableText(t.text),
+    })),
+    questionBank: ctx.questionBank.map((q) => ({
+      question: normalizeStableText(q.question),
+      category: q.category,
+      difficulty: q.difficulty,
+    })),
+  };
 }
 
 export function followUpStablePayload(ctx: FollowUpContext): unknown {

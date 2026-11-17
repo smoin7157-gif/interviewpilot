@@ -3,11 +3,13 @@ import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
 import { clampResumeToSource } from "./resume-grounding";
 import { isResumeDataEmpty } from "./resume-empty";
+import { clampDebriefToTranscript } from "./debrief-grounding";
 import { groundGeneratedQuestions } from "./question-grounding";
 import {
   debriefStablePayload,
   followUpStablePayload,
   getStableCached,
+  interviewerStablePayload,
   normalizeStableText,
   setStableCached,
   stableInputHash,
@@ -321,15 +323,23 @@ function sanitizeInterviewerContext(ctx: InterviewerContext): InterviewerContext
 export async function driveInterview(ctx: InterviewerContext): Promise<InterviewerResult> {
   const primary = createBestProvider();
   const safeCtx = sanitizeInterviewerContext(ctx);
+  const cacheKey = stableInputHash("service:interviewer", interviewerStablePayload(safeCtx));
+  const cached = getStableCached<InterviewerResult>(cacheKey);
+  if (cached) return cached;
+
   if (primary instanceof OpenRouterProvider) {
     const decision = await withRetry(() => primary.driveInterview(safeCtx), "interviewer decision");
     if (decision) {
-      return { decision, provider: primary.name, model: primary.model };
+      const payload = { decision, provider: primary.name, model: primary.model };
+      setStableCached(cacheKey, payload);
+      return payload;
     }
   }
   const fallback = new FallbackProvider();
   const decision = await fallback.driveInterview(safeCtx);
-  return { decision, provider: fallback.name };
+  const payload = { decision, provider: fallback.name };
+  setStableCached(cacheKey, payload);
+  return payload;
 }
 
 function sanitizeDebriefContext(ctx: DebriefContext): DebriefContext {
@@ -354,13 +364,14 @@ export async function generateDebrief(ctx: DebriefContext): Promise<{ result: De
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.generateDebrief(safeCtx), "debrief generation");
     if (result) {
-      const payload = { result, provider: primary.name, model: primary.model };
+      const grounded = clampDebriefToTranscript(result, safeCtx);
+      const payload = { result: grounded, provider: primary.name, model: primary.model };
       setStableCached(cacheKey, payload);
       return payload;
     }
   }
   const fallback = new FallbackProvider();
-  const result = await fallback.generateDebrief(safeCtx);
+  const result = clampDebriefToTranscript(await fallback.generateDebrief(safeCtx), safeCtx);
   const payload = { result, provider: fallback.name };
   setStableCached(cacheKey, payload);
   return payload;
