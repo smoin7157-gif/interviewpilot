@@ -1,5 +1,5 @@
 import type { JdSeedRef } from "@/lib/jd";
-import { extractJdFacts, partitionJdSkillZones } from "./jd-text";
+import { extractJdFacts } from "./jd-text";
 import type { GenerationContext, QuestionCategory } from "./types";
 
 /**
@@ -109,10 +109,9 @@ export function buildJdGroundedPool(ctx: GenerationContext, refs: JdSeedRef[]): 
   // and its duties lead the responsibility list, with seed duties only filling
   // the remaining slots so the grounding pool stays deep enough.
   const seedSkills = unique(refs.flatMap((ref) => ref.requiredSkills)).slice(0, MAX_SKILLS);
-  const zones = partitionJdSkillZones(ctx.jobDescription);
   const ownPrioritized =
-    zones.requiredSkills.length > 0 || zones.niceToHaveSkills.length > 0
-      ? unique([...zones.requiredSkills, ...zones.niceToHaveSkills]).slice(0, MAX_SKILLS)
+    own.requiredSkills.length > 0 || own.niceToHaveSkills.length > 0
+      ? unique([...own.requiredSkills, ...own.niceToHaveSkills]).slice(0, MAX_SKILLS)
       : own.skills.slice(0, MAX_SKILLS);
   const skills = ownPrioritized.length > 0 ? ownPrioritized : seedSkills;
   const seedResponsibilities = unique(refs.flatMap((ref) => ref.responsibilities)).map(toClause);

@@ -2,7 +2,9 @@ import { evaluateAnswerHeuristically } from "./evaluation-heuristic";
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
 import { clampResumeToSource } from "./resume-grounding";
+import { isResumeDataEmpty } from "./resume-empty";
 import {
+  debriefStablePayload,
   getStableCached,
   normalizeStableText,
   setStableCached,
@@ -274,7 +276,11 @@ export async function extractResumeData(
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.extractResume(safeText), "resume extraction");
     if (result) {
-      const payload = { result: clampResumeToSource(safeText, result), provider: primary.name, model: primary.model };
+      let grounded = clampResumeToSource(safeText, result);
+      if (isResumeDataEmpty(grounded)) {
+        grounded = await new FallbackProvider().extractResume(safeText);
+      }
+      const payload = { result: grounded, provider: primary.name, model: primary.model };
       setStableCached(cacheKey, payload);
       return payload;
     }
@@ -327,13 +333,21 @@ function sanitizeDebriefContext(ctx: DebriefContext): DebriefContext {
 export async function generateDebrief(ctx: DebriefContext): Promise<{ result: DebriefResult; provider: string; model?: string }> {
   const primary = createBestProvider();
   const safeCtx = sanitizeDebriefContext(ctx);
+  const cacheKey = stableInputHash("service:debrief", debriefStablePayload(safeCtx));
+  const cached = getStableCached<{ result: DebriefResult; provider: string; model?: string }>(cacheKey);
+  if (cached) return cached;
+
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.generateDebrief(safeCtx), "debrief generation");
     if (result) {
-      return { result, provider: primary.name, model: primary.model };
+      const payload = { result, provider: primary.name, model: primary.model };
+      setStableCached(cacheKey, payload);
+      return payload;
     }
   }
   const fallback = new FallbackProvider();
   const result = await fallback.generateDebrief(safeCtx);
-  return { result, provider: fallback.name };
+  const payload = { result, provider: fallback.name };
+  setStableCached(cacheKey, payload);
+  return payload;
 }

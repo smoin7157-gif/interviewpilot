@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   clearStableInputCache,
+  debriefStablePayload,
   getStableCached,
   normalizeStableText,
   seedFromStableHash,
@@ -33,5 +34,17 @@ describe("stable-input-cache", () => {
     const seed = seedFromStableHash(hash);
     assert.ok(seed >= 0 && seed <= 0x7fffffff);
     assert.equal(seedFromStableHash(hash), seed);
+  });
+
+  it("hashes debrief payloads consistently across whitespace in transcript", () => {
+    const base = {
+      role: "Backend Engineer",
+      seniority: "3–5 years",
+      maxQuestions: 10,
+      transcript: [{ speaker: "INTERVIEWER" as const, text: "Tell me about on-call." }],
+    };
+    const a = stableInputHash("service:debrief", debriefStablePayload({ ...base, transcript: [{ speaker: "INTERVIEWER", text: "  Tell me   about on-call. " }] }));
+    const b = stableInputHash("service:debrief", debriefStablePayload({ ...base, transcript: [{ speaker: "INTERVIEWER", text: "Tell me about on-call." }] }));
+    assert.equal(a, b);
   });
 });

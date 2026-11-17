@@ -17,8 +17,12 @@ import { listKnownSkills } from "@/lib/jd";
  */
 
 export interface JdFacts {
-  /** Technologies named in the posting, in order of first mention, display-cased. */
+  /** Core technologies (must-have body only when a nice-to-have section exists). */
   skills: string[];
+  /** Same as `skills` — explicit required stack for matchers and grounding. */
+  requiredSkills: string[];
+  /** Technologies mentioned only under optional / nice-to-have headings. */
+  niceToHaveSkills: string[];
   /** Duty-shaped lines ("Build APIs …", "Own reliability …"), clause-ready. */
   responsibilities: string[];
   /** Whether the posting is design/architecture shaped. */
@@ -405,9 +409,23 @@ const DATA_SHAPED =
  */
 export function extractJdFacts(jobDescription?: string): JdFacts {
   const text = jobDescription?.trim() ?? "";
-  if (!text) return { skills: [], responsibilities: [], designs: false, data: false };
+  if (!text) {
+    return {
+      skills: [],
+      requiredSkills: [],
+      niceToHaveSkills: [],
+      responsibilities: [],
+      designs: false,
+      data: false,
+    };
+  }
+  const { requiredSkills, niceToHaveSkills } = partitionJdSkillZones(text);
+  const core =
+    requiredSkills.length > 0 ? requiredSkills : extractJdSkills(text);
   return {
-    skills: extractJdSkills(text),
+    skills: core,
+    requiredSkills: core,
+    niceToHaveSkills,
     responsibilities: extractJdResponsibilities(text),
     designs: DESIGNS_SHAPED.test(text),
     data: DATA_SHAPED.test(text),

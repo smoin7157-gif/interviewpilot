@@ -118,9 +118,18 @@ describe("extractJdFacts", () => {
   it("returns empty facts when no posting was pasted", () => {
     assert.deepEqual(extractJdFacts(undefined), {
       skills: [],
+      requiredSkills: [],
+      niceToHaveSkills: [],
       responsibilities: [],
       designs: false,
       data: false,
     });
+  });
+
+  it("separates must-have stack from nice-to-have on the full facts object", () => {
+    const facts = extractJdFacts(BACKEND_JD);
+    assert.deepEqual(facts.requiredSkills, ["Node.js", "PostgreSQL", "TypeScript"]);
+    assert.deepEqual(facts.niceToHaveSkills, ["Kafka", "Docker"]);
+    assert.deepEqual(facts.skills, facts.requiredSkills);
   });
 });

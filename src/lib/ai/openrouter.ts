@@ -307,14 +307,17 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async generateDebrief(ctx: DebriefContext): Promise<DebriefResult> {
+    const user = buildDebriefUserPrompt(ctx);
+    const seed = seedFromStableHash(stableInputHash("openrouter:debrief", { s: DEBRIEF_SYSTEM_PROMPT, u: user }));
     const parsed = await this.structuredCompletion(
       {
         system: DEBRIEF_SYSTEM_PROMPT,
-        user: buildDebriefUserPrompt(ctx),
+        user,
         maxTokens: 2_500,
         model: this.model, // full model: candidate-facing debrief
         temperature: TEMPERATURE.debrief, // session scores must be stable across regenerations
         timeoutMs: REQUEST_TIMEOUT_MS.debrief,
+        seed,
       },
       parseDebrief
     );
