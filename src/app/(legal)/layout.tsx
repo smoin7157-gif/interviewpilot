@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { MarketingSiteFooter } from "@/components/marketing-site-footer";
 import { buttonClasses } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/auth";
 
@@ -49,22 +50,7 @@ export default async function LegalLayout({ children }: { children: React.ReactN
         {children}
       </main>
 
-      <footer className="border-t border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-6 py-6 text-xs text-zinc-500 sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} InterviewOS</p>
-          <nav aria-label="Footer" className="flex items-center gap-5">
-            <Link href="/" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
-              Home
-            </Link>
-            <Link href="/privacy" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
-              Privacy
-            </Link>
-            <Link href="/terms" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
-              Terms
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <MarketingSiteFooter variant="legal" />
     </div>
   );
 }

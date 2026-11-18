@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
-import { isUniqueViolation } from "@/lib/db-errors";
+import { DATABASE_UNAVAILABLE_MESSAGE, isDatabaseUnreachable, isUniqueViolation } from "@/lib/db-errors";
 import {
   clearSessionCookie,
   createSessionToken,
@@ -71,7 +71,13 @@ export async function signupAction(
 
   const { name, email, password } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  let existing;
+  try {
+    existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  } catch (error) {
+    if (isDatabaseUnreachable(error)) return { error: DATABASE_UNAVAILABLE_MESSAGE };
+    throw error;
+  }
   if (existing) {
     return { error: DUPLICATE_EMAIL_MESSAGE };
   }
@@ -88,6 +94,7 @@ export async function signupAction(
     // unique constraint is the real arbiter. Report the duplicate the same way
     // instead of letting it surface as a 500 on the signup form.
     if (isUniqueViolation(error)) return { error: DUPLICATE_EMAIL_MESSAGE };
+    if (isDatabaseUnreachable(error)) return { error: DATABASE_UNAVAILABLE_MESSAGE };
     throw error;
   }
 
@@ -120,7 +127,13 @@ export async function loginAction(
 
   const { email, password } = parsed.data;
 
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  } catch (error) {
+    if (isDatabaseUnreachable(error)) return { error: DATABASE_UNAVAILABLE_MESSAGE };
+    throw error;
+  }
   // One generic message for both cases so errors don't reveal which emails
   // have accounts (account-enumeration resistance).
   const invalid = { error: "Incorrect email or password. Please try again." };
