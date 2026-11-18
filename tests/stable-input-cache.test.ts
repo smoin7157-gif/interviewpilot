@@ -41,10 +41,10 @@ describe("stable-input-cache", () => {
       role: "Backend Engineer",
       seniority: "3–5 years",
       maxQuestions: 10,
-      transcript: [{ speaker: "INTERVIEWER" as const, text: "Tell me about on-call." }],
+      transcript: [{ speaker: "AI" as const, text: "Tell me about on-call." }],
     };
-    const a = stableInputHash("service:debrief", debriefStablePayload({ ...base, transcript: [{ speaker: "INTERVIEWER", text: "  Tell me   about on-call. " }] }));
-    const b = stableInputHash("service:debrief", debriefStablePayload({ ...base, transcript: [{ speaker: "INTERVIEWER", text: "Tell me about on-call." }] }));
+    const a = stableInputHash("service:debrief", debriefStablePayload({ ...base, transcript: [{ speaker: "AI", text: "  Tell me   about on-call. " }] }));
+    const b = stableInputHash("service:debrief", debriefStablePayload({ ...base, transcript: [{ speaker: "AI", text: "Tell me about on-call." }] }));
     assert.equal(a, b);
   });
 });

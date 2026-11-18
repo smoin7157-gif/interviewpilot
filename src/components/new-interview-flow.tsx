@@ -473,6 +473,16 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
             context={payload}
             onDone={() => router.replace(`/interviews/${sessionId}`)}
           />
+          <p className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setPhase("form")}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-800"
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Back to setup details
+            </button>
+          </p>
         </div>
       </div>
     );

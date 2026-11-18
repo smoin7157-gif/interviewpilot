@@ -45,7 +45,7 @@ export function NextStepCard({ overview }: { overview: PracticeOverview }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-5 rounded-3xl border bg-gradient-to-br p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7",
+        "card-polish flex flex-col gap-5 rounded-3xl border bg-gradient-to-br p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7",
         tone.ring,
         tone.glow
       )}
@@ -85,7 +85,7 @@ function StatTile({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-white p-4",
+        "card-polish rounded-2xl border bg-white p-4",
         accent ? "border-amber-200/70" : "border-zinc-200"
       )}
     >
