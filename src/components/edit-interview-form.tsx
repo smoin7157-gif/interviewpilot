@@ -198,11 +198,11 @@ export function EditInterviewForm({
         />
       </Field>
 
-      <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={() => router.push(`/interviews/${sessionId}`)}>
+      <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => router.push(`/interviews/${sessionId}`)}>
           Cancel
         </Button>
-        <Button type="submit" loading={saving}>
+        <Button type="submit" loading={saving} className="w-full sm:w-auto">
           <Save className="size-4" aria-hidden /> {saving ? "Saving…" : "Save setup"}
         </Button>
       </div>

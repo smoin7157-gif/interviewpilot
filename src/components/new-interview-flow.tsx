@@ -40,6 +40,7 @@ import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { GeneratePanel, type GenerationContextPayload } from "@/components/generate-interview";
+import { InterviewSetupProgress } from "@/components/interview-setup-progress";
 
 type Phase = "form" | "syncing" | "generating";
 
@@ -467,6 +468,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
           title="Preparing your interview"
           description="Sit tight — we're tailoring questions to this role and what you told us."
         />
+        <InterviewSetupProgress phase="generate" className="mt-6" />
         <div className="mt-8">
           <GeneratePanel
             sessionId={sessionId}
@@ -498,6 +500,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
           title="Adding your context"
           description="We're preparing your session before generating questions."
         />
+        <InterviewSetupProgress phase="prepare" className="mt-6" />
 
         <Card className="mt-8 p-6 sm:p-8">
           <ul className="space-y-5">
@@ -553,6 +556,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
         title="Prepare for your interview"
         description="Give InterviewOS enough context to make your practice relevant to the job you're targeting."
       />
+      <InterviewSetupProgress phase="details" className="mt-6" />
 
       {defaults && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
