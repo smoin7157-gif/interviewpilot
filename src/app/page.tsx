@@ -15,6 +15,7 @@ import {
 import { getSessionUser } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { LandingDemoLazy as LandingDemo } from "@/components/client-loaders";
+import { LandingLegalLinks } from "@/components/landing-legal-links";
 import { LandingNav } from "@/components/landing-nav";
 import { buttonClasses } from "@/components/ui/button";
 import { JsonLd } from "@/components/json-ld";
@@ -393,6 +394,7 @@ export default async function Home() {
             >
               Terms
             </Link>
+            <LandingLegalLinks />
             {user ? (
               <Link
                 href="/dashboard"

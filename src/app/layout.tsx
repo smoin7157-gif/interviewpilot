@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { CookieConsentBanner } from "@/components/cookie-consent";
 import { GoogleAnalytics } from "@/components/google-analytics";
 import { siteUrl } from "@/lib/env";
 import { PUBLIC_ROBOTS, siteVerificationMetadata } from "@/lib/seo";
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   );

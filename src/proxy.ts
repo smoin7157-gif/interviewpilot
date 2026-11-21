@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isIndexNowKeyRequest } from "@/lib/indexnow";
 
 /**
  * Edge auth gate (Next 16 proxy convention).
@@ -37,6 +38,18 @@ const STALE_SESSION_PARAM = "stale";
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  if (isIndexNowKeyRequest(pathname)) {
+    const key = process.env.INDEXNOW_KEY!.trim();
+    return new NextResponse(key, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }
+
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
@@ -67,5 +80,6 @@ export const config = {
   // assets/images never need the gate.
   matcher: [
     "/((?!api|_next/static|_next/image|favicon.ico|icon.*|robots.txt|sitemap.xml|manifest.*).*)",
+    "/:segment.txt",
   ],
 };

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { CookieSettingsTrigger } from "@/components/cookie-consent";
 
 /** Avoid hydrating footer links until mount — devtools/overlays can inject attrs into SSR HTML. */
 const subscribe = () => () => {};
@@ -50,9 +51,16 @@ export function MarketingSiteFooter({ variant }: { variant: "auth" | "legal" }) 
             <Link href="/terms" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
               Terms
             </Link>
+            <Link href="/cookies" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Cookies
+            </Link>
+            <Link href="/contact" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Contact
+            </Link>
             <Link href="/faq" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
               FAQ
             </Link>
+            <CookieSettingsTrigger className="font-medium text-zinc-600 transition-colors hover:text-zinc-950" />
           </nav>
         ) : (
           <nav aria-label="Footer" className="flex items-center gap-5">
@@ -65,6 +73,13 @@ export function MarketingSiteFooter({ variant }: { variant: "auth" | "legal" }) 
             <Link href="/terms" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
               Terms
             </Link>
+            <Link href="/cookies" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Cookies
+            </Link>
+            <Link href="/contact" className="font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+              Contact
+            </Link>
+            <CookieSettingsTrigger className="font-medium text-zinc-600 transition-colors hover:text-zinc-950" />
           </nav>
         )}
       </div>
