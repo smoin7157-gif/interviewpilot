@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         description="What InterviewOS stores, why it stores it, and the control you have over your data."
       />
 
-      <LegalDocument updated="November 9, 2026">
+      <LegalDocument updated="November 21, 2026">
         <LegalSection title="The short version">
           <p>
             InterviewOS stores the account details and practice material you provide so it can
@@ -84,7 +84,17 @@ export default function PrivacyPage() {
           </ul>
           <p>
             We do not sell personal information, and we do not use your practice content for
-            advertising.
+            advertising. We do not use your prompts or answers to train third-party foundation models
+            through this application&rsquo;s configuration.
+          </p>
+        </LegalSection>
+
+        <LegalSection title="Legal basis and consent">
+          <p>
+            We process account and practice data to perform the service you request (creating
+            interviews, scoring answers, saving history). Sign-up requires your explicit agreement to
+            these terms and this policy, recorded with a timestamp and policy version. Optional
+            analytics cookies load only if you accept them in the cookie banner.
           </p>
         </LegalSection>
 
@@ -109,13 +119,15 @@ export default function PrivacyPage() {
 
         <LegalSection title="Cookies">
           <p>
-            The app sets one essential cookie,{" "}
+            See our{" "}
+            <a href="/cookies" className="font-medium text-indigo-600 underline-offset-2 hover:underline">
+              Cookie policy
+            </a>{" "}
+            for a full table. In summary: a necessary session cookie (
             <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[13px] text-zinc-700">
               ip_session
             </code>
-            , which is httpOnly and used only to keep you signed in. It contains a signed session
-            token, not your password. This build sets no advertising or analytics cookies. Clearing
-            cookies or signing out ends the session in that browser.
+            ) keeps you signed in; optional Google Analytics cookies load only after you opt in.
           </p>
         </LegalSection>
 
@@ -138,9 +150,12 @@ export default function PrivacyPage() {
             before they are overwritten.
           </p>
           <p>
-            To request deletion of your account and all associated data, contact the operator using
-            the project issue tracker linked below. Include the email address on the account so the
-            request can be matched.
+            Signed-in users can delete their account in Settings. You can also download a JSON export
+            of your data there. Without an account, use the grievance contact on our{" "}
+            <a href="/contact" className="font-medium text-indigo-600 underline-offset-2 hover:underline">
+              Contact
+            </a>{" "}
+            page or the issue tracker below.
           </p>
         </LegalSection>
 
@@ -157,14 +172,14 @@ export default function PrivacyPage() {
             <li>Edit your name or change your password in Settings.</li>
             <li>Delete individual interviews and mock sessions from the app.</li>
             <li>Export a debrief and transcript as Markdown from the debrief screen.</li>
-            <li>Request a copy or deletion of your account data through the issue tracker.</li>
+            <li>Download your data or delete your account in Settings.</li>
           </ul>
         </LegalSection>
 
         <LegalSection title="Children">
           <p>
-            InterviewOS is intended for people aged 16 and over. Do not create an account if you
-            are younger.
+            InterviewOS is intended for people aged 18 and over. Do not create an account if you are
+            younger.
           </p>
         </LegalSection>
 

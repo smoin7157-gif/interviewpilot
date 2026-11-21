@@ -25,7 +25,7 @@ export default function TermsPage() {
         description="The rules for using InterviewOS, what the practice feedback does and does not promise, and how your content is handled."
       />
 
-      <LegalDocument updated="November 9, 2026">
+      <LegalDocument updated="November 21, 2026">
         <LegalSection title="Using InterviewOS">
           <p>
             By creating an account or using InterviewOS, you agree to these terms. If you do not
@@ -40,7 +40,7 @@ export default function TermsPage() {
 
         <LegalSection title="Your account">
           <ul className="list-disc space-y-1.5 pl-5">
-            <li>You must be at least 16 years old and provide accurate account information.</li>
+            <li>You must be at least 18 years old and provide accurate account information.</li>
             <li>
               Keep your password secure. You are responsible for activity that happens through your
               account.
@@ -129,6 +129,14 @@ export default function TermsPage() {
           <p>
             Updated terms will be posted here with a new date. Continuing to use the service after
             a change means you accept the updated terms.
+          </p>
+        </LegalSection>
+
+        <LegalSection title="Governing law">
+          <p>
+            These terms are governed by the laws of India. Disputes are subject to the exclusive
+            jurisdiction of the courts at TODO(founder): governing-law city, unless mandatory local
+            law in your country gives you non-waivable rights.
           </p>
         </LegalSection>
 
