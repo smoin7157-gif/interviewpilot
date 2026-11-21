@@ -179,6 +179,34 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Answer-first summary for search and AI overviews */}
+        <section
+          id="what-is-interviewos"
+          className="scroll-mt-20 border-b border-zinc-200 bg-white"
+          aria-labelledby="what-is-interviewos-heading"
+        >
+          <div className="mx-auto max-w-3xl px-6 py-14 sm:py-16">
+            <h2
+              id="what-is-interviewos-heading"
+              className="text-center text-2xl font-bold tracking-[-0.02em] text-zinc-950 sm:text-3xl"
+            >
+              What is InterviewOS?
+            </h2>
+            <p className="mt-5 text-pretty text-lg leading-relaxed text-zinc-600">
+              <strong className="font-semibold text-zinc-900">InterviewOS</strong> is a free-to-start
+              web app for job interview practice. You enter the role you are interviewing for (and optional
+              job description), and InterviewOS generates realistic questions. You can answer in writing
+              and get AI feedback on each response, or run a spoken mock interview in your browser with
+              live follow-ups and a scored debrief across six dimensions. It is an interview prep tool for
+              candidates — not an ATS, resume scanner, or job-application automation product.{" "}
+              <Link href="/faq" className="font-medium text-indigo-600 underline-offset-2 hover:underline">
+                Read the FAQ
+              </Link>{" "}
+              for details on scoring, voice practice, and privacy.
+            </p>
+          </div>
+        </section>
+
         {/* Trust strip */}
         <section className="border-y border-zinc-200 bg-white">
           <div className="mx-auto grid max-w-6xl gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">

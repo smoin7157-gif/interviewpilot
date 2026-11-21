@@ -12,6 +12,7 @@ export function organizationJsonLd() {
     logo: `${url}/icon`,
     description:
       "InterviewOS helps candidates practice realistic, role-specific interviews with AI feedback and spoken mock sessions.",
+    sameAs: ["https://github.com/smoin7157-gif/interviewpilot"],
   };
 }
 
