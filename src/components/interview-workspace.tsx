@@ -42,6 +42,7 @@ import { Badge, categoryTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { GeneratePanel, type GenerationContextPayload } from "@/components/generate-interview";
+import { InterviewSetupProgress } from "@/components/interview-setup-progress";
 
 const PRACTICE_MIN_LENGTH = 10;
 
@@ -697,13 +698,14 @@ function PracticeSection({
       )}
 
       {feedback && (
-        <div ref={resultRef} className="mt-5">
-          <div className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 sm:flex-row sm:items-start">
+        <div ref={resultRef} className="result-reveal mt-5">
+          <div className="card-polish flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 sm:flex-row sm:items-start">
             <div
               className={cn(
-                "flex size-16 shrink-0 flex-col items-center justify-center rounded-full border-2",
+                "score-ring-glow flex size-16 shrink-0 flex-col items-center justify-center rounded-full border-2",
                 scoreColor(feedback.score).ring
               )}
+              data-strong={feedback.score >= 80 ? "true" : "false"}
             >
               <span className={cn("text-xl font-bold tabular-nums", scoreColor(feedback.score).text)}>
                 {feedback.score}
@@ -1125,6 +1127,9 @@ export function InterviewWorkspace({
             <p className="mt-1.5 text-sm text-zinc-500">
               This interview hasn&rsquo;t been generated yet. Create it now — it takes about 30 seconds.
             </p>
+            <div className="mt-5 flex justify-center">
+              <InterviewSetupProgress phase="generate" />
+            </div>
           </div>
           <GeneratePanel
             sessionId={session.id}
@@ -1132,12 +1137,18 @@ export function InterviewWorkspace({
             title="Building your interview…"
             onDone={() => router.refresh()}
           />
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center">
+            <Link
+              href={`/interviews/${session.id}/edit`}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Edit setup
+            </Link>
             <Link
               href="/interviews"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-800"
             >
-              <ArrowLeft className="size-4" aria-hidden /> Back to My Interviews
+              <ArrowLeft className="size-4" aria-hidden /> My interviews
             </Link>
           </div>
         </div>

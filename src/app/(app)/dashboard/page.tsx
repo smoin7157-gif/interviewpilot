@@ -37,7 +37,11 @@ function ProgressBar({ practiced, total }: { practiced: number; total: number })
 
 function MockScoreChip({ score }: { score: number }) {
   const tone = score >= 80 ? "green" : score >= 60 ? "amber" : "red";
-  return <Badge tone={tone}>{score}/100</Badge>;
+  return (
+    <Badge tone={tone} className={score >= 80 ? "score-ring-glow" : undefined}>
+      {score}/100
+    </Badge>
+  );
 }
 
 export default async function DashboardPage() {

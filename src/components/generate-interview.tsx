@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, CircleAlert, Loader2, PartyPopper } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Check, CircleAlert, Loader2, PartyPopper } from "lucide-react";
 import { apiFailureMessage } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -201,7 +202,7 @@ export function GeneratePanel({
 
   if (phase === "error") {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-red-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(199,66,99,.35)]">
+      <div className="card-polish relative overflow-hidden rounded-2xl border border-red-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(199,66,99,.35)]">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full opacity-60 blur-3xl"
@@ -214,16 +215,29 @@ export function GeneratePanel({
         <p className="relative mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-zinc-500">
           {error ?? "We couldn't reach the AI service to build your interview. Check your connection and try again — your session is safe."}
         </p>
-        <Button className="relative mt-6" onClick={retry}>
-          Try again
-        </Button>
+        <div className="relative mt-6 flex flex-wrap items-center justify-center gap-2.5">
+          <Button onClick={retry}>Try again</Button>
+          <Link
+            href={`/interviews/${sessionId}/edit`}
+            className={buttonClasses({ variant: "outline", size: "md" })}
+          >
+            Edit setup
+          </Link>
+          <Link
+            href="/interviews"
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-800"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            My interviews
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (phase === "done" && doneInfo) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(23,163,154,.35)]">
+      <div className="card-polish result-reveal relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(23,163,154,.35)]">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full opacity-70 blur-3xl"
@@ -256,7 +270,7 @@ export function GeneratePanel({
   const progressPct = Math.round(((stageIndex + 0.5) / STAGES.length) * 100);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(61,78,224,.3)]">
+    <div className="card-polish relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-24px_rgba(61,78,224,.3)]">
       {/* Ambient brand glow */}
       <div
         aria-hidden

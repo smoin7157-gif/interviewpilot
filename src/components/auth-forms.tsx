@@ -31,7 +31,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
   return (
     <form
       action={formAction}
-      className="mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
+      className="card-polish mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
     >
       {nextPath && nextPath !== "/dashboard" && (
         <input type="hidden" name="next" value={nextPath} />
@@ -56,7 +56,7 @@ export function SignupForm({ nextPath }: { nextPath?: string }) {
   return (
     <form
       action={formAction}
-      className="mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
+      className="card-polish mt-6 space-y-4 rounded-3xl border border-zinc-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,21,40,.05),0_16px_40px_-20px_rgba(61,78,224,.25)]"
     >
       {nextPath && nextPath !== "/dashboard" && (
         <input type="hidden" name="next" value={nextPath} />
