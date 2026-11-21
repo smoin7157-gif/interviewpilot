@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Compass } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { buttonClasses } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/auth";
+import { PRIVATE_ROBOTS } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "Page not found",
+  robots: PRIVATE_ROBOTS,
+};
 
 export default async function NotFound() {
   // A signed-in visitor should land back in the app; a visitor who is logged
@@ -28,22 +35,21 @@ export default async function NotFound() {
             This page doesn&rsquo;t exist.
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">
-            The link may be outdated or mistyped. Your interviews, mock sessions and debriefs are
-            safe — pick up where you left off.
+            The link may be broken or the page may have moved.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Link href="/" className={buttonClasses({ variant: "outline", size: "lg" })}>
+              Back to home
+            </Link>
             {user ? (
               <Link href="/dashboard" className={buttonClasses({ size: "lg" })}>
                 Go to dashboard
               </Link>
             ) : (
               <Link href="/login" className={buttonClasses({ size: "lg" })}>
-                Log in to continue
+                Log in
               </Link>
             )}
-            <Link href="/" className={buttonClasses({ size: "lg", variant: "outline" })}>
-              Back to home
-            </Link>
           </div>
         </div>
       </main>

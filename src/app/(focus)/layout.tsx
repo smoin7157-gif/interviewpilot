@@ -1,10 +1,15 @@
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { requireUser } from "@/lib/auth";
+import { PRIVATE_ROBOTS } from "@/lib/seo";
 
 // The focus-mode mock screen is dark; match the mobile browser chrome to it.
 export const viewport: Viewport = {
   themeColor: "#101528",
   colorScheme: "dark",
+};
+
+export const metadata: Metadata = {
+  robots: PRIVATE_ROBOTS,
 };
 
 /**

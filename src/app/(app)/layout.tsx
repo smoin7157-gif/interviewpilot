@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { AppShell } from "@/components/app-shell";
+import { PRIVATE_ROBOTS } from "@/lib/seo";
 
 /**
  * Signed-in pages are user-scoped and must never be indexed. robots.txt blocks
@@ -8,7 +9,7 @@ import { AppShell } from "@/components/app-shell";
  * was linked before the robots rule existed (or by another site).
  */
 export const metadata: Metadata = {
-  robots: { index: false, follow: false },
+  robots: PRIVATE_ROBOTS,
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
