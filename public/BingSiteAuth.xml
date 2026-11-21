@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!--
+  Replace the contents below with the XML snippet from Bing Webmaster Tools
+  when you verify the site. This placeholder keeps the path ready for deploy.
+-->
+<users>
+  <user>REPLACE_WITH_BING_VERIFICATION_TOKEN</user>
+</users>

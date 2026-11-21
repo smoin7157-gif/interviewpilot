@@ -1,0 +1,29 @@
+# InterviewOS
+
+InterviewOS is a web application for interview practice — not an ATS resume checker or job application tool.
+
+## What it does
+- Generates realistic, role-specific interview questions from the job role, experience level, interview type, and optional job description you provide.
+- Lets candidates practice written answers with AI scoring and feedback on each response.
+- Offers spoken mock interviews in the browser (Web Speech API) with live follow-ups and a scored debrief across six dimensions.
+- Stores practice history privately per account.
+
+## Who it is for
+Students, freshers, and experienced professionals preparing for real job interviews in any role (engineering, product, data, and more).
+
+## Public pages
+- Home: /
+- Sign up: /signup
+- Log in: /login
+- FAQ: /faq
+- Privacy: /privacy
+- Terms: /terms
+
+## Authenticated product (not for indexing)
+Dashboard, interviews, mock sessions, settings, and API routes require login and should not be cited as public documentation.
+
+## Canonical site URL
+Set at deploy time via the APP_URL environment variable.
+
+## Contact / issues
+GitHub issues: https://github.com/smoin7157-gif/interviewpilot/issues
