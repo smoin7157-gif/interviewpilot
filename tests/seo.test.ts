@@ -4,14 +4,14 @@ import { isSearchIndexingEnabled } from "../src/lib/seo";
 
 describe("isSearchIndexingEnabled", () => {
   it("blocks indexing on Vercel preview", () => {
-    assert.equal(isSearchIndexingEnabled({ VERCEL_ENV: "preview" } as NodeJS.ProcessEnv), false);
+    assert.equal(isSearchIndexingEnabled({ VERCEL_ENV: "preview" }), false);
   });
 
   it("allows indexing on Vercel production", () => {
-    assert.equal(isSearchIndexingEnabled({ VERCEL_ENV: "production" } as NodeJS.ProcessEnv), true);
+    assert.equal(isSearchIndexingEnabled({ VERCEL_ENV: "production" }), true);
   });
 
   it("allows indexing when VERCEL_ENV is unset (local / other hosts)", () => {
-    assert.equal(isSearchIndexingEnabled({} as NodeJS.ProcessEnv), true);
+    assert.equal(isSearchIndexingEnabled({}), true);
   });
 });

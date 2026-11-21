@@ -14,7 +14,9 @@ export const PRIVATE_ROUTE_PREFIXES = [
  * Production marketing pages should be indexed; Vercel preview/development
  * deployments should not leak into search results.
  */
-export function isSearchIndexingEnabled(source: NodeJS.ProcessEnv = process.env): boolean {
+export function isSearchIndexingEnabled(
+  source: Record<string, string | undefined> = process.env
+): boolean {
   const vercelEnv = source.VERCEL_ENV;
   if (vercelEnv && vercelEnv !== "production") return false;
   return true;
