@@ -12,7 +12,9 @@ Adapted for **interviewpilot** (InterviewOS). Set `APP_URL` to your canonical pr
 | Canonical URLs | `alternates.canonical` on public pages; `metadataBase` from `APP_URL` |
 | Titles & descriptions | Unique per public page (~140–160 char descriptions) |
 | JSON-LD | Organization, WebSite, SoftwareApplication (home); FAQPage + Breadcrumb (FAQ) |
-| `llms.txt` | `/llms.txt` for AI search crawlers |
+| `llms.txt` / `llms-full.txt` | `/llms.txt` summary + `/llms-full.txt` extended facts for AI crawlers |
+| IndexNow | `INDEXNOW_KEY` → `/{key}.txt`; see `docs/seo/AI_SEARCH_RANKING.md` |
+| Home citability | `/#what-is-interviewos` answer-first block on the landing page |
 | GA4 hook | `NEXT_PUBLIC_GA_ID` (production only) |
 | Search verification | `GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION` env vars |
 
