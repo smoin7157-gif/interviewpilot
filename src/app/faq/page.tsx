@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { buttonClasses } from "@/components/ui/button";
+import { JsonLd } from "@/components/json-ld";
 import { PageHeader } from "@/components/ui/page-header";
+import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/structured-data";
 
 /**
  * The help centre is deliberately public: it answers the questions a visitor
@@ -14,10 +16,16 @@ import { PageHeader } from "@/components/ui/page-header";
  */
 
 export const metadata: Metadata = {
-  title: "FAQ",
+  title: "Interview Practice FAQ",
   description:
-    "How InterviewOS generates questions, scores written and spoken practice, and handles your data.",
+    "Answers about InterviewOS: creating interviews, AI scoring, voice mock sessions, debriefs, privacy, and how your practice history is stored.",
   alternates: { canonical: "/faq" },
+  openGraph: {
+    title: "Interview Practice FAQ",
+    description:
+      "How InterviewOS generates questions, scores answers, runs voice mocks, and protects your data.",
+    url: "/faq",
+  },
 };
 
 const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
@@ -99,24 +107,20 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
   },
 ];
 
-/**
- * FAQPage structured data, built from the same source as the rendered copy so
- * the two can never disagree. Escaping `<` keeps a literal `</script>` inside
- * an answer from closing the tag early.
- */
-const FAQ_JSON_LD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: FAQ_GROUPS.flatMap((group) => group.items).map((item) => ({
-    "@type": "Question",
-    name: item.q,
-    acceptedAnswer: { "@type": "Answer", text: item.a },
-  })),
-};
+const FAQ_ITEMS = FAQ_GROUPS.flatMap((group) => group.items);
 
 export default function FaqPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
+      <JsonLd
+        data={[
+          faqPageJsonLd(FAQ_ITEMS),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "FAQ", path: "/faq" },
+          ]),
+        ]}
+      />
       <header className="border-b border-zinc-200/70 bg-[#fbfcfe]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-6">
           <Logo href="/" />
@@ -136,10 +140,6 @@ export default function FaqPage() {
         tabIndex={-1}
         className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 outline-none sm:px-8 sm:py-16"
       >
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD).replace(/</g, "\\u003c") }}
-        />
         <PageHeader
           align="center"
           eyebrow="Help center"

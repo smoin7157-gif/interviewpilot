@@ -6,8 +6,13 @@ import { safeRedirectPath } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Log in",
   description:
-    "Log in to InterviewOS to pick up your interview practice, mock sessions, and saved debriefs.",
+    "Sign in to InterviewOS to continue interview practice, resume mock sessions, and review scored debriefs from past sessions.",
   alternates: { canonical: "/login" },
+  openGraph: {
+    title: "Log in",
+    description: "Pick up your interview practice, mock sessions, and saved debriefs.",
+    url: "/login",
+  },
 };
 
 export default async function LoginPage({

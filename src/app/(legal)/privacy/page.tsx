@@ -5,8 +5,13 @@ import { LegalDocument, LegalSection } from "@/components/legal-document";
 export const metadata: Metadata = {
   title: "Privacy policy",
   description:
-    "What InterviewOS stores, why it stores it, how voice and AI processing work, and the control you have over your data.",
+    "How InterviewOS handles your account data, practice history, voice transcripts, and AI processing—with clear retention and your control options.",
   alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Privacy policy",
+    description: "What we store, why we store it, and how voice and AI processing work at InterviewOS.",
+    url: "/privacy",
+  },
 };
 
 const ISSUES_URL = "https://github.com/smoin7157-gif/interviewpilot/issues";

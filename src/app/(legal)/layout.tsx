@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { buttonClasses } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/auth";
+import { PUBLIC_ROBOTS } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  robots: PUBLIC_ROBOTS,
+};
 
 /**
  * Legal pages are public: a visitor deciding whether to sign up must be able

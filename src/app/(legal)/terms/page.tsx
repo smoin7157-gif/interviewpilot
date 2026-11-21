@@ -5,8 +5,13 @@ import { LegalDocument, LegalSection } from "@/components/legal-document";
 export const metadata: Metadata = {
   title: "Terms of service",
   description:
-    "The rules for using InterviewOS: accounts, acceptable use, AI-generated feedback, your content, and liability.",
+    "Terms for using InterviewOS: accounts, acceptable use, AI practice feedback disclaimers, your content, and liability limits.",
   alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "Terms of service",
+    description: "Rules for using InterviewOS interview practice and AI-generated feedback.",
+    url: "/terms",
+  },
 };
 
 const ISSUES_URL = "https://github.com/smoin7157-gif/interviewpilot/issues";

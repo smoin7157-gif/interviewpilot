@@ -17,10 +17,24 @@ import { Logo } from "@/components/logo";
 import { LandingDemoLazy as LandingDemo } from "@/components/client-loaders";
 import { LandingNav } from "@/components/landing-nav";
 import { buttonClasses } from "@/components/ui/button";
-import { siteUrl } from "@/lib/env";
+import { JsonLd } from "@/components/json-ld";
+import {
+  organizationJsonLd,
+  softwareApplicationJsonLd,
+  websiteJsonLd,
+} from "@/lib/structured-data";
 
 export const metadata: Metadata = {
+  title: "AI Interview Practice & Mock Interviews",
+  description:
+    "Generate role-specific interview questions, practice with AI feedback on every answer, and run spoken mock interviews with scored debriefs—free to start.",
   alternates: { canonical: "/" },
+  openGraph: {
+    title: "AI Interview Practice & Mock Interviews",
+    description:
+      "Generate role-specific interview questions, practice with AI feedback on every answer, and run spoken mock interviews with scored debriefs.",
+    url: "/",
+  },
 };
 
 const features = [
@@ -94,28 +108,6 @@ const trust = [
   },
 ];
 
-/**
- * Structured data for the product itself. It is derived here rather than
- * duplicated in the root layout so it only describes the page a crawler
- * actually landed on. Escaping `<` keeps the JSON from closing the script tag.
- */
-const PRODUCT_JSON_LD = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "InterviewOS",
-  url: siteUrl(),
-  description:
-    "AI-powered interview practice with role-specific questions, written feedback, and spoken mock interviews.",
-  applicationCategory: "EducationalApplication",
-  operatingSystem: "Any",
-  isAccessibleForFree: true,
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-  },
-};
-
 export default async function Home() {
   const user = await getSessionUser();
   const primaryHref = user ? "/dashboard" : "/signup";
@@ -123,11 +115,8 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(PRODUCT_JSON_LD).replace(/</g, "\\u003c"),
-        }}
+      <JsonLd
+        data={[organizationJsonLd(), websiteJsonLd(), softwareApplicationJsonLd()]}
       />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-zinc-200/70 bg-[#fbfcfe]/80 backdrop-blur-xl">
