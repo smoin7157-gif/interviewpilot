@@ -85,25 +85,37 @@ export function SignupForm({ nextPath }: { nextPath?: string }) {
           required
         />
       </Field>
+      <label className="flex items-start gap-3 text-sm leading-snug text-zinc-600">
+        <input
+          type="checkbox"
+          name="legalConsent"
+          value="on"
+          required
+          className="mt-1 size-4 rounded border-zinc-300"
+          aria-describedby="signup-legal-hint"
+        />
+        <span id="signup-legal-hint">
+          I am at least 18 years old and I agree to the{" "}
+          <Link href="/terms" className="font-medium text-zinc-800 underline-offset-2 hover:underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="font-medium text-zinc-800 underline-offset-2 hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </span>
+      </label>
+      {state.fieldErrors?.legalConsent?.[0] && (
+        <p className="text-sm text-red-600" role="alert">
+          {state.fieldErrors.legalConsent[0]}
+        </p>
+      )}
       <Button type="submit" size="lg" loading={pending} className="w-full">
         {pending ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-center text-xs leading-relaxed text-zinc-400">
-        By creating an account you agree to our{" "}
-        <Link
-          href="/terms"
-          className="font-medium text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
-        >
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link
-          href="/privacy"
-          className="font-medium text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
-        >
-          Privacy Policy
-        </Link>
-        . Free to use — no payment, no ads.
+        Free to use — no payment, no ads.
       </p>
     </form>
   );

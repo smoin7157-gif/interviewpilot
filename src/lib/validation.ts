@@ -121,6 +121,16 @@ export const signupSchema = z.object({
     .refine((p) => passwordComplexityError(p) === undefined, {
       message: "Password must include at least one letter and one number.",
     }),
+  legalConsent: z
+    .string()
+    .refine((value) => value === "on", {
+      message: "You must agree to the Terms and Privacy Policy.",
+    }),
+});
+
+export const deleteAccountSchema = z.object({
+  confirmEmail: z.string().trim().email("Enter your account email.").max(200),
+  password: z.string().min(1, "Enter your password.").max(200),
 });
 
 export const loginSchema = z.object({

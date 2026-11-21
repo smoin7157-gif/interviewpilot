@@ -751,7 +751,12 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                   </p>
                 ) : (
                   <p className="text-[13px] text-zinc-500">
-                    Optional. We extract skills, experience, education and projects — we never invent what isn&rsquo;t there.
+                    Optional. Resume text is processed by AI to ground questions — see our{" "}
+                    <a href="/privacy" className="font-medium text-indigo-600 underline-offset-2 hover:underline">
+                      Privacy policy
+                    </a>
+                    . We extract skills, experience, education and projects; we never invent what
+                    isn&rsquo;t there.
                   </p>
                 )}
               </div>

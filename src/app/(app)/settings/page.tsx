@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { AccountPrivacyPanel } from "@/components/account-privacy-form";
 import { PasswordForm, ProfileForm } from "@/components/settings-forms";
 
 export const metadata: Metadata = {
@@ -41,6 +42,16 @@ export default async function SettingsPage() {
             <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[15px] text-zinc-500">
               {user.email}
             </p>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-base font-semibold text-zinc-900">Privacy &amp; data</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Download a copy of your data or permanently delete your account.
+          </p>
+          <div className="mt-5">
+            <AccountPrivacyPanel email={user.email} />
           </div>
         </Card>
 

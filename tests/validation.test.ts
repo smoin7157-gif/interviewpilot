@@ -9,33 +9,46 @@ import {
   mockTurnSchema,
   passwordComplexityError,
   questionDraftSchema,
+  deleteAccountSchema,
   signupSchema,
 } from "../src/lib/validation";
 
+const validSignup = {
+  name: "Ada Lovelace",
+  email: "ada@example.com",
+  password: "supersecret123",
+  legalConsent: "on" as const,
+};
+
 describe("signupSchema", () => {
   it("accepts a valid signup", () => {
-    const parsed = signupSchema.safeParse({
-      name: "Ada Lovelace",
-      email: "ada@example.com",
-      password: "supersecret123",
-    });
+    const parsed = signupSchema.safeParse(validSignup);
     assert.equal(parsed.success, true);
   });
 
   it("rejects a short password", () => {
     const parsed = signupSchema.safeParse({
+      ...validSignup,
       name: "Ada",
-      email: "ada@example.com",
       password: "short",
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it("rejects signup without legal consent", () => {
+    const parsed = signupSchema.safeParse({
+      name: validSignup.name,
+      email: validSignup.email,
+      password: validSignup.password,
     });
     assert.equal(parsed.success, false);
   });
 
   it("rejects an invalid email", () => {
     const parsed = signupSchema.safeParse({
+      ...validSignup,
       name: "Ada",
       email: "not-an-email",
-      password: "supersecret123",
     });
     assert.equal(parsed.success, false);
   });
@@ -45,6 +58,7 @@ describe("signupSchema", () => {
       name: "Ada",
       email: "ada@example.com",
       password: "supersecretletters",
+      legalConsent: "on",
     });
     assert.equal(parsed.success, false);
   });
@@ -54,6 +68,7 @@ describe("signupSchema", () => {
       name: "Ada",
       email: "ada@example.com",
       password: "12345678",
+      legalConsent: "on",
     });
     assert.equal(parsed.success, false);
   });
@@ -69,9 +84,19 @@ describe("signupSchema", () => {
       name: "  Ada  ",
       email: "ada@example.com",
       password: "supersecret123",
+      legalConsent: "on",
     });
     assert.equal(parsed.success, true);
     assert.equal(parsed.data?.name, "Ada");
+  });
+});
+
+describe("deleteAccountSchema", () => {
+  it("requires email and password", () => {
+    assert.equal(
+      deleteAccountSchema.safeParse({ confirmEmail: "ada@example.com", password: "secret1" }).success,
+      true
+    );
   });
 });
 

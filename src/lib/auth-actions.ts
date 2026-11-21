@@ -17,6 +17,7 @@ import { changePasswordSchema, loginSchema, signupSchema, updateProfileSchema } 
 import { safeRedirectPath } from "@/lib/utils";
 import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
 import { checkAuthRateLimit } from "@/lib/auth-rate-limit";
+import { TERMS_POLICY_VERSION } from "@/lib/legal/constants";
 
 export type AuthActionState = { error?: string; fieldErrors?: Record<string, string[]>; success?: string };
 
@@ -63,6 +64,7 @@ export async function signupAction(
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
+    legalConsent: formData.get("legalConsent"),
   });
 
   if (!parsed.success) {
@@ -86,7 +88,13 @@ export async function signupAction(
   let user: { id: string };
   try {
     user = await prisma.user.create({
-      data: { name, email: email.toLowerCase(), passwordHash },
+      data: {
+        name,
+        email: email.toLowerCase(),
+        passwordHash,
+        termsAcceptedAt: new Date(),
+        termsPolicyVersion: TERMS_POLICY_VERSION,
+      },
       select: { id: true },
     });
   } catch (error) {
