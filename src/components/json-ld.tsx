@@ -2,7 +2,7 @@
  * Renders JSON-LD for crawlers and AI search; keep payloads server-rendered.
  */
 export function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
-  const json = JSON.stringify(data);
+  const json = JSON.stringify(data).replace(/</g, "\\u003c");
   return (
     <script
       type="application/ld+json"
