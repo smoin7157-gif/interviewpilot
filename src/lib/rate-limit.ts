@@ -86,7 +86,10 @@ export function getClientKey(headers: Headers, scope: string): string {
 /** Build the standard 429 response (with Retry-After) for API routes. */
 export function rateLimitError(retryAfterSeconds: number): NextResponse {
   return NextResponse.json(
-    { error: "Too many requests. Please wait a moment and try again." },
+    {
+      error: "Too many requests. Please wait a moment and try again.",
+      retryAfterSeconds,
+    },
     { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
   );
 }

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { evaluateAnswer } from "@/lib/ai/service";
+import { withOpsTiming } from "@/lib/ops-log";
+import { questionOwnedWhere } from "@/lib/owned-resource";
 import { evaluateSchema } from "@/lib/validation";
+import { API_RATE_LIMITS } from "@/lib/ai-rate-limits";
 import { checkRateLimit, rateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -13,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const user = await requireApiUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rl = checkRateLimit(`evaluate:${user.id}`, { limit: 60, windowMs: 60 * 60 * 1000 });
+  const rl = checkRateLimit(`evaluate:${user.id}`, API_RATE_LIMITS.evaluate);
   if (!rl.ok) return rateLimitError(rl.retryAfterSeconds);
 
   const { id } = await params;
@@ -31,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const question = await prisma.interviewQuestion.findFirst({
-    where: { id, session: { userId: user.id } },
+    where: questionOwnedWhere(id, user.id),
     include: {
       session: {
         select: { role: true, seniority: true, company: true, jobDescription: true },
@@ -44,13 +47,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Only pass the suggested answer as reference when the user practiced the main question itself.
   const suggestedAnswer = prompt === question.question ? question.suggestedAnswer : undefined;
 
-  const { result, provider, model } = await evaluateAnswer({
-    prompt,
-    suggestedAnswer,
-    answer: parsed.data.answer,
-    role: question.session.role,
-    seniority: question.session.seniority,
-  });
+  const { result, provider, model } = await withOpsTiming(
+    "api:evaluate-answer",
+    () =>
+      evaluateAnswer({
+        prompt,
+        suggestedAnswer,
+        answer: parsed.data.answer,
+        role: question.session.role,
+        seniority: question.session.seniority,
+      }),
+    { userId: user.id, provider: "openrouter" }
+  );
 
   const attempt = await prisma.$transaction(async (tx) => {
     const created = await tx.questionAttempt.create({

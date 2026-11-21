@@ -1,4 +1,8 @@
 import { evaluateAnswerHeuristically } from "./evaluation-heuristic";
+import { logAiCacheAccess, logAiSkippedLiveModel } from "./ai-usage";
+import { logOperation } from "@/lib/ops-log";
+import { hasMinimumExtractableText } from "@/lib/input-bounds";
+import { sanitizeAiLogMessage } from "./safe-log";
 import { FallbackProvider } from "./fallback";
 import { OpenRouterProvider } from "./openrouter";
 import { clampResumeToSource } from "./resume-grounding";
@@ -163,14 +167,32 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Returns null when every attempt fails so the caller can degrade to the fallback provider.
  */
 async function withRetry<T>(task: () => Promise<T>, label: string): Promise<T | null> {
+  const started = Date.now();
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      return await task();
+      const value = await task();
+      logOperation({
+        operation: `ai:${label}`,
+        outcome: "ok",
+        durationMs: Date.now() - started,
+        provider: "openrouter",
+      });
+      return value;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[ai] ${label} attempt ${attempt}/${maxAttempts} failed: ${message}`);
-      if (attempt === maxAttempts || !isRetryable(message)) return null;
+      console.error(`[ai] ${label} attempt ${attempt}/${maxAttempts} failed: ${sanitizeAiLogMessage(message)}`);
+      if (attempt === maxAttempts || !isRetryable(message)) {
+        logOperation({
+          operation: `ai:${label}`,
+          outcome: isRetryable(message) ? "degraded" : "error",
+          durationMs: Date.now() - started,
+          provider: "openrouter",
+          errorType: err instanceof Error ? err.name : "Error",
+          detail: message,
+        });
+        return null;
+      }
       const backoff = Math.min(2000 * Math.pow(2, attempt - 1), 8000) + Math.random() * 200;
       await sleep(backoff);
     }
@@ -215,7 +237,11 @@ export async function generateFollowUps(ctx: FollowUpContext): Promise<{ followU
   const safeCtx = sanitizeFollowUpContext(ctx);
   const cacheKey = stableInputHash("service:followup", followUpStablePayload(safeCtx));
   const cached = getStableCached<{ followUps: string[]; provider: string; model?: string }>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    logAiCacheAccess("follow-up", true, cached.provider);
+    return cached;
+  }
+  logAiCacheAccess("follow-up", false);
 
   if (primary instanceof OpenRouterProvider) {
     const followUps = await withRetry(() => primary.generateFollowUps(safeCtx), "follow-up generation");
@@ -259,7 +285,11 @@ export async function evaluateAnswer(ctx: EvaluationContext): Promise<{ result: 
     suggested: normalizeStableText(safeCtx.suggestedAnswer ?? ""),
   });
   const cached = getStableCached<{ result: EvaluationResult; provider: string; model?: string }>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    logAiCacheAccess("evaluate", true, cached.provider);
+    return cached;
+  }
+  logAiCacheAccess("evaluate", false);
 
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.evaluateAnswer(safeCtx), "answer evaluation");
@@ -287,7 +317,20 @@ export async function extractResumeData(
   const safeText = guardText(text, "resume extraction");
   const cacheKey = stableInputHash("service:resume", { text: normalizeStableText(safeText) });
   const cached = getStableCached<{ result: ResumeData; provider: string; model?: string }>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    logAiCacheAccess("resume", true, cached.provider);
+    return cached;
+  }
+  logAiCacheAccess("resume", false);
+
+  if (!hasMinimumExtractableText(safeText)) {
+    logAiSkippedLiveModel("resume", "text_below_min_chars");
+    const fallback = new FallbackProvider();
+    const result = await fallback.extractResume(safeText);
+    const payload = { result: clampResumeToSource(safeText, result), provider: fallback.name };
+    setStableCached(cacheKey, payload);
+    return payload;
+  }
 
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.extractResume(safeText), "resume extraction");
@@ -325,7 +368,11 @@ export async function driveInterview(ctx: InterviewerContext): Promise<Interview
   const safeCtx = sanitizeInterviewerContext(ctx);
   const cacheKey = stableInputHash("service:interviewer", interviewerStablePayload(safeCtx));
   const cached = getStableCached<InterviewerResult>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    logAiCacheAccess("interviewer", true, cached.provider);
+    return cached;
+  }
+  logAiCacheAccess("interviewer", false);
 
   if (primary instanceof OpenRouterProvider) {
     const decision = await withRetry(() => primary.driveInterview(safeCtx), "interviewer decision");
@@ -359,7 +406,11 @@ export async function generateDebrief(ctx: DebriefContext): Promise<{ result: De
   const safeCtx = sanitizeDebriefContext(ctx);
   const cacheKey = stableInputHash("service:debrief", debriefStablePayload(safeCtx));
   const cached = getStableCached<{ result: DebriefResult; provider: string; model?: string }>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    logAiCacheAccess("debrief", true, cached.provider);
+    return cached;
+  }
+  logAiCacheAccess("debrief", false);
 
   if (primary instanceof OpenRouterProvider) {
     const result = await withRetry(() => primary.generateDebrief(safeCtx), "debrief generation");
