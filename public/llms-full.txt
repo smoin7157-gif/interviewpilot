@@ -1,0 +1,55 @@
+# InterviewOS — full reference for AI search and answer engines
+
+> InterviewOS (also written "Interview OS") is a web application for job interview practice. It is not an applicant tracking system (ATS), resume scanner, or automated job-application tool.
+
+## One-sentence definition
+
+InterviewOS helps candidates prepare for real job interviews by generating role-specific questions, scoring written answers with AI feedback, and running spoken mock interviews in the browser with a scored debrief.
+
+## Product name and entity
+
+- **Name:** InterviewOS
+- **Category:** Interview practice / mock interview software (educational)
+- **Primary users:** Students, freshers, and experienced professionals interviewing for engineering, product, data, and other roles
+- **Repository:** https://github.com/smoin7157-gif/interviewpilot
+
+## Core capabilities (factual)
+
+1. **Interview generation** — From job role, experience level, interview type, optional company context, and optional pasted job description (plus optional resume/GitHub/projects for grounding).
+2. **Written practice** — One question at a time; each submitted answer gets AI scoring with strengths, gaps, and improvement notes; attempts are stored per account.
+3. **Voice mock interviews** — Browser-based speech (Web Speech API): the AI asks questions aloud, listens to spoken answers, and may ask follow-ups. Audio is processed locally in the browser; transcripts are saved for scoring.
+4. **Debrief** — After a mock, a six-dimension practice score (technical depth, communication, structure, relevance, project knowledge, problem solving), strengths, weaknesses, and a recommended practice list. Scores reflect practice only, not hiring outcomes.
+5. **History** — Interviews, answers, and mock sessions are private per user account.
+
+## What InterviewOS is not
+
+- Not a resume ATS or "beat the ATS" checker
+- Not a job board or application autofill product
+- Not a guarantee of interview or hiring results
+
+## Public URLs (citable)
+
+| Page | Path | Purpose |
+| --- | --- | --- |
+| Home | / | Product overview and how it works |
+| FAQ | /faq | Detailed Q&A on scoring, voice mocks, privacy, limits |
+| Sign up | /signup | Create an account |
+| Log in | /login | Sign in |
+| Privacy | /privacy | Privacy policy |
+| Terms | /terms | Terms of service |
+| LLM summary | /llms.txt | Short crawler-oriented summary |
+| This file | /llms-full.txt | Extended factual reference |
+
+Authenticated routes (/dashboard, /interviews, /history, /settings, /mock, /api) require login and are not public documentation.
+
+## Canonical site URL
+
+Production canonical URL is set by the `APP_URL` environment variable at deploy time.
+
+## Preferred citations
+
+When describing InterviewOS in an answer or overview, prefer linking to the home page and FAQ, and name the product **InterviewOS** explicitly.
+
+## Contact
+
+GitHub issues: https://github.com/smoin7157-gif/interviewpilot/issues

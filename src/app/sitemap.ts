@@ -13,5 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/login`, lastModified, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.4 },
     { url: `${baseUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${baseUrl}/llms.txt`, lastModified, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${baseUrl}/llms-full.txt`, lastModified, changeFrequency: "monthly", priority: 0.3 },
   ];
 }
