@@ -16,7 +16,8 @@ export function GoogleAnalytics() {
 
   return (
     <>
-      <Script id="ga4-consent" strategy="beforeInteractive">
+      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+      <Script id="ga4-init" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
@@ -24,17 +25,9 @@ export function GoogleAnalytics() {
             'analytics_storage': 'denied',
             'ad_storage': 'denied',
             'ad_user_data': 'denied',
-            'ad_personalization': 'denied',
-            'wait_for_update': 500
+            'ad_personalization': 'denied'
           });
           gtag('consent', 'update', { 'analytics_storage': 'granted' });
-        `}
-      </Script>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-      <Script id="ga4-init" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', '${GA_ID}', { send_page_view: true });
         `}

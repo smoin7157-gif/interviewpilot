@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   buildConsentRecord,
   COOKIE_CONSENT_STORAGE_KEY,
@@ -15,44 +15,32 @@ function readConsent(): CookieConsentRecord | null {
   return parseCookieConsent(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
 }
 
+function subscribeToConsent(onStoreChange: () => void) {
+  const onChange = () => onStoreChange();
+  window.addEventListener("ip:cookie-consent", onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener("ip:cookie-consent", onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
 function writeConsent(record: CookieConsentRecord) {
   localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(record));
   window.dispatchEvent(new CustomEvent("ip:cookie-consent", { detail: record }));
 }
 
 export function useCookieConsent(): CookieConsentRecord | null {
-  const [consent, setConsent] = useState<CookieConsentRecord | null>(null);
-
-  useEffect(() => {
-    setConsent(readConsent());
-    const onChange = () => setConsent(readConsent());
-    window.addEventListener("ip:cookie-consent", onChange);
-    window.addEventListener("storage", onChange);
-    return () => {
-      window.removeEventListener("ip:cookie-consent", onChange);
-      window.removeEventListener("storage", onChange);
-    };
-  }, []);
-
-  return consent;
+  return useSyncExternalStore(subscribeToConsent, readConsent, () => null);
 }
 
 export function CookieConsentBanner() {
-  const [consent, setConsent] = useState<CookieConsentRecord | null>(null);
+  const consent = useCookieConsent();
   const [showCustomize, setShowCustomize] = useState(false);
   const [analyticsDraft, setAnalyticsDraft] = useState(false);
 
-  useEffect(() => {
-    setConsent(readConsent());
-    const onChange = () => setConsent(readConsent());
-    window.addEventListener("ip:cookie-consent", onChange);
-    return () => window.removeEventListener("ip:cookie-consent", onChange);
-  }, []);
-
   const persist = useCallback((analytics: boolean) => {
-    const record = buildConsentRecord(analytics);
-    writeConsent(record);
-    setConsent(record);
+    writeConsent(buildConsentRecord(analytics));
     setShowCustomize(false);
   }, []);
 
