@@ -49,6 +49,7 @@ No payment SDK, ad pixels, chat widgets, or social embeds in this repo.
 - Resume upload AI-processing notice.
 - Settings: download data JSON + delete account.
 - Grievance / operator block on `/contact` with `TODO(founder)` placeholders.
+- `security.txt` and `humans.txt` in `public/`.
 - Jurisdiction mapping and breach checklist docs.
 
 ## Not applicable (this product)
