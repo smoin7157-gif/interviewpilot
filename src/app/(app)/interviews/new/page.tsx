@@ -6,7 +6,7 @@ import { NewInterviewFlow } from "@/components/new-interview-flow";
 export const metadata: Metadata = {
   title: "New Interview",
   description:
-    "Tell InterviewOS about the role you are targeting to generate a personalized interview question set.",
+    "Tell InterviewOS about the role you are targeting—optionally add a resume, GitHub, or projects—to generate a personalized question set.",
 };
 
 /**
