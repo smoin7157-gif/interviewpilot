@@ -1,0 +1,7 @@
+/* TEAM */
+Product: InterviewOS
+Site: /
+Repository: https://github.com/smoin7157-gif/interviewpilot
+
+/* THANKS */
+Candidates practicing honest interview prep.

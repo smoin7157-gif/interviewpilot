@@ -37,9 +37,12 @@ export default async function NotFound() {
           <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">
             The link may be broken or the page may have moved.
           </p>
-          <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
             <Link href="/" className={buttonClasses({ variant: "outline", size: "lg" })}>
               Back to home
+            </Link>
+            <Link href="/faq" className={buttonClasses({ variant: "outline", size: "lg" })}>
+              Help centre
             </Link>
             {user ? (
               <Link href="/dashboard" className={buttonClasses({ size: "lg" })}>

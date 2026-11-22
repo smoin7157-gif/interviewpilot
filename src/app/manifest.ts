@@ -7,6 +7,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    lang: "en-IN",
+    dir: "ltr",
     name: "InterviewOS — Practice your interview before the real one",
     short_name: "InterviewOS",
     description:
@@ -15,6 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#fbfcfe",
     theme_color: "#fbfcfe",
     categories: ["education", "productivity"],
