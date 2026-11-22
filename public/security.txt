@@ -1,0 +1,7 @@
+Contact: mailto:privacy@yourdomain.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://example.com/security.txt
+
+# Replace contact and Canonical with your production domain after launch.
+# Founder: update alongside src/lib/legal/constants.ts
