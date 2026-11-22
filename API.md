@@ -60,8 +60,8 @@ Create an interview session (status `DRAFT`, no questions yet).
   "githubUrl": "https://github.com/username",
   "projects": [
     {
-      "name": "HireAI",
-      "repositoryUrl": "https://github.com/username/hireai",
+      "name": "InterviewOS",
+      "repositoryUrl": "https://github.com/smoin7157-gif/interviewpilot",
       "description": "…",
       "techStack": "FastAPI, Supabase",
       "contribution": "Led backend design"

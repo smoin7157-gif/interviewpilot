@@ -255,8 +255,8 @@ Generation now uses InterviewOS categories (`technical`, `behavioral`,
 `project`, `job_description`, `coding`, `system_design`, `data_ml`, `company`,
 `general`), lowercase `easy|medium|hard` difficulty, per-interview-type
 question distributions, and per-question `source_context` tags. The prompt is
-instructed to probe the candidate's real claims ("You built HireAI with
-FastAPI — why FastAPI?") and never invent experience. Legacy rows keep their
+instructed to probe the candidate's real claims ("You built InterviewOS with
+Next.js — why that stack?") and never invent experience. Legacy rows keep their
 older category labels and render fine through display helpers.
 
 **Accuracy hardening.** The generation prompt carries a quality contract
