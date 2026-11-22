@@ -17,5 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/contact`, lastModified, changeFrequency: "yearly", priority: 0.35 },
     { url: `${baseUrl}/llms.txt`, lastModified, changeFrequency: "monthly", priority: 0.3 },
     { url: `${baseUrl}/llms-full.txt`, lastModified, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${baseUrl}/humans.txt`, lastModified, changeFrequency: "yearly", priority: 0.2 },
   ];
 }

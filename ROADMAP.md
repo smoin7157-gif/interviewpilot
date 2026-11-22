@@ -239,6 +239,14 @@ through, without touching the AI pipeline.
   bounded to the latest 200 rows and grouping keeps five per question
   (`src/lib/attempt-history.ts`, unit-tested)
 
+## Phase 10 — Brand & operator polish ✅ (2026-11-22)
+
+- ✅ InterviewOS-native copy in setup flow, prompts, and API docs (no third-party product names)
+- ✅ Command palette → Privacy & Cookie policies; Settings keywords for data export/delete
+- ✅ Account-deletion confirmation on home; FAQ for download/delete account
+- ✅ Health JSON includes app `version`; PWA manifest `lang` + orientation
+- ✅ `security.txt`, `humans.txt`, `docs/PRODUCT.md`, `CHANGELOG.md`
+
 ## Explicitly out of scope (do not build)
 
 Real-interview copilot, stealth assistance, screen capture, employer tools,

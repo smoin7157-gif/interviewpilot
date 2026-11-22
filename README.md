@@ -17,6 +17,8 @@ written practice, the AI mock interview, and the mock **debrief + history**
 re-practice, delete) — plus the Phase 5 polish: accessibility, rate limiting,
 security headers, and automated tests (see [ROADMAP.md](./ROADMAP.md)).
 
+Product overview for operators and contributors: [docs/PRODUCT.md](./docs/PRODUCT.md). Release notes: [CHANGELOG.md](./CHANGELOG.md).
+
 ## Highlights
 
 - **⌘K command palette** — jump to any page or start a new interview from

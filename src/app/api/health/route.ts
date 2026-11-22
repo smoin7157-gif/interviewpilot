@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAiConfigured } from "@/lib/ai/service";
 import { prisma } from "@/lib/db";
 import { checkEnv } from "@/lib/env";
+import { APP_VERSION } from "@/lib/app-version";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,6 +74,7 @@ export async function GET() {
     {
       status: "ok",
       database: "reachable",
+      version: APP_VERSION,
       latencyMs: Date.now() - startedAt,
       checkedAt,
       readiness: {
