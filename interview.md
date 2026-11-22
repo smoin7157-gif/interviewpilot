@@ -1,6 +1,6 @@
 # InterviewOS — How the platform works
 
-This document describes **InterviewOS** (this repository: `interviewpilot`). It is an AI interview **practice** product—not a resume ATS matcher, job applier, or “rewrite” tool. The design language references HireAI-style career tooling, but V1 scope is: generate questions, written practice with feedback, and spoken mock interviews with debriefs.
+This document describes **InterviewOS** (this repository: `interviewpilot`). It is an AI interview **practice** product—not a resume ATS matcher, job applier, or “rewrite” tool. V1 scope is: generate questions, written practice with feedback, and spoken mock interviews with debriefs.
 
 For deeper detail, see also [ARCHITECTURE.md](./ARCHITECTURE.md), [API.md](./API.md), [README.md](./README.md), [HARDENING.md](./HARDENING.md), [OPERATIONS.md](./OPERATIONS.md), and [COST_CONTROL.md](./COST_CONTROL.md).
 
