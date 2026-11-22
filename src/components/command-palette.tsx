@@ -100,10 +100,26 @@ const COMMANDS: Command[] = [
   {
     id: "settings",
     label: "Settings",
-    hint: "Profile name and password",
+    hint: "Profile, password, download data, delete account",
     href: "/settings",
     icon: Settings,
-    keywords: ["profile", "account", "password", "name"],
+    keywords: ["profile", "account", "password", "name", "privacy", "export", "delete"],
+  },
+  {
+    id: "privacy",
+    label: "Privacy policy",
+    hint: "How your data is used",
+    href: "/privacy",
+    icon: CircleHelp,
+    keywords: ["legal", "data", "cookies", "gdpr"],
+  },
+  {
+    id: "cookies",
+    label: "Cookie policy",
+    hint: "Cookie choices and analytics",
+    href: "/cookies",
+    icon: CircleHelp,
+    keywords: ["consent", "analytics", "legal"],
   },
 ];
 
