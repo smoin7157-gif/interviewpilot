@@ -2,7 +2,7 @@
 
 InterviewOS is a web application for interview practice — not an ATS resume checker or job application tool.
 
-Extended reference for AI crawlers: /llms-full.txt
+Extended reference for AI crawlers: /llms-full.txt and /humans.txt
 
 ## What it does
 - Generates realistic, role-specific interview questions from the job role, experience level, interview type, and optional job description you provide.
