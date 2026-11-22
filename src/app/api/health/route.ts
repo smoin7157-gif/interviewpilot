@@ -62,6 +62,7 @@ export async function GET() {
       {
         status: "unhealthy",
         database: "unreachable",
+        version: APP_VERSION,
         checkedAt,
         hint: "DATABASE_URL is missing, blank, or pointing at an unreachable database. See the server logs for the exact reason.",
       },
