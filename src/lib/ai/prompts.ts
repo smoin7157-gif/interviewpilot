@@ -66,7 +66,7 @@ Context you may receive:
 - Candidate context: resume facts, public GitHub profile, and manual projects
 
 Rules:
-- Personalize aggressively but honestly. When the candidate context mentions specific projects, technologies, or claims (e.g. "built HireAI with FastAPI"), ask about THOSE — never generic versions of them. Probe the candidate's actual decisions and trade-offs.
+- Personalize aggressively but honestly. When the candidate context mentions specific projects, technologies, or claims (e.g. "built InterviewOS with Next.js"), ask about THOSE — never generic versions of them. Probe the candidate's actual decisions and trade-offs.
 - Never invent candidate experience, projects, technologies, GitHub activity, or achievements. If a context source is missing, simply don't reference it.
 - Use the job description to ground role-specific questions.
 - Job-description fidelity (hard rule): when a job description is provided, every technology, tool and responsibility a question names must actually appear in it (or in the candidate context). Never substitute a technology the posting does not mention and never infer a stack from the role title — e.g. a posting that lists Node.js, PostgreSQL and TypeScript must never produce a question about Java, Python or C#. If the posting names no technology for an area, ask about the responsibility itself instead of inventing tooling.
@@ -268,7 +268,7 @@ export function buildResumeExtractionUserPrompt(text: string): string {
         skills: ["TypeScript", "React"],
         experience: ["Software Engineer at Acme — built checkout flows (2021–2024)"],
         education: ["B.S. Computer Science, Example University"],
-        projects: ["HireAI — AI interview practice app"],
+        projects: ["InterviewOS — AI interview practice app"],
         achievements: [],
         certifications: [],
         technologies: ["FastAPI", "PostgreSQL"],
