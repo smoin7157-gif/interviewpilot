@@ -780,7 +780,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                 </div>
                 {projects.length === 0 ? (
                   <p className="text-[13px] text-zinc-500">
-                    Optional — e.g. HireAI, built with FastAPI + Supabase. Tell us the stack and what you did.
+                    Optional — e.g. InterviewOS, built with Next.js and Postgres. Tell us the stack and what you did.
                   </p>
                 ) : (
                   <ul className="space-y-4">
@@ -805,7 +805,7 @@ export function NewInterviewFlow({ defaults = null }: { defaults?: InterviewSetu
                               id={`proj-name-${idx}`}
                               value={p.name}
                               onChange={(e) => updateProject(idx, { name: e.target.value })}
-                              placeholder="HireAI"
+                              placeholder="InterviewOS"
                             />
                           </Field>
                           <Field label="Repository URL" htmlFor={`proj-repo-${idx}`}>
