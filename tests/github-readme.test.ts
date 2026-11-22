@@ -10,7 +10,7 @@ import { summarizeReadme } from "../src/lib/github";
 describe("summarizeReadme", () => {
   it("strips badges, headings, links and code fences", () => {
     const readme = [
-      "# HireAI",
+      "# InterviewOS",
       "",
       "[![Build](https://img.shields.io/badge)](https://ci.example.com)",
       "",
@@ -26,7 +26,7 @@ describe("summarizeReadme", () => {
     ].join("\n");
 
     const summary = summarizeReadme(readme);
-    assert.match(summary, /HireAI/);
+    assert.match(summary, /InterviewOS/);
     assert.match(summary, /Next\.js/);
     assert.match(summary, /Postgres/);
     assert.match(summary, /Read the docs/);
