@@ -54,6 +54,7 @@ When describing InterviewOS in an answer or overview, prefer linking to the home
 
 - Feature video shoot brief: `docs/marketing/FEATURE_SERIES_SHOOT_BRIEF.md`
 - Social caption pack: `/feature-series-social-captions.txt`
+- Humans file: `/humans.txt`
 
 ## Contact
 

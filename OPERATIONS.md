@@ -21,7 +21,7 @@ Validated at Node startup via `src/instrumentation.ts` → `assertEnv()`. Secret
 
 ## Observability
 
-- **Health:** `GET /api/health` — DB reachability, latency, AI mode (`live` vs `fallback`). Unauthenticated; no PII in body.
+- **Health:** `GET /api/health` — DB reachability, latency, app `version`, AI mode (`live` vs `fallback`). Unauthenticated; no PII in body.
 - **Structured ops logs:** `[ops]` JSON lines from `src/lib/ops-log.ts` (operation, outcome, durationMs, optional userId). Details truncated and redacted.
 - **AI retries:** `[ai]` logs use `sanitizeAiLogMessage` (no full prompts/resumes).
 
