@@ -19,7 +19,7 @@ import { ListFilters, filterQuery, type FilterOption } from "@/components/list-f
 export const metadata: Metadata = {
   title: "Mock History",
   description:
-    "Every AI mock interview you have practiced aloud, with scores, debriefs, and transcripts.",
+    "Every AI mock interview you have practiced aloud, with scores, debriefs, transcripts, and Markdown export.",
 };
 
 function statusInfo(status: string): { label: string; tone: "green" | "amber" | "zinc" | "red" } {
