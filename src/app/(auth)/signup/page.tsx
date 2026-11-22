@@ -6,7 +6,7 @@ import { safeRedirectPath } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Create your account",
   description:
-    "Sign up free for InterviewOS—generate role-specific questions, get AI feedback on answers, and practice spoken mock interviews before the real thing.",
+    "Sign up free for InterviewOS (18+)—generate role-specific questions, get AI feedback on answers, and practice spoken mock interviews before the real thing.",
   alternates: { canonical: "/signup" },
   openGraph: {
     title: "Create your account",
