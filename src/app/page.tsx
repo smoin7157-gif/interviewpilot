@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   ArrowRight,
   FileQuestion,
@@ -15,6 +16,7 @@ import {
 import { getSessionUser } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { LandingDemoLazy as LandingDemo } from "@/components/client-loaders";
+import { AccountDeletedBanner } from "@/components/account-deleted-banner";
 import { LandingLegalLinks } from "@/components/landing-legal-links";
 import { LandingNav } from "@/components/landing-nav";
 import { buttonClasses } from "@/components/ui/button";
@@ -116,6 +118,9 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#fbfcfe]">
+      <Suspense fallback={null}>
+        <AccountDeletedBanner />
+      </Suspense>
       <JsonLd
         data={[organizationJsonLd(), websiteJsonLd(), softwareApplicationJsonLd()]}
       />

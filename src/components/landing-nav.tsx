@@ -127,6 +127,15 @@ export function LandingNav({ signedIn }: { signedIn: boolean }) {
                   FAQ
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  Privacy
+                </Link>
+              </li>
             </ul>
             <div className="mt-1 border-t border-zinc-100 pt-1">
               <Link
