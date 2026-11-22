@@ -17,7 +17,7 @@ import { ListFilters, filterQuery, type FilterOption } from "@/components/list-f
 export const metadata: Metadata = {
   title: "My Interviews",
   description:
-    "Every interview question set you have generated, with practice progress and quick links to resume.",
+    "Every interview question set you have generated, with written practice progress and links to voice mocks.",
 };
 
 const STATUS_OPTIONS: readonly FilterOption[] = [
