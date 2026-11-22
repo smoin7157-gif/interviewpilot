@@ -65,6 +65,10 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
         q: "Can I delete an interview?",
         a: "Yes. Open the \"⋯\" menu on any interview card (on the My Interviews page or inside the interview) and choose \"Delete interview\". This removes the interview, its questions, and its practice history. It can't be undone.",
       },
+      {
+        q: "How do I download my data or delete my account?",
+        a: "Go to Settings → Privacy & data. \"Download my data\" exports a JSON file with your profile, interviews, attempts, and mock sessions. \"Delete my account\" permanently removes your user row and cascaded practice data after you confirm your email and password. You can also contact us via the Contact page if you cannot log in.",
+      },
     ],
   },
   {
