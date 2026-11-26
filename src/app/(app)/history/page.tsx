@@ -71,7 +71,7 @@ export default async function HistoryPage({
         title="Mock History"
         description="Every AI mock interview you've practiced aloud, with debriefs and scores."
         actions={
-          <Link href="/interviews" className={buttonClasses({ size: "lg" })}>
+          <Link href="/interviews/new" className={buttonClasses({ size: "lg" })}>
             <Plus className="size-4" aria-hidden /> Create Interview
           </Link>
         }
