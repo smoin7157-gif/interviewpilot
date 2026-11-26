@@ -116,8 +116,8 @@ export default async function DashboardPage() {
                 : "Complete a spoken mock interview and its overall score will chart here, so you can see whether you're improving."
             }
             action={
-              <Link href="/interviews" className={buttonClasses({ variant: "outline", size: "sm" })}>
-                View my interviews
+              <Link href="/interviews/new" className={buttonClasses({ variant: "outline", size: "sm" })}>
+                <Plus className="size-4" aria-hidden /> Start a mock
               </Link>
             }
           />
