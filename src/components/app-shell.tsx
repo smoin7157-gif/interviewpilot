@@ -238,6 +238,13 @@ export function AppShell({
           </span>
         </Link>
         <div className="flex items-center gap-0.5">
+          <Link
+            href="/interviews/new"
+            aria-label="Create interview"
+            className="rounded-md p-2 text-zinc-600 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <Plus className="size-5" aria-hidden />
+          </Link>
           <CommandPaletteTrigger variant="icon" />
           <button
             ref={openButtonRef}
