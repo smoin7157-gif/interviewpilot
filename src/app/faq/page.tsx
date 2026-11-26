@@ -5,6 +5,7 @@ import { Logo } from "@/components/logo";
 import { buttonClasses } from "@/components/ui/button";
 import { JsonLd } from "@/components/json-ld";
 import { PageHeader } from "@/components/ui/page-header";
+import { faqEntryId } from "@/lib/faq-slug";
 import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/structured-data";
 
 /**
@@ -59,7 +60,7 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: "Is there a limit on interviews, questions, or attempts?",
-        a: "There are no caps on how many interviews you create or questions you practice. To keep the AI fast and reliable for everyone, a few actions are rate-limited per hour — things like generating interviews, running mock sessions, and requesting debriefs. If you hit a limit you'll see a clear message telling you how long to wait; your data is never affected.",
+        a: "There is no cap on how many questions you practice or attempts you save. To keep the AI fast for everyone, a few server actions are limited per user per hour — for example up to 10 interview generations, 20 mock session starts, 60 answer evaluations, and 15 debriefs. If you hit a limit you'll see how long to wait; your saved data is never affected.",
       },
       {
         q: "Can I delete an interview?",
@@ -88,7 +89,7 @@ const FAQ_GROUPS: { heading: string; items: { q: string; a: string }[] }[] = [
       },
       {
         q: "Which browser should I use for voice practice?",
-        a: "Chrome or Edge give the best voice-recognition experience. If your browser doesn't support speech recognition, the mock interview still works — you'll be offered a text box to type your answers instead, and the session is scored the same way.",
+        a: "Chrome or Edge on desktop give the best voice-recognition experience. Safari and Firefox often lack speech recognition; the mock interview still works — you'll type answers in a text box and the session is scored the same way.",
       },
     ],
   },
@@ -167,7 +168,8 @@ export default function FaqPage() {
                 {group.items.map((item) => (
                   <details
                     key={item.q}
-                    className="group rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,21,40,.05),0_8px_24px_-16px_rgba(16,21,40,.14)] transition-colors open:border-indigo-200"
+                    id={faqEntryId(item.q)}
+                    className="group scroll-mt-24 rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,21,40,.05),0_8px_24px_-16px_rgba(16,21,40,.14)] transition-colors open:border-indigo-200"
                   >
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
                       <span className="text-[15px] font-semibold text-zinc-900">{item.q}</span>
