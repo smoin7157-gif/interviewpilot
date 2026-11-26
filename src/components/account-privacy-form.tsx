@@ -17,7 +17,12 @@ export function AccountPrivacyPanel({ email }: { email: string }) {
       <div>
         <h3 className="text-sm font-semibold text-zinc-900">Download your data</h3>
         <p className="mt-1 text-sm text-zinc-500">
-          JSON export of your profile, interviews, attempts, and mock sessions.
+          JSON export of your profile, interviews, attempts, and mock sessions. You must stay signed
+          in for the download to work. If you cannot log in, use our{" "}
+          <Link href="/contact" className="font-medium text-zinc-700 underline-offset-2 hover:underline">
+            Contact page
+          </Link>
+          .
         </p>
         <a
           href="/api/account/export"
