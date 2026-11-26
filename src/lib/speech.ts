@@ -55,6 +55,10 @@ export function browserSttSupported(): boolean {
   return recognitionCtor() !== null;
 }
 
+/** Copy for mock preflight and help pages — keep voice guidance in one place. */
+export const VOICE_PRACTICE_BROWSER_HINT =
+  "Chrome or Edge on desktop give the best speech recognition; other browsers can still practice by typing answers.";
+
 function normalizeEvent(
   event: unknown
 ): { interim: string; final: string } {

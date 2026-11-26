@@ -6,7 +6,14 @@ import {
   displayDeviceLabel,
   filterMediaInputDevices,
   mediaDeviceConstraint,
+  VOICE_PRACTICE_BROWSER_HINT,
 } from "../src/lib/speech";
+
+describe("voice guidance copy", () => {
+  it("mentions Chrome or Edge", () => {
+    assert.match(VOICE_PRACTICE_BROWSER_HINT, /Chrome|Edge/);
+  });
+});
 
 describe("displayDeviceLabel", () => {
   it("keeps a non-empty browser label", () => {
