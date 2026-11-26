@@ -45,6 +45,7 @@ import {
   setTrackEnabled,
   speak,
   stopMediaStream,
+  VOICE_PRACTICE_BROWSER_HINT,
   warmVoices,
   type MediaInputDevice,
   type SttSession,
@@ -1152,6 +1153,17 @@ export function MockInterview({
                       ? "Not needed — you'll type your answers"
                       : "Required — hears your spoken answers"}
                   </p>
+                  {sttSupported === false && (
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {VOICE_PRACTICE_BROWSER_HINT}{" "}
+                      <Link
+                        href="/faq#which-browser-should-i-use-for-voice-practice"
+                        className="font-medium text-indigo-400 underline-offset-2 hover:underline"
+                      >
+                        Learn more
+                      </Link>
+                    </p>
+                  )}
                 </div>
               </div>
               <Badge tone={sttSupported === false ? "amber" : "green"}>
