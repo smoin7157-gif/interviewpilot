@@ -3,6 +3,8 @@
  * Keeps 429 Retry-After handling consistent across the workspace.
  */
 
+import { DATABASE_UNAVAILABLE_MESSAGE } from "@/lib/db-errors";
+
 export function rateLimitMessage(retryAfterHeader: string | null): string {
   const retryAfter = Number(retryAfterHeader);
   const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : null;
@@ -18,6 +20,10 @@ export function apiFailureMessage(
   fallback: string
 ): string {
   if (status === 429) return rateLimitMessage(retryAfterHeader);
+  if (status === 503) {
+    if (bodyError && bodyError.trim().length > 0) return bodyError;
+    return DATABASE_UNAVAILABLE_MESSAGE;
+  }
   if (bodyError && bodyError.trim().length > 0) return bodyError;
   return fallback;
 }

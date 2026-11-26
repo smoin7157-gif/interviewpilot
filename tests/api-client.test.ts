@@ -28,4 +28,12 @@ describe("apiFailureMessage", () => {
   it("uses fallback for other statuses", () => {
     assert.equal(apiFailureMessage(500, null, undefined, "Server error."), "Server error.");
   });
+
+  it("maps 503 to database guidance when the body is empty", () => {
+    assert.match(apiFailureMessage(503, null, undefined, "fail"), /database/i);
+  });
+
+  it("prefers the server body for 503 when present", () => {
+    assert.equal(apiFailureMessage(503, null, "Maintenance window.", "fail"), "Maintenance window.");
+  });
 });
