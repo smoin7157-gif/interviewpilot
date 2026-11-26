@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Plus,
   Search,
+  Mail,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -120,6 +121,14 @@ const COMMANDS: Command[] = [
     href: "/cookies",
     icon: CircleHelp,
     keywords: ["consent", "analytics", "legal"],
+  },
+  {
+    id: "contact",
+    label: "Contact",
+    hint: "Privacy requests and support",
+    href: "/contact",
+    icon: Mail,
+    keywords: ["support", "email", "grievance", "operator", "help"],
   },
 ];
 
