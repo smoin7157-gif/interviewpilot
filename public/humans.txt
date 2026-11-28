@@ -2,6 +2,7 @@
 Product: InterviewOS
 Site: /
 Repository: https://github.com/smoin7157-gif/interviewpilot
+Site: https://interviewos-v2.vercel.app
 
 /* THANKS */
 Candidates practicing honest interview prep.

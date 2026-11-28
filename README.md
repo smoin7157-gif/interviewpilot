@@ -2,6 +2,8 @@
 
 > Practice your interview before the real one.
 
+**Live app:** [interviewos-v2.vercel.app](https://interviewos-v2.vercel.app) (Vercel project `interviewos-v2`)
+
 InterviewOS is an AI-powered interview practice platform. Tell it about the job
 you're targeting — role, experience level, company, company type, interview
 type and the job description — and optionally add your resume, public GitHub
